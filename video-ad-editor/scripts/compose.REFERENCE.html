@@ -51,7 +51,7 @@ const R_STAGE={x:190,y:470,w:700,h:620,r:44};
 const R_SIDE={x:120,y:480,w:840,h:560,r:44};
 /* الفيديو تحت والشرح فوق — للحظات المعلومات الكثيرة. يدخل حزام انستقرام عن قصد:
    ما فيه نص تحت أصلاً، والمغطّى جزء من الصورة لا من الكلام. راس المتحدث ينقص من فوق. */
-const R_LOWER={x:300,y:1290,w:480,h:630,r:38};   /* كرت صغير تحت — يخلي ثلثي الشاشة للرسم والشرح */
+const R_LOWER={x:350,y:1370,w:380,h:520,r:32};   /* كرت صغير تحت — يخلي ثلثي الشاشة للرسم والشرح */
 const SCENES=[
  {s:0.00,e:3.32,m:R_FULL},{s:3.32,e:8.00,m:R_STAGE},{s:8.00,e:11.45,m:R_FULL},
  {s:11.45,e:15.36,m:R_STAGE},{s:15.36,e:18.56,m:R_STAGE},{s:18.56,e:20.42,m:R_FULL},
@@ -271,7 +271,7 @@ function headOut(t){
   const R=vrect(t);
   const ph=Math.max(1,B.y1-B.y0), cx=(B.x0+B.x1)/2;
   const cover=Math.max(R.w/W,R.h/H);                  /* لا تصغّر تحت ما يملأ الكرت */
-  const sc=Math.max(cover,Math.min(2.2,(R.h*1.28)/ph));
+  const sc=Math.max(cover,Math.min(2.2,(R.h*1.20)/ph));
   let dx=R.x+R.w/2-cx*sc; const dy=(R.y+R.h+30)-B.y1*sc;  /* قدماه تحت حافة الكرت بقليل */
   dx=Math.min(R.x, Math.max(R.x+R.w-W*sc, dx));      /* اضمن تغطية عرض الكرت */
   X.save();                                          /* 1) الكرت: الخلفية والجسم داخله */
@@ -279,12 +279,12 @@ function headOut(t){
   rr(R.x,R.y,R.w,R.h,R.r); X.clip();
   X.translate(dx,dy); X.scale(sc,sc); X.drawImage(VF,0,0,W,H);
   X.restore();
-  X.save();                                          /* 2) الراس فوق حافة الكرت */
+  X.save();                                          /* 2) إطار الكرت — قبل الراس حتى ما يمرّ خط فوق الوجه */
+  X.strokeStyle=cINK(0.10); X.lineWidth=3; rr(R.x,R.y,R.w,R.h,R.r); X.stroke(); X.restore();
+  X.save();                                          /* 3) الراس فوق حافة الكرت */
   X.beginPath(); X.rect(Math.max(0,R.x-140),0,Math.min(W,R.w+280),Math.max(0,R.y+2)); X.clip();
   X.translate(dx,dy); X.scale(sc,sc); X.drawImage(PRS,0,0,W,H);
   X.restore();
-  X.save();                                          /* إطار الكرت فوق الكل ما عدا الراس */
-  X.strokeStyle=cINK(0.10); X.lineWidth=3; rr(R.x,R.y,R.w,R.h,R.r); X.stroke(); X.restore();
   PTOP=dy+B.y0*sc;
   return true;
 }
