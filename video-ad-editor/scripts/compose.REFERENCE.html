@@ -51,7 +51,7 @@ const R_STAGE={x:190,y:470,w:700,h:620,r:44};
 const R_SIDE={x:120,y:480,w:840,h:560,r:44};
 /* الفيديو تحت والشرح فوق — للحظات المعلومات الكثيرة. يدخل حزام انستقرام عن قصد:
    ما فيه نص تحت أصلاً، والمغطّى جزء من الصورة لا من الكلام. راس المتحدث ينقص من فوق. */
-const R_LOWER={x:60,y:1140,w:960,h:780,r:44};
+const R_LOWER={x:300,y:1290,w:480,h:630,r:38};   /* كرت صغير تحت — يخلي ثلثي الشاشة للرسم والشرح */
 const SCENES=[
  {s:0.00,e:3.32,m:R_FULL},{s:3.32,e:8.00,m:R_STAGE},{s:8.00,e:11.45,m:R_FULL},
  {s:11.45,e:15.36,m:R_STAGE},{s:15.36,e:18.56,m:R_STAGE},{s:18.56,e:20.42,m:R_FULL},
@@ -116,6 +116,7 @@ function badge(t){
   X.fillStyle=INK;X.direction='ltr';X.textAlign='right';X.textBaseline='middle';X.fillText(s,x+w-p-lw-g,y+h/2+2);
   X.restore();}
 function bar(t){let a=t>VEND-0.3?1-pr(t,VEND-0.3,VEND):1;if(a<=0)return;
+  if(cutoutActive(t)||headoutActive(t))return;     /* بوضعي القصّ الشريط يشوّش — نخفيه */
   const _rb=vrect(t), _lowb=_rb.y>1000;            /* بوضع «الفيديو تحت» يرتفع الشريط فوقه */
   X.save();X.globalAlpha=a;const y=_lowb?Math.max(200,_rb.y-46):1492,h=7,mx=60;
   X.fillStyle=cINK(0.13);rr(mx,y,W-mx*2,h,h/2);X.fill();
@@ -136,7 +137,8 @@ function caption(t){
   if(rt<0.13){const k=rt/0.13;a=k;dy=-(1-k)*10;}
   const L=layout(c.w),bh=L.length*LH+PADY*2,bw=Math.max(...L.map(l=>l.w))+PADX*2;
   const _R=vrect(t), LOW=_R.y>1000;          /* الفيديو تحت → الكابشن فوقه */
-  const bx=540-bw/2,by=(LOW?_R.y-40:1460)-bh;   /* 1460 عادةً · وفوق كرت الفيديو بوضع «الفيديو تحت» */
+  const CUT=(cutoutActive(t)||headoutActive(t))&&PTOP>200;   /* الكابشن فوق راسه بالوضعين */
+  const bx=540-bw/2,by=(CUT?PTOP-46:(LOW?_R.y-40:1460))-bh;   /* 1460 عادةً · وفوق كرت الفيديو بوضع «الفيديو تحت» */
   X.save();X.globalAlpha=a;X.translate(540,by+bh/2+dy);X.scale(sc,sc);X.translate(-540,-(by+bh/2));
   sh(48,20,0.30);X.fillStyle=cBG(0.96);rr(bx,by,bw,bh,38);X.fill();nsh();
   X.strokeStyle=cINK(0.09);X.lineWidth=2.5;rr(bx,by,bw,bh,38);X.stroke();
@@ -243,6 +245,80 @@ window.setPerson=(src,face)=>{ PFACE=face||null;
   if(!src){ PRS_OK=false; return Promise.resolve(0); }
   PRS.src=src;
   return (PRS.decode?PRS.decode():Promise.resolve()).then(()=>{PRS_OK=true;return 1;}).catch(()=>{PRS_OK=false;return 0;}); };
+
+
+
+/* ═══ «راسك برّا المستطيل» ═══
+   الفيديو داخل كرت، وراس المتحدث يطلع فوق حافة الكرت (مقصوصاً من الخلفية).
+   طبقتان بنفس التحويل: الفيديو مقصوص بحدود الكرت · والراس مقصوص بما فوق الكرت.
+   البيانات: behind.json ← headouts:[[من,إلى]] */
+function headoutActive(t){
+  if(!BEHIND||!BEHIND.headouts||!PRS_OK) return false;
+  return BEHIND.headouts.some(c=>t>=c[0]&&t<=c[1]);
+}
+function _personBox(){
+  _MX.clearRect(0,0,W,H); _MX.drawImage(PRS,0,0,W,H);
+  let x0=W,x1=-1,y0=H,y1=-1;
+  try{ const d=_MX.getImageData(0,0,W,H).data;
+    for(let y=0;y<H;y+=4){ const row=y*W*4;
+      for(let x=0;x<W;x+=4){ if(d[row+x*4+3]>140){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } } }
+  }catch(e){ return null; }
+  return x1<0?null:{x0,x1,y0,y1};
+}
+function headOut(t){
+  if(!headoutActive(t)) return false;
+  const B=_personBox(); if(!B) return false;
+  const R=vrect(t);
+  const ph=Math.max(1,B.y1-B.y0), cx=(B.x0+B.x1)/2;
+  const cover=Math.max(R.w/W,R.h/H);                  /* لا تصغّر تحت ما يملأ الكرت */
+  const sc=Math.max(cover,Math.min(2.2,(R.h*1.28)/ph));
+  let dx=R.x+R.w/2-cx*sc; const dy=(R.y+R.h+30)-B.y1*sc;  /* قدماه تحت حافة الكرت بقليل */
+  dx=Math.min(R.x, Math.max(R.x+R.w-W*sc, dx));      /* اضمن تغطية عرض الكرت */
+  X.save();                                          /* 1) الكرت: الخلفية والجسم داخله */
+  sh(70,26,0.26); X.fillStyle=cBG(1); rr(R.x,R.y,R.w,R.h,R.r); X.fill(); nsh();
+  rr(R.x,R.y,R.w,R.h,R.r); X.clip();
+  X.translate(dx,dy); X.scale(sc,sc); X.drawImage(VF,0,0,W,H);
+  X.restore();
+  X.save();                                          /* 2) الراس فوق حافة الكرت */
+  X.beginPath(); X.rect(Math.max(0,R.x-140),0,Math.min(W,R.w+280),Math.max(0,R.y+2)); X.clip();
+  X.translate(dx,dy); X.scale(sc,sc); X.drawImage(PRS,0,0,W,H);
+  X.restore();
+  X.save();                                          /* إطار الكرت فوق الكل ما عدا الراس */
+  X.strokeStyle=cINK(0.10); X.lineWidth=3; rr(R.x,R.y,R.w,R.h,R.r); X.stroke(); X.restore();
+  PTOP=dy+B.y0*sc;
+  return true;
+}
+
+/* ═══ «واقف قدام اللوحة» — المتحدث مقصوص بلا كرت ═══
+   يُرسم بعد اللوحات: التصميم خلفه وهو قدامه. الحجم والموضع يُحسبان من حدود جسمه
+   بكل فريم، فيبقى ثابتاً حتى لو تحرّك. البيانات: behind.json ← cutouts:[[من,إلى]] */
+let PTOP=0;   /* أعلى راس المتحدث بعد القصّ — الكابشن يطلع فوقه */
+function cutoutActive(t){
+  if(!BEHIND||!BEHIND.cutouts||!PRS_OK) return false;
+  return BEHIND.cutouts.some(c=>t>=c[0]&&t<=c[1]);
+}
+function personStage(t){
+  if(!cutoutActive(t)) return false;
+  _MX.clearRect(0,0,W,H); _MX.drawImage(PRS,0,0,W,H);
+  let x0=W,x1=-1,y0=H,y1=-1;
+  try{
+    const d=_MX.getImageData(0,0,W,H).data;
+    for(let y=0;y<H;y+=4){ const row=y*W*4;
+      for(let x=0;x<W;x+=4){ if(d[row+x*4+3]>140){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; } } }
+  }catch(e){ return false; }
+  if(x1<0) return false;
+  const ph=Math.max(1,y1-y0), pw=Math.max(1,x1-x0);
+  const TARGET_H=900, sc=Math.min(2.0, TARGET_H/ph);      /* طوله ~1010 بكسل — يخلي مجالاً للكابشن فوق راسه */
+  const cx=(x0+x1)/2;
+  const dx=540-cx*sc, dy=(H+30)-y1*sc;                     /* أسفله يلامس أسفل الشاشة */
+  PTOP=dy+y0*sc;
+  X.save();
+  sh(60,10,0.22);                                          /* ظل خفيف يفصله عن اللوحة */
+  X.translate(dx,dy); X.scale(sc,sc);
+  X.drawImage(PRS,0,0,W,H);
+  X.restore(); nsh();
+  return true;
+}
 
 /* ================= SCENE GRAPHICS ================= */
 function stamp(t){ if(t<2.45||t>3.30)return;
@@ -560,12 +636,15 @@ function draw(t){
   X.setTransform(1,0,0,1,0,0); X.globalAlpha=1; X.filter='none';
   X.shadowColor='transparent'; X.shadowBlur=0; X.shadowOffsetY=0; X.globalCompositeOperation='source-over';
   X.clearRect(0,0,W,H);X.fillStyle=BG;X.fillRect(0,0,W,H);
-  if(t<VEND){safe(drawVideo,t,'video');safe(behindText,t,'behind');if(typeof glitch==='function')safe(glitch,t,'glitch');}
+  const _cut=(t<VEND)&&cutoutActive(t), _ho=(t<VEND)&&headoutActive(t);
+  if(t<VEND&&_ho){safe(headOut,t,'headout');}
+  if(t<VEND&&!_cut&&!_ho){safe(drawVideo,t,'video');safe(behindText,t,'behind');if(typeof glitch==='function')safe(glitch,t,'glitch');}
   badge(t);bar(t);
   [['stamp',stamp],['chips',chips],['fileToCloud',fileToCloud],['transcript',transcript],
    ['cardStack',cardStack],['suspense',suspense],['syncViz',syncViz],['price',price],
    ['rtlBug',rtlBug],['rtlFix',rtlFix],['solved',solved],['oneFile',oneFile],
    ['commentBox',commentBox]].forEach(x=>safe(x[1],t,x[0]));
+  if(_cut) safe(personStage,t,'cutout');   /* هو قدام اللوحة */
   safe(caption,t,'caption'); safe(outro,t,'outro');
 }
 window.draw=draw;window.init=init;window.vrect=vrect;
