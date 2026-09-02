@@ -10,6 +10,8 @@ const W=1080,H=1920;
 /* ── الألوان والخط تجي من theme.json — لا تكتب لوناً ثابتاً هني ── */
 let BG='#F3EFEA',INK='#1F1F1D',ACC='#D97757',CLAY='#BD5D3A',MUT='#8A847A',FONT='Cairo',HANDLE='@handle';
 let FACE_ANCH=0.30;   /* أين يقع وجه المتحدث داخل كرت الفيديو: 0 = فوق · 1 = تحت (theme.json ← faceAnchor) */
+let GRID=true;        /* شبكة خفيفة بالخلفية (theme.json ← grid:false يوقفها) */
+let BADGE_UNTIL=3.0;  /* الشارة تختفي بعد ٣ ثوانٍ (theme.json ← badgeUntil) */
 let CAPS=[],VEND=0,OUTRO=0,DUR=0;
 function init(d){
   CAPS=d.cards;VEND=d.total;OUTRO=d.outro;DUR=VEND+OUTRO;
@@ -18,10 +20,13 @@ function init(d){
   BG=t.bg||BG; INK=t.ink||INK; ACC=t.acc||ACC; CLAY=t.clay||CLAY; MUT=t.mut||MUT;
   FONT=t.font||FONT; HANDLE=t.handle||HANDLE;
   if(typeof t.faceAnchor==='number') FACE_ANCH=t.faceAnchor;
+  if(typeof t.badgeUntil==='number') BADGE_UNTIL=t.badgeUntil;
+  if(typeof t.grid==='boolean') GRID=t.grid;
   if(t.logo){const L=document.getElementById('LOGO'); if(L.getAttribute('src')!==t.logo) L.src=t.logo;}
   if(FONT!=='Cairo'){const l=document.createElement('link');l.rel='stylesheet';
     l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(FONT)+':wght@400;600;700;800;900&display=swap';
     document.head.appendChild(l);}
+  return preloadBroll();   /* يرجّع Promise — المحرّك ينتظر تحميل لقطات البي-رول (إن وُجدت) */
 }
 /* ---------- utils ---------- */
 /* ألوان مشتقّة من الثيم — لا تكتب rgba ثابتة */
@@ -51,15 +56,29 @@ const R_STAGE={x:190,y:470,w:700,h:620,r:44};
 const R_SIDE={x:120,y:480,w:840,h:560,r:44};
 /* الفيديو تحت والشرح فوق — للحظات المعلومات الكثيرة. يدخل حزام انستقرام عن قصد:
    ما فيه نص تحت أصلاً، والمغطّى جزء من الصورة لا من الكلام. راس المتحدث ينقص من فوق. */
-const R_LOWER={x:350,y:1370,w:380,h:520,r:32};   /* كرت صغير تحت — يخلي ثلثي الشاشة للرسم والشرح */
+const R_LOWER={x:350,y:1370,w:380,h:520,r:32};   /* كرت صغير تحت — للبي-رول واللوحات الكبيرة */
+/* ⛔ الافتراضي لأي لحظة فيها رسم (معتمد من المستخدم): الرسم فوق (y 280-520) ← الكابشن تحته مباشرة ← وجه المتحدث تحت
+   بكرت 9:16 كامل بلا قصّ. عين المشاهد تمشي بخط واحد من فوق لتحت. لا تستخدم R_STAGE/R_SIDE (الفيديو بالنص + رسم فوق الراس
+   + كابشن تحت = ثلاث نقاط تركيز، المشاهد يتوه). R_STAGE/R_SIDE باقيتان للتوافق فقط. */
+const R_DOWN={x:214,y:760,w:652,h:1160,r:40};
 const SCENES=[
- {s:0.00,e:3.32,m:R_FULL},{s:3.32,e:8.00,m:R_STAGE},{s:8.00,e:11.45,m:R_FULL},
- {s:11.45,e:15.36,m:R_STAGE},{s:15.36,e:18.56,m:R_STAGE},{s:18.56,e:20.42,m:R_FULL},
- {s:20.42,e:25.76,m:R_FULL},{s:25.76,e:28.35,m:R_STAGE},{s:28.35,e:30.75,m:R_FULL},
- {s:30.75,e:34.90,m:R_SIDE},{s:34.90,e:38.38,m:R_SIDE},{s:38.38,e:39.76,m:R_FULL},
- {s:39.76,e:42.82,m:R_SIDE},{s:42.82,e:99,m:R_FULL}];
+ {s:0.00,e:3.32,m:R_FULL},{s:3.32,e:8.00,m:R_DOWN},{s:8.00,e:11.45,m:R_FULL},
+ {s:11.45,e:15.36,m:R_DOWN},{s:15.36,e:18.56,m:R_DOWN},{s:18.56,e:20.42,m:R_FULL},
+ {s:20.42,e:25.76,m:R_FULL},{s:25.76,e:28.35,m:R_DOWN},{s:28.35,e:30.75,m:R_FULL},
+ {s:30.75,e:34.90,m:R_DOWN},{s:34.90,e:38.38,m:R_DOWN},{s:38.38,e:39.76,m:R_FULL},
+ {s:39.76,e:42.82,m:R_DOWN},{s:42.82,e:99,m:R_FULL}];
 const TR=0.42;
+/* الكرت المرن: يصغر نسبة وتناسب (9:16) حسب أسفل الرسم (gb) وعدد أسطر الكابشن بهاللحظة — فلا يتزاحم شي */
+const CAPH=l=>l*LH+PADY*2;
+function rDown(gb,lines){const top=gb+40+CAPH(lines)+50;return {x:0,y:top,w:1080,h:1920-top,r:0};}
+let _RES=false;
+function resolveScenes(){ if(_RES||!CAPS.length)return; _RES=true;
+  SCENES.forEach(s=>{ if(s.m!==R_DOWN)return; const gb=s.gb||500; let lines=1;
+    CAPS.forEach(c=>{ if(c.e>s.s&&c.s<s.e) lines=Math.max(lines,layout(c.w).length); });
+    s.m=rDown(gb,lines); }); }
+const isFull=R=>R.w>=1079&&R.h>=1919;   /* ملء الشاشة حقيقةً — لا تعتمد على r */
 function vrect(t){
+  resolveScenes();
   let i=SCENES.findIndex(s=>t>=s.s&&t<s.e); if(i<0)i=SCENES.length-1;
   let a=SCENES[i].m,b=a,k=1;
   if(t<SCENES[i].s+TR&&i>0){a=SCENES[i-1].m;b=SCENES[i].m;k=eio(pr(t,SCENES[i].s,SCENES[i].s+TR));}
@@ -105,8 +124,20 @@ function iCheck(x,y,s,c,k){X.save();X.strokeStyle=c;X.lineWidth=s*0.13;X.lineCap
   else{X.lineTo(x+p[1][0]*s,y+p[1][1]*s);const q=(k-0.5)/0.5;X.lineTo(x+lerp(p[1][0],p[2][0],q)*s,y+lerp(p[1][1],p[2][1],q)*s);}
   X.stroke();X.restore();}
 /* ---------- persistent chrome ---------- */
+/* شبكة خفيفة بالخلفية: تعطي عمقاً وتمنع الفراغ الميت، وخفيفة كفاية ما تسحب النظر
+   عن الرسم. تُرسم قبل الفيديو فالجزء اللي تحته ما يبين. */
+function grid(){ if(!GRID) return; X.save();
+  X.strokeStyle=cINK(0.075); X.lineWidth=1.5;
+  for(let x=60;x<W;x+=60){X.beginPath();X.moveTo(x+0.5,0);X.lineTo(x+0.5,H);X.stroke();}
+  for(let y=60;y<H;y+=60){X.beginPath();X.moveTo(0,y+0.5);X.lineTo(W,y+0.5);X.stroke();}
+  X.restore();}
 function badge(t){
-  let a=pr(t,0.25,0.7); if(t>VEND-0.3)a*=1-pr(t,VEND-0.3,VEND);
+  /* الشارة أول الفيديو بس ثم تختفي: اسمه مكتوب بالمنصة نفسها وبكرت النهاية،
+     وبقاؤها طول الفيديو ياكل أعلى الشاشة اللي يحتاجه الرسم بـR_DOWN.
+     theme.json ← badgeUntil (ثوانٍ) · 0 = تختفي من أول · -1 = تبقى طول الفيديو */
+  let a=pr(t,0.25,0.7);
+  if(BADGE_UNTIL>=0) a*=1-pr(t,BADGE_UNTIL,BADGE_UNTIL+0.4);
+  if(t>VEND-0.3)a*=1-pr(t,VEND-0.3,VEND);
   if(a<=0)return; X.save();X.globalAlpha=a;
   X.font='700 30px '+FONT;const s=HANDLE;
   const tw=X.measureText(s).width,lw=42,g=15,p=30,w=lw+g+tw+p*2,h=76,x=540-w/2,y=190;   /* 190 لا 74: أعلى الشاشة يغطيه انستقرام */
@@ -117,8 +148,8 @@ function badge(t){
   X.restore();}
 function bar(t){let a=t>VEND-0.3?1-pr(t,VEND-0.3,VEND):1;if(a<=0)return;
   if(cutoutActive(t)||headoutActive(t))return;     /* بوضعي القصّ الشريط يشوّش — نخفيه */
-  const _rb=vrect(t), _lowb=_rb.y>1000;            /* بوضع «الفيديو تحت» يرتفع الشريط فوقه */
-  X.save();X.globalAlpha=a;const y=_lowb?Math.max(200,_rb.y-46):1492,h=7,mx=60;
+  const _rb=vrect(t), _lowb=_rb.y>700;            /* بوضع «الفيديو تحت» يرتفع الشريط فوقه */
+  X.save();X.globalAlpha=a;const y=_lowb?Math.max(200,_rb.y-30):1492,h=7,mx=60;
   X.fillStyle=cINK(0.13);rr(mx,y,W-mx*2,h,h/2);X.fill();
   X.fillStyle=ACC;rr(mx,y,(W-mx*2)*cl(t/VEND,0,1),h,h/2);X.fill();X.restore();}
 /* ---------- captions ---------- */
@@ -130,15 +161,16 @@ function layout(ws){X.font='800 '+FS+'px '+FONT;
   if(c.length)L.push({items:c,w:cw});return L;}
 function caption(t){
   /* لا تكرّر: لو الكلام يمرّ ورا الشخص بهاللحظة، كرت الكابشن يختفي */
-  if(BEHIND&&PRS_OK&&vrect(t).r<=0.5&&BEHIND.lines.some(l=>t>=l.s&&t<=l.e)) return;
+  if(BEHIND&&PRS_OK&&isFull(vrect(t))&&BEHIND.lines.some(l=>t>=l.s&&t<=l.e)) return;
   const c=CAPS.find(c=>t>=c.s&&t<c.e); if(!c)return;
   const lt=t-c.s,rt=c.e-t;let a=1,dy=0,sc=1;
   if(lt<0.2){const k=lt/0.2;a=ease(k);dy=(1-ease(k))*28;sc=0.93+0.07*back(k);}
   if(rt<0.13){const k=rt/0.13;a=k;dy=-(1-k)*10;}
   const L=layout(c.w),bh=L.length*LH+PADY*2,bw=Math.max(...L.map(l=>l.w))+PADX*2;
-  const _R=vrect(t), LOW=_R.y>1000;          /* الفيديو تحت → الكابشن فوقه */
+  const _R=vrect(t), LOW=_R.y>700;          /* R_DOWN أو R_LOWER → الكابشن فوق كرت الفيديو */          /* الفيديو تحت → الكابشن فوقه */
   const CUT=(cutoutActive(t)||headoutActive(t))&&PTOP>200;   /* الكابشن فوق راسه بالوضعين */
-  const bx=540-bw/2,by=(CUT?PTOP-46:(LOW?_R.y-40:1460))-bh;   /* 1460 عادةً · وفوق كرت الفيديو بوضع «الفيديو تحت» */
+  const SEAM=isFull(_R)?0:Math.round(bh*0.42);   /* ركوب الكابشن على حافة الفيديو */
+  const bx=540-bw/2,by=(CUT?PTOP-46:(LOW?_R.y-60+SEAM:1460))-bh;   /* 1460 عادةً · وعلى حافة الفيديو بوضع «الفيديو تحت» */
   X.save();X.globalAlpha=a;X.translate(540,by+bh/2+dy);X.scale(sc,sc);X.translate(-540,-(by+bh/2));
   sh(48,20,0.30);X.fillStyle=cBG(0.96);rr(bx,by,bw,bh,38);X.fill();nsh();
   X.strokeStyle=cINK(0.09);X.lineWidth=2.5;rr(bx,by,bw,bh,38);X.stroke();
@@ -207,7 +239,7 @@ function _layout(word,font,sp,gap){
 }
 function behindText(t){
   if(!BEHIND||!PRS_OK) return false;
-  const R=vrect(t); if(R.r>0.5) return false;              /* ملء الشاشة فقط */
+  const R=vrect(t); if(!isFull(R)) return false;           /* ملء الشاشة فقط */
   const L=BEHIND.lines.find(l=>t>=l.s&&t<=l.e); if(!L) return false;
   _MX.clearRect(0,0,W,H); _MX.drawImage(PRS,0,0,W,H);
   _FX.clearRect(0,0,W,H); _FX.drawImage(VF,0,0,W,H);
@@ -319,6 +351,30 @@ function personStage(t){
   X.restore(); nsh();
   return true;
 }
+
+/* ---------- B-roll: لقطات فيديو ثانية داخل كرت (اختياري) ----------
+   استخرج الفريمات: ffmpeg -ss <من> -t <مدة> -i broll.mp4 -vf fps=30 <work>/broll/<اسم>_%04d.jpg
+   ثم عرّف المدى هنا: BR_NEED={tree:[60,151]} ← يُحمَّل مرة وحدة عند init. brCard(اسم, t-s, سرعة, 1, s, e) يرسمه بكرت فوق.
+   BRCROP يقصّ الترجمة المحروقة أسفل لقطات أنثروبك (من 720×1280: خذ 640×800 من y=60). */
+const BR={}, BR_NEED={};
+const BRCROP={sx:40,sy:60,sw:640,sh:800};
+function preloadBroll(){const ps=[];
+  for(const k in BR_NEED){const [a,b]=BR_NEED[k];BR[k]={imgs:[]};
+    for(let i=a;i<=b;i++){const im=new Image();im.src='broll/'+k+'_'+String(i).padStart(4,'0')+'.jpg';BR[k].imgs.push(im);
+      ps.push(new Promise(r=>{im.onload=r;im.onerror=r;}));}}
+  return Promise.all(ps);}
+function brFrame(k,dt,sp){const b=BR[k];if(!b)return null;const i=cl(Math.floor(dt*30*(sp||1)),0,b.imgs.length-1);const im=b.imgs[i];return im&&im.naturalWidth?im:null;}
+const BRC={x:260,y:300,w:560,h:700,r:40};           /* كرت البي-رول — يشتغل مع R_LOWER (الكابشن ينزل لـ1310) */
+function brCard(k,dt,sp,a,s0,s1){const im=brFrame(k,dt,sp);if(!im)return;
+  const k1=ease(pr(dt,0,0.35)), out=1-pr(dt,s1-s0-0.22,s1-s0); const al=a*k1*out, sc=lerp(0.92,1,back(k1));
+  X.save();X.globalAlpha*=al;X.translate(540,BRC.y+BRC.h/2);X.scale(sc,sc);X.translate(-540,-(BRC.y+BRC.h/2));
+  sh(60,24,0.28);X.fillStyle='#000';rr(BRC.x,BRC.y,BRC.w,BRC.h,BRC.r);X.fill();nsh();
+  X.save();rr(BRC.x,BRC.y,BRC.w,BRC.h,BRC.r);X.clip();
+  X.drawImage(im,BRCROP.sx,BRCROP.sy,BRCROP.sw,BRCROP.sh,BRC.x,BRC.y,BRC.w,BRC.h);X.restore();
+  X.strokeStyle=cINK(0.14);X.lineWidth=3;rr(BRC.x,BRC.y,BRC.w,BRC.h,BRC.r);X.stroke();X.restore();}
+/* ---------- لوحة فوق الوجه بوضع R_DOWN: ارسم اللوحة بإحداثيات 130..950 × 278..458 وهي تتكبّر 1.2 وحدها ---------- */
+function panelIn(t,s,e,fn){ if(t<s||t>e)return; const k=ease(pr(t,s,s+0.32)), out=1-pr(t,e-0.2,e);
+  X.save();X.globalAlpha*=k*out;X.translate(540,368+(1-k)*22);X.scale(1.2,1.2);X.translate(-540,-368);fn(t);X.restore();}
 
 /* ================= SCENE GRAPHICS ================= */
 function stamp(t){ if(t<2.45||t>3.30)return;
@@ -635,7 +691,7 @@ function draw(t){
   /* تصفير حالة الرسم بكل فريم — ضمانة إن أي فريم يبدأ نظيفاً */
   X.setTransform(1,0,0,1,0,0); X.globalAlpha=1; X.filter='none';
   X.shadowColor='transparent'; X.shadowBlur=0; X.shadowOffsetY=0; X.globalCompositeOperation='source-over';
-  X.clearRect(0,0,W,H);X.fillStyle=BG;X.fillRect(0,0,W,H);
+  X.clearRect(0,0,W,H);X.fillStyle=BG;X.fillRect(0,0,W,H);safe(grid,t,'grid');
   const _cut=(t<VEND)&&cutoutActive(t), _ho=(t<VEND)&&headoutActive(t);
   if(t<VEND&&_ho){safe(headOut,t,'headout');}
   if(t<VEND&&!_cut&&!_ho){safe(drawVideo,t,'video');safe(behindText,t,'behind');if(typeof glitch==='function')safe(glitch,t,'glitch');}

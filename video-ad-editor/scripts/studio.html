@@ -64,12 +64,14 @@ function T(s,x,y,f,c,al,dir){X.save();X.font=f;X.fillStyle=c;X.textAlign=al||'ce
 const R_FULL={x:0,y:0,w:1080,h:1920,r:0};
 const R_STAGE={x:190,y:660,w:700,h:700,r:44};
 const R_SIDE={x:120,y:700,w:840,h:620,r:44};
+const R_LOWER={x:350,y:1370,w:380,h:520,r:32};
+const R_DOWN={x:214,y:760,w:652,h:1160,r:40};   /* الافتراضي للحظات الرسم: رسم فوق ← كابشن ← وجه تحت */
 const SCENES=[
- {s:0.00,e:3.32,m:R_FULL},{s:3.32,e:8.00,m:R_STAGE},{s:8.00,e:11.45,m:R_FULL},
- {s:11.45,e:15.36,m:R_STAGE},{s:15.36,e:18.56,m:R_STAGE},{s:18.56,e:20.42,m:R_FULL},
- {s:20.42,e:25.76,m:R_FULL},{s:25.76,e:28.35,m:R_STAGE},{s:28.35,e:30.75,m:R_FULL},
- {s:30.75,e:34.90,m:R_SIDE},{s:34.90,e:38.38,m:R_SIDE},{s:38.38,e:39.76,m:R_FULL},
- {s:39.76,e:42.82,m:R_SIDE},{s:42.82,e:99,m:R_FULL}];
+ {s:0.00,e:3.32,m:R_FULL},{s:3.32,e:8.00,m:R_DOWN},{s:8.00,e:11.45,m:R_FULL},
+ {s:11.45,e:15.36,m:R_DOWN},{s:15.36,e:18.56,m:R_DOWN},{s:18.56,e:20.42,m:R_FULL},
+ {s:20.42,e:25.76,m:R_FULL},{s:25.76,e:28.35,m:R_DOWN},{s:28.35,e:30.75,m:R_FULL},
+ {s:30.75,e:34.90,m:R_DOWN},{s:34.90,e:38.38,m:R_DOWN},{s:38.38,e:39.76,m:R_FULL},
+ {s:39.76,e:42.82,m:R_DOWN},{s:42.82,e:99,m:R_FULL}];
 const TR=0.42;
 function vrect(t){
   let i=SCENES.findIndex(s=>t>=s.s&&t<s.e); if(i<0)i=SCENES.length-1;

@@ -8,9 +8,14 @@ const card = (a=0.96) => ({
   boxShadow: `0 20px 48px ${rgba(T.ink,0.30)}`,
 });
 
-/** شارة الحساب — فوق، داخل المنطقة الآمنة */
+/** شارة الحساب — فوق، داخل المنطقة الآمنة.
+    تختفي بعد BADGE_UNTIL ثانية (theme.json ← badgeUntil · افتراضي 3 · ‎-1 = تبقى طول الفيديو):
+    اسمه مكتوب بالمنصة نفسها وبكرت النهاية، وبقاؤها ياكل أعلى الشاشة اللي يحتاجه الرسم. */
 export const Badge: React.FC<{t:number}> = ({t}) => {
-  const a = p(t,0.25,0.7) * (t > VEND-0.3 ? 1-p(t,VEND-0.3,VEND) : 1);
+  const bu = T.badgeUntil;
+  const a = p(t,0.25,0.7)
+    * (bu >= 0 ? 1-p(t,bu,bu+0.4) : 1)
+    * (t > VEND-0.3 ? 1-p(t,VEND-0.3,VEND) : 1);
   if (a <= 0 || !T.handle) return null;
   return (
     <div style={{position:'absolute', top:190, left:0, right:0, display:'flex', justifyContent:'center', opacity:a}}>

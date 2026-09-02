@@ -10,6 +10,7 @@ export const T = {
   mut: P.theme.mut || '#98A2B3',
   font:P.theme.font|| 'Cairo',
   handle: P.theme.handle || '',
+  badgeUntil: typeof P.theme.badgeUntil === 'number' ? P.theme.badgeUntil : 3,
 };
 export const FPS   = 30;
 export const VEND  = P.total;              // نهاية كلام الفيديو
