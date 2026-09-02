@@ -67,11 +67,15 @@ const FLAT_B='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2
   await p.setCacheEnabled(false);   // لا تقرأ نسخة مخبّأة من compose.html
   await p.goto('file://'+W+'compose.html',{waitUntil:'networkidle0'});
   const FF=THEME.font||'Cairo';
-  await p.evaluate(f=>Promise.all([document.fonts.load('900 100px '+f),
-    document.fonts.load('700 40px '+f),document.fonts.load('800 55px '+f)]).then(()=>document.fonts.ready),FF);
   await p.evaluate(()=>new Promise(r=>{const l=document.getElementById('LOGO');
     if(!l||l.complete)return r(); l.onload=r; l.onerror=r; setTimeout(r,3000);}));
   await p.evaluate((c,o,t)=>window.init({cards:c.cards,total:c.total,outro:o,theme:t}),caps,OUT_D,THEME);
+  /* ⚠️ بعد init لا قبلها — الخط اللي مو Cairo يُحقن داخل init (نفس علّة 04) */
+  await p.evaluate(async f=>{
+    const W=['400','600','700','800','900'];
+    await Promise.all(W.map(w=>document.fonts.load(w+' 60px '+f)));
+    await document.fonts.ready;
+  },FF);
 
   /* أوقات الفحص: كل 0.4 ثانية + بداية ومنتصف كل كابشن + كرت النهاية */
   const T=new Set();

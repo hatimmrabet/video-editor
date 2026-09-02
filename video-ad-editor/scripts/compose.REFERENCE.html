@@ -11,7 +11,8 @@ const W=1080,H=1920;
 let BG='#F3EFEA',INK='#1F1F1D',ACC='#D97757',CLAY='#BD5D3A',MUT='#8A847A',FONT='Cairo',HANDLE='@handle';
 let FACE_ANCH=0.30;   /* أين يقع وجه المتحدث داخل كرت الفيديو: 0 = فوق · 1 = تحت (theme.json ← faceAnchor) */
 let GRID=true;        /* شبكة خفيفة بالخلفية (theme.json ← grid:false يوقفها) */
-let BADGE_UNTIL=3.0;  /* الشارة تختفي بعد ٣ ثوانٍ (theme.json ← badgeUntil) */
+let BADGE_UNTIL=0;    /* ⛔ شارة الحساب مطفية (قرار ماجد ٢ سبتمبر): اسمه ظاهر بالمنصة نفسها
+                         وبكرت النهاية، وفوق الشاشة مساحة للرسم. theme.json ← badgeUntil:3 تعيدها */
 let CAPS=[],VEND=0,OUTRO=0,DUR=0;
 function init(d){
   CAPS=d.cards;VEND=d.total;OUTRO=d.outro;DUR=VEND+OUTRO;
@@ -21,6 +22,7 @@ function init(d){
   FONT=t.font||FONT; HANDLE=t.handle||HANDLE;
   if(typeof t.faceAnchor==='number') FACE_ANCH=t.faceAnchor;
   if(typeof t.badgeUntil==='number') BADGE_UNTIL=t.badgeUntil;
+  if(typeof t.badge==='boolean') BADGE_UNTIL=t.badge?3:0;   /* توافق: مشاريع كتبت badge:false */
   if(typeof t.grid==='boolean') GRID=t.grid;
   if(t.logo){const L=document.getElementById('LOGO'); if(L.getAttribute('src')!==t.logo) L.src=t.logo;}
   if(FONT!=='Cairo'){const l=document.createElement('link');l.rel='stylesheet';
@@ -77,6 +79,7 @@ function resolveScenes(){ if(_RES||!CAPS.length)return; _RES=true;
     CAPS.forEach(c=>{ if(c.e>s.s&&c.s<s.e) lines=Math.max(lines,layout(c.w).length); });
     s.m=rDown(gb,lines); }); }
 const isFull=R=>R.w>=1079&&R.h>=1919;   /* ملء الشاشة حقيقةً — لا تعتمد على r */
+function vtarget(t){ resolveScenes(); let i=SCENES.findIndex(s=>t>=s.s&&t<s.e); if(i<0)i=SCENES.length-1; return SCENES[i].m; }
 function vrect(t){
   resolveScenes();
   let i=SCENES.findIndex(s=>t>=s.s&&t<s.e); if(i<0)i=SCENES.length-1;
@@ -135,8 +138,9 @@ function badge(t){
   /* الشارة أول الفيديو بس ثم تختفي: اسمه مكتوب بالمنصة نفسها وبكرت النهاية،
      وبقاؤها طول الفيديو ياكل أعلى الشاشة اللي يحتاجه الرسم بـR_DOWN.
      theme.json ← badgeUntil (ثوانٍ) · 0 = تختفي من أول · -1 = تبقى طول الفيديو */
+  if(!BADGE_UNTIL) return;                       /* 0 = مطفية نهائياً */
   let a=pr(t,0.25,0.7);
-  if(BADGE_UNTIL>=0) a*=1-pr(t,BADGE_UNTIL,BADGE_UNTIL+0.4);
+  if(BADGE_UNTIL>0) a*=1-pr(t,BADGE_UNTIL,BADGE_UNTIL+0.4);
   if(t>VEND-0.3)a*=1-pr(t,VEND-0.3,VEND);
   if(a<=0)return; X.save();X.globalAlpha=a;
   X.font='700 30px '+FONT;const s=HANDLE;
@@ -148,7 +152,7 @@ function badge(t){
   X.restore();}
 function bar(t){let a=t>VEND-0.3?1-pr(t,VEND-0.3,VEND):1;if(a<=0)return;
   if(cutoutActive(t)||headoutActive(t))return;     /* بوضعي القصّ الشريط يشوّش — نخفيه */
-  const _rb=vrect(t), _lowb=_rb.y>700;            /* بوضع «الفيديو تحت» يرتفع الشريط فوقه */
+  const _rb=vtarget(t), _lowb=_rb.y>700;            /* بوضع «الفيديو تحت» يرتفع الشريط فوقه */
   X.save();X.globalAlpha=a;const y=_lowb?Math.max(200,_rb.y-30):1492,h=7,mx=60;
   X.fillStyle=cINK(0.13);rr(mx,y,W-mx*2,h,h/2);X.fill();
   X.fillStyle=ACC;rr(mx,y,(W-mx*2)*cl(t/VEND,0,1),h,h/2);X.fill();X.restore();}
@@ -167,7 +171,7 @@ function caption(t){
   if(lt<0.2){const k=lt/0.2;a=ease(k);dy=(1-ease(k))*28;sc=0.93+0.07*back(k);}
   if(rt<0.13){const k=rt/0.13;a=k;dy=-(1-k)*10;}
   const L=layout(c.w),bh=L.length*LH+PADY*2,bw=Math.max(...L.map(l=>l.w))+PADX*2;
-  const _R=vrect(t), LOW=_R.y>700;          /* R_DOWN أو R_LOWER → الكابشن فوق كرت الفيديو */          /* الفيديو تحت → الكابشن فوقه */
+  const _R=vtarget(t), LOW=_R.y>700;   /* مستطيل الهدف لا المتحرّك: الكابشن يثبت بمكانه من أول فريم بلا قفزة */          /* R_DOWN أو R_LOWER → الكابشن فوق كرت الفيديو */          /* الفيديو تحت → الكابشن فوقه */
   const CUT=(cutoutActive(t)||headoutActive(t))&&PTOP>200;   /* الكابشن فوق راسه بالوضعين */
   const SEAM=isFull(_R)?0:Math.round(bh*0.42);   /* ركوب الكابشن على حافة الفيديو */
   const bx=540-bw/2,by=(CUT?PTOP-46:(LOW?_R.y-60+SEAM:1460))-bh;   /* 1460 عادةً · وعلى حافة الفيديو بوضع «الفيديو تحت» */
@@ -373,8 +377,9 @@ function brCard(k,dt,sp,a,s0,s1){const im=brFrame(k,dt,sp);if(!im)return;
   X.drawImage(im,BRCROP.sx,BRCROP.sy,BRCROP.sw,BRCROP.sh,BRC.x,BRC.y,BRC.w,BRC.h);X.restore();
   X.strokeStyle=cINK(0.14);X.lineWidth=3;rr(BRC.x,BRC.y,BRC.w,BRC.h,BRC.r);X.stroke();X.restore();}
 /* ---------- لوحة فوق الوجه بوضع R_DOWN: ارسم اللوحة بإحداثيات 130..950 × 278..458 وهي تتكبّر 1.2 وحدها ---------- */
-function panelIn(t,s,e,fn){ if(t<s||t>e)return; const k=ease(pr(t,s,s+0.32)), out=1-pr(t,e-0.2,e);
+function panelIn(t,s,e,fn){ if(t<s+TR-0.1||t>e)return; const k=ease(pr(t,s+TR-0.1,s+TR+0.25)), out=1-pr(t,e-0.2,e);
   X.save();X.globalAlpha*=k*out;X.translate(540,368+(1-k)*22);X.scale(1.2,1.2);X.translate(-540,-368);fn(t);X.restore();}
+/* ملاحظة: اللوحة تبدأ بعد TR (0.42ث) — تنتظر الفيديو يخلص نزوله حتى ما ترتسم فوق وجهه */
 
 /* ================= SCENE GRAPHICS ================= */
 function stamp(t){ if(t<2.45||t>3.30)return;

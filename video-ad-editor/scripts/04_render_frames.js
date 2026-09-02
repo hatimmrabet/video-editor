@@ -31,10 +31,18 @@ const CHROME=process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/
   await p.setCacheEnabled(false);   // لا تقرأ نسخة مخبّأة من compose.html
   await p.goto('file://'+W+'compose.html',{waitUntil:'networkidle0'});
   const FF=THEME.font||'Cairo';
-  await p.evaluate(f=>Promise.all([document.fonts.load('900 100px '+f),
-    document.fonts.load('700 40px '+f),document.fonts.load('800 55px '+f)]).then(()=>document.fonts.ready),FF);
   await p.evaluate(()=>new Promise(r=>{const l=document.getElementById('LOGO');l.complete?r():l.onload=r;}));
   await p.evaluate((c,o,t,b)=>window.init({cards:c.cards,total:c.total,outro:o,theme:t,behind:b}),caps,OUT_D,THEME,BEHIND);
+  /* ⚠️ انتظار الخط لازم يجي **بعد** init: الخط اللي مو Cairo يُحقن داخل init نفسها،
+     فانتظاره قبلها = انتظار لا شي، والنتيجة أول الفيديو بخط بديل ثم ينقلب بالنص.
+     وكل الأوزان تُحمّل — الوزن 600 كان ناقصاً فيطلع بخط بديل لحاله. */
+  const fontOK=await p.evaluate(async f=>{
+    const W=['400','600','700','800','900'];
+    await Promise.all(W.map(w=>document.fonts.load(w+' 60px '+f)));
+    await document.fonts.ready;
+    return W.every(w=>document.fonts.check(w+' 60px '+f));
+  },FF);
+  if(!fontOK) console.log('⚠️ الخط '+FF+' ما اكتمل تحميله — الرسم بيكمل بخط بديل');
   const grab=async(t,file,q)=>{
     const i=Math.min(NVF,Math.max(1,Math.round(t*FPS)+1));
     const id=String(i).padStart(5,'0');

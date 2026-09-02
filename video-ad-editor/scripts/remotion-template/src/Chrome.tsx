@@ -13,8 +13,9 @@ const card = (a=0.96) => ({
     اسمه مكتوب بالمنصة نفسها وبكرت النهاية، وبقاؤها ياكل أعلى الشاشة اللي يحتاجه الرسم. */
 export const Badge: React.FC<{t:number}> = ({t}) => {
   const bu = T.badgeUntil;
+  if (!bu) return null;                       /* 0 = مطفية نهائياً */
   const a = p(t,0.25,0.7)
-    * (bu >= 0 ? 1-p(t,bu,bu+0.4) : 1)
+    * (bu > 0 ? 1-p(t,bu,bu+0.4) : 1)
     * (t > VEND-0.3 ? 1-p(t,VEND-0.3,VEND) : 1);
   if (a <= 0 || !T.handle) return null;
   return (
