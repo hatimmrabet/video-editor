@@ -1,14 +1,15 @@
 # video-editor — Documentation
 
-Technical reference for the **video-editor** fork of
-[`majedphotos/video-ad-editor`](https://github.com/majedphotos/video-ad-editor).
+Technical reference for **video-editor** — a Claude Code skill that turns a talking-head
+video into a captioned vertical 9:16 ad. Origin and history: [`../FORK.md`](../FORK.md).
 
 This directory is the map of the codebase: what every script does, how data flows
 between them, how the two rendering engines work, and where the project is heading.
 
 > **Audience & language.** These docs are for contributors and maintainers, and are
-> written in **English**. The end-user material — `video-editor/SKILL.md` (the Claude
-> skill) and `video-editor/GUIDE.pdf` — stays in **Arabic** and is not duplicated here.
+> written in **English**, as is `video-editor/SKILL.md` (the skill instructions). The
+> end-user `video-editor/GUIDE.pdf` and the on-screen caption / trigger-phrase text are
+> **Arabic** — that's output content, not instruction, and is not duplicated here.
 
 ## How to read this
 
@@ -44,14 +45,14 @@ clip by sharpness / motion / lighting / color.
 ## Repo layout (orientation)
 
 ```
-video-editor/                     ← fork wrapper
-  FORK.md                          what the fork changed + roadmap
-  README.md                        repo landing page (Arabic + fork note)
+video-editor/                     ← repo root
+  README.md                        landing page + install instructions
+  FORK.md                          origin + roadmap
+  CONTRIBUTING.md                  where things live, how work is tracked
   docs/                            ← you are here
-  video-ad-editor.skill            STALE upstream package (old numbered scripts) — see project-tracking.md
-  video-editor/                    ← the actual skill (installed to ~/.claude/skills/)
-    SKILL.md                       the Claude skill spec (Arabic) — operational source of truth
-    HANDOFF.md                     thin status pointer (was the handoff doc)
+  video-ad-editor.skill            STALE package (old numbered scripts) — see project-tracking.md
+  video-editor/                    ← the actual skill (installed to ~/.claude/skills/video-ad-editor)
+    SKILL.md                       the Claude skill spec — operational source of truth
     GUIDE.html / GUIDE.pdf         13-page end-user guide (Arabic)
     package.json                   one dep: puppeteer-core
     scripts/                       the pipeline (see scripts/)

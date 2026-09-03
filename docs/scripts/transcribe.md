@@ -1,12 +1,13 @@
 # `transcribe.py`
 
-`video-editor/scripts/transcribe.py` · python · shared · **fork addition**
+`video-editor/scripts/transcribe.py` · python · shared
 
 > Word-level speech transcription → `a.json` (openai-whisper JSON shape). Auto-selects the
 > engine: faster-whisper on CUDA (fastest) → faster-whisper CPU → openai-whisper CPU
 > fallback. Handles "hard dialects" (Maghrebi Arabic / darija) by mapping to ISO `ar` and
 > enabling VAD + repetition penalty + a higher no-speech threshold, and warning that the
-> text will need manual correction. Replaces the pre-fork direct `python -m whisper` call.
+> text will need manual correction. Replaces a plain `python -m whisper` invocation and
+> adds Windows GPU support.
 
 ## CLI
 
@@ -72,4 +73,3 @@ Stage 3. Also re-run in the mandatory pre-delivery sync check
 - If faster-whisper is selected but fails at runtime and openai-whisper is importable, it
   automatically retries with openai-whisper.
 - The output `words[]` drops any word Whisper returned with a null `start`.
-- Not listed in `HANDOFF.md`'s legacy "13 scripts" — it is a fork addition.

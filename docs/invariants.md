@@ -5,7 +5,7 @@ found in real production runs — each is fixed in code, and the fix must not be
 
 ---
 
-## Design policy (`SKILL.md` "القواعد الثابتة")
+## Design policy (`SKILL.md` "Fixed rules")
 
 1. **Every sound effect is tied to a meaningful moment** — a number dropping, something
    breaking, a scene transition. Max 15 events/minute; peak below −18 dBFS; show the user

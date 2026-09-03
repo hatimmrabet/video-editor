@@ -1,312 +1,402 @@
 ---
 name: video-ad-editor
-description: يحوّل فيديو حديث-للكاميرا (سيلفي/تيليبرومبتر) إلى إعلان عمودي 9:16 كامل — يشيل السكتات، يفرّغ الكلام بتوقيت كل كلمة، يركّب كابشن عربي متزامن، ويبني موشن قرافيكس ومشاهد بي-رول مرسومة بالكود، وكرت نهاية بدعوة للتفاعل — كله بألوان صانع المحتوى نفسه. وفيه وضع ثانٍ للمونتاج: مجموعة مقاطع بلا كلام (مقاهي، سفر، منتج، مكان) يختار أحلى لحظة بكل مقطع ويركّبها مونتاجاً واحداً بإيقاع. ALWAYS use this skill when the user says "منتج هذا المقطع"، "سو من هذا الفيديو إعلان"، "شيّل السكتات"، "حوّل الفيديو لريل"، "ركّب كابشن عربي"، "ابي موشن قرافيكس على الفيديو"، "اقص الصمت"، "عندي ٣٠ مقطع سوّ لي منها فيديو"، "ركّب لي مونتاج من هالمقاطع"، "اختار أحلى اللقطات"، أو يرسل فيديو كلام أو مجلد مقاطع ويطلب مونتاجاً أو إعلاناً. مو للكاروسيل (استخدم carousel-creator) ولا لكفر الفيديو (استخدم animated-video-cover).
+description: Turns a talking-to-camera video (selfie / teleprompter) into a full vertical 9:16 ad — removes the silences, transcribes the speech with per-word timing, adds synced Arabic captions, builds code-drawn motion graphics and B-roll scenes, and an end card with a call to interact — all in the content creator's own colors. It also has a second montage mode: a folder of speechless clips (cafés, travel, a product, a place) — it picks the best moment of each clip and assembles them into one rhythmic montage. ALWAYS use this skill when the user says "منتج هذا المقطع", "سو من هذا الفيديو إعلان", "شيّل السكتات", "حوّل الفيديو لريل", "ركّب كابشن عربي", "ابي موشن قرافيكس على الفيديو", "اقص الصمت", "عندي ٣٠ مقطع سوّ لي منها فيديو", "ركّب لي مونتاج من هالمقاطع", "اختار أحلى اللقطات", or the English equivalents ("edit this clip into an ad", "turn this video into a reel", "remove the silences / dead air", "add Arabic captions", "make a montage from these clips", "pick the best shots"), or sends a talking video or a folder of clips and asks for an edit or an ad. NOT for carousels (use carousel-creator) or video covers (use animated-video-cover).
 ---
 
-# مونتاج إعلان الفيديو — بلا برنامج مونتاج
+# Video ad montage — no editing app
 
-## الفكرة
-المونتاج كله كود: ffmpeg يقص، وِسبر يفرّغ بتوقيت الكلمة، ومحرّك رسم يركّب الكابشن والموشن قرافيكس فوق الفيديو. المخرَج ملف MP4 واحد جاهز للنشر.
+## The idea
 
-## وضعان — حدّد وين انت بأول سطر
+The whole edit is code: ffmpeg cuts, Whisper transcribes with per-word timing, and a
+drawing engine composites the captions and motion graphics over the video. The output is
+one publish-ready MP4.
 
-| | **إعلان كلام** (الافتراضي) | **مونتاج مقاطع** |
+## Two modes — decide which one you're in, in your first line
+
+| | **Speech ad** (default) | **Clip montage** |
 |---|---|---|
-| المدخل | فيديو واحد فيه شخص يتكلم | مجلد فيه مقاطع كثيرة بلا كلام |
-| مثاله | سيلفي · تيليبرومبتر · شرح | مقهى · سفرة · منتج · مكان · فعالية |
-| الاختيار على | الكلام (تشيل السكتات والجُمل المعادة) | المشهد نفسه (وضوح · حركة · إضاءة) |
-| فيه كابشن؟ | نعم، متزامن بالكلمة | ⛔ لا — ولا تفريغ أصلاً |
-| الخطوات | 0-11 تحت | قسم «وضع المونتاج» تحت وحده |
+| Input | one video of a person talking | a folder with many speechless clips |
+| Example | selfie · teleprompter · explainer | café · trip · product · place · event |
+| Selection driven by | the speech (you remove silences and repeated sentences) | the shot itself (sharpness · motion · lighting) |
+| Captions? | yes, word-synced | ⛔ no — no transcription at all |
+| Steps | 0–11 below | the "Montage mode" section, on its own |
 
-**شلون تعرف الوضع بلا ما تسأله؟** أعطاك **مجلداً** أو أكثر من مقطع = مونتاج. أعطاك **ملفاً واحداً فيه كلام** = إعلان كلام.
-وإذا جاك مجلد وطلع فيه كلام مسموع وطلب كابشن — امشِ بوضع الكلام على المقطع الأساسي.
-⛔ **لا تسأله «أي وضع تبي؟»** — اقرأ المدخل وامشِ، وقل له بجملة وحدة شنو فهمت.
+**How do you know the mode without asking?** They gave you a **folder** or more than one
+clip = montage. They gave you **a single file with speech** = speech ad. If a folder turns
+out to have audible speech and they want captions, run the speech-ad flow on the main clip.
 
-## محرّكان — بس ⛔ لا تسأله أي سؤال عنهم
+⛔ **Do not ask "which mode do you want?"** — read the input, go, and tell them in one
+sentence what you understood.
 
-السكل واحد، والمحرّك اللي يرسم المشاهد اثنان. **القرار قرارك أنت، مو قراره.**
+## Two engines — but ⛔ don't ask the user anything about them
 
-**ابدأ بالخفيف دائماً وبلا كلام.** لا تذكر كلمة «ريموشن» ولا «كانفس» ولا «محرّك» ولا تعرض عليه خيارين — الشخص اللي قدامك يبي إعلاناً، ما يبي يختار تقنية.
+The skill is one thing; the engine that draws the scenes is two. **The choice is yours,
+not theirs.**
 
-**متى تفتح الثاني؟** بس إذا **هو** قال شيئاً من هالنوع، بعد ما يشوف الإعلان:
-> «أبي أعدّل بنفسي» · «ما عجبني مكان هالشي، أبي أحرّكه» · «فيه شاشة أشوف فيها التعديل؟» · «أبي أجرّب أشياء بنفسي»
+**Always start with the light engine, silently.** Never say the word "Remotion" or
+"canvas" or "engine", and never offer two options — the person in front of you wants an
+ad, not to pick a technology.
 
-عندها قل له جملة وحدة بلا مصطلحات: «أفتح لك شاشة تعديل مباشرة تشوف فيها الفيديو وتحرّك أي شي وتشوف النتيجة فوراً — تنزيلها ياخذ ٥ دقايق مرة وحدة، أبدأ؟»
-وبعد موافقته: `remotion/remotion.sh <work> setup` ثم `studio`.
-**ما تعيد أي خطوة سابقة** — القص والتفريغ والكابشن والمؤثرات كلها مشتركة، ينتقل الشغل كما هو.
+**When do you open the second one?** Only if **they** say something like this, after
+seeing the ad:
+> "I want to edit it myself" · "I don't like where this sits, I want to move it" · "is
+> there a screen where I can see the edit?" · "I want to try things myself"
 
-| | **الخفيف** (الافتراضي) | **شاشة التعديل** |
+Then say one jargon-free sentence: "I'll open you a live editing screen where you see the
+video and move anything and see the result instantly — the download takes 5 minutes,
+once. Shall I start?" After they agree: `remotion/remotion.sh <work> setup` then `studio`.
+**Never redo an earlier step** — the cut, the transcription, the captions and the effects
+are all shared; the work carries over as-is.
+
+| | **Light** (default) | **Editing screen** |
 |---|---|---|
-| متى | كل مرة، بلا سؤال | بس إذا طلب يعدّل بنفسه |
-| التنزيل | صفر إضافي | ~500 ميقا مرة وحدة |
-| ما يشوفه | لقطات تعرضها عليه | فيديو حي يسحب فيه ويشوف فوراً |
-| الترخيص | حر | شركة بأربعة موظفين فأكثر تدفع (بلّغه إذا كان شركة) |
-| الأمر | `render_frames.js` | `remotion/remotion.sh` |
+| When | every time, no question | only if they ask to edit themselves |
+| Download | zero extra | ~500 MB, once |
+| What they see | frames you show them | a live video they scrub and see instantly |
+| License | free | a company with 4+ employees pays (tell them if they're a company) |
+| Command | `render_frames.js` | `remotion/remotion.sh` |
 
 ---
 
-## ⛔ أسلوبك مع المستخدم — اقرأها قبل أي شي
+## ⛔ Your style with the user — read this before anything
 
-**أنت اللي تجهّز، مو هو.** الشخص اللي قدامك يمكن ما يعرف شنو هو ffmpeg ولا يبي يعرف. ممنوع تعطيه قائمة أوامر ينفّذها.
+**You do the preparing, not them.** The person in front of you may not know what ffmpeg is
+and doesn't want to. Never hand them a list of commands to run.
 
-- **لا تعرض عليه متطلبات ولا تسأله «عندك جذيه؟»** — افحص بنفسك، وإذا ناقص شي قل: «ناقصني أداتين أجهّزهم لك الحين، ياخذ دقيقتين — أبدأ؟» وبعد موافقته نزّلها بنفسك.
-- **بلا مصطلحات.** لا تقول «puppeteer» ولا «كوديك» — قل «أداة ترسم الشرائح» و«جودة الفيديو».
-- **قل له وين احنا كل خطوة**، وقدّر الوقت: «شلت السكتات — نصف الفيديو راح. الحين أفرّغ كلامك، ٣ دقايق.»
-- **اطلب شي واحد بكل مرة.** لا تطلب الفيديو والألوان والحساب بجملة وحدة.
-- **لا تسلّم بلا ما تريه.** بعد كل مرحلة مهمة، اعرض عليه لقطة أو ملخصاً.
+- **Don't present requirements or ask "do you have X?"** — check yourself, and if something
+  is missing say: "I'm missing two tools, I'll set them up for you now, it takes two
+  minutes — start?" After they agree, install them yourself.
+- **No jargon.** Don't say "puppeteer" or "codec" — say "a tool that draws the slides" and
+  "video quality".
+- **Tell them where you are at each step**, with a time estimate: "Removed the silences —
+  half the video is gone. Now transcribing your speech, 3 minutes."
+- **Ask for one thing at a time.** Don't ask for the video and the colors and the account
+  in one sentence.
+- **Never deliver without showing.** After each major stage, show a frame or a summary.
 
 ---
 
-## الخطوة 0 — جهّز بصمت
+## Step 0 — prepare silently
 
 ```bash
 bash scripts/setup.sh
 ```
-- رجّع «كل شي جاهز» → لا تذكر الموضوع أصلاً، انتقل للخطوة التالية.
-- رجّع ناقصاً → قل له بجملة وحدة شنو راح تنزّل وليش، خذ موافقته، ثم:
+- Returned "everything ready" → don't mention it at all, move to the next step.
+- Returned something missing → tell them in one sentence what you'll install and why, get
+  their consent, then:
 ```bash
 bash scripts/setup.sh --install
 ```
-لو فشل شي (مثلاً كروم مو منصّب) قل له الحل بجملة بشرية، بلا لصق رسالة الخطأ.
+If something fails (e.g. Chrome isn't installed) tell them the fix in one human sentence,
+without pasting the error message.
 
-**المنصّات:** السكل يشتغل على macOS و Windows (Git-Bash/WSL) و Linux — `setup.sh` يتعرّف على النظام
-ويستخدم brew / winget / apt حسب الحاجة. الميزات اللي تحتاج ماك (خطوات 7.5 · 7.6 · «الكلام ورا الشخص»)
-تتخطّى نفسها تلقائياً على غير ماك، وباقي الخط يشتغل عادي.
+**Platforms:** the skill runs on macOS, Windows (Git-Bash/WSL) and Linux — `setup.sh`
+detects the OS and uses brew / winget / apt as needed. The macOS-only features (steps 7.5
+· 7.6 · "speech behind the person") skip themselves automatically elsewhere, and the rest
+of the pipeline runs normally.
 
-جهّز مجلد شغل، وانسخ له `scripts/compose.reference.html` باسم `compose.html` و`scripts/studio.html`.
+Prepare a work directory and copy `scripts/compose.reference.html` into it as
+`compose.html`, and `scripts/studio.html` too.
 
 ---
 
-## الخطوة 1 — هويته البصرية (ما فيه لون افتراضي)
+## Step 1 — their visual identity (there is no default color)
 
-⛔ **ممنوع تفترض الكريمي والطيني.** ذاك ثيم كلود، مو ثيم كل الناس.
+⛔ **Never assume the cream-and-clay theme.** That's Claude's theme, not everyone's.
 
-1. دوّر `.auto-memory/creator-profile.md` — إن وُجد خذ منه الألوان والخط والحساب، وقل له: «راح أمشي بألوانك: كذا وكذا — تمام؟»
-2. ما فيه ملف؟ اسأل **سؤالاً واحداً**: «شنو ألوان حسابك؟ عطني لون الخلفية ولون التمييز وشعارك (أو رابط حسابك وأنا أطلّعها).»
-3. اكتب `<work>/theme.json`:
+1. Look for `.auto-memory/creator-profile.md` — if it exists, take the colors, font and
+   handle from it, and say: "I'll go with your colors: X and Y — okay?"
+2. No file? Ask **one question**: "What are your account's colors? Give me the background
+   color, the accent color, and your logo (or your account link and I'll pull them)."
+3. Write `<work>/theme.json`:
 ```json
 { "bg":"#101828", "ink":"#F5F7FA", "acc":"#F2B33D", "clay":"#C98B18", "mut":"#98A2B3",
   "font":"Tajawal", "handle":"@his_handle", "logo":"logo.png", "grade": false, "badge": false,
   "faceAnchor": 0.30, "badgeUntil": 0 }
 ```
-**شارة الحساب مطفية افتراضياً** (`badgeUntil: 0`) — ماجد ما يبيها، والاسم يبقى بكرت النهاية فقط. `badgeUntil: 3` تعيدها أول ٣ ثوانٍ، و`badge:false` مدعومة للتوافق. كل الرسم يشتق ألوانه من هذي القيم أوتوماتيكياً — الكروت والظلال ولون النص فوق أزرار التمييز (يُحسب من إضاءة اللون). خلفية غامقة أو فاتحة، الاثنتان تشتغلان.
+**The account badge is off by default** (`badgeUntil: 0`) — the name is already on the
+platform itself and on the end card. `badgeUntil: 3` brings it back for the first 3
+seconds; `badge:false` is still supported for back-compat. Every scene derives its colors
+from these values automatically — the cards, the shadows, and the text color over the
+accent pills (computed from the color's luminance). A dark or a light background both
+work.
 
-**التدرّج اللوني (`grade`) مطفي افتراضياً** — الفيديو يطلع بألوانه الأصلية. لا تشغّله إلا إذا طلبه صراحة أو اشتكى إن الصورة باردة/باهتة. وإذا شغّلته قل له إنك سويت ذلك.
+**The color grade (`grade`) is off by default** — the video keeps its original colors.
+Don't turn it on unless they explicitly ask, or complain the image looks cold / washed
+out. If you turn it on, tell them you did.
 
-انسخ شعاره في مجلد الشغل باسم `logo.png`.
+Copy their logo into the work directory as `logo.png`.
 
 ---
 
-## الخطوة 2 — خذ منه الفيديو
+## Step 2 — get the video from them
 
-اطلبه بجملة بسيطة، واقبل أي طريقة:
+Ask for it in one simple sentence, and accept any method:
 
-| الطريقة | متى | شلون |
+| Method | When | How |
 |---|---|---|
-| **ملف على جهازه** ← الأفضل | دائماً إن أمكن | يعطيك المسار، تنسخه `<work>/src.mov` — بلا انتظار تحميل |
-| **رابط قوقل درايف** | يصوّر بالجوال والدرايف يرفع تلقائياً | خلّه يضبط المشاركة «أي شخص لديه الرابط»، ثم:<br>`curl -sL "https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t" -o <work>/src.mov`<br>الـID هو الجزء بين `/d/` و`/view` بالرابط. مجرَّب على ملف 441 ميقا |
-| **كونكتور قوقل درايف** | الملف خاص وما يبي يغيّر المشاركة | استخدم أدوات الكونكتور المتاحة بالجلسة |
+| **A file on their machine** ← best | always if possible | they give you the path, you copy it to `<work>/src.mov` — no upload wait |
+| **A Google Drive link** | they shoot on their phone and Drive auto-uploads | have them set sharing to "anyone with the link", then:<br>`curl -sL "https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t" -o <work>/src.mov`<br>the ID is the part between `/d/` and `/view`. Tested on a 441 MB file |
+| **Google Drive connector** | the file is private and they don't want to change sharing | use the connector tools available in the session |
 
-**عن الدقة:** 4K أفضل لأن الزوم يُقص من الأصل فما تخسر وضوح. بس 1080p يشتغل عادي — الفرق إن مجال الزوم يصير أضيق. **لا ترفض فيديو 1080p ولا تطلب منه يعيد التصوير.**
+**About resolution:** 4K is better because the zoom crops from the original so you lose no
+sharpness. But 1080p works fine — the difference is the zoom range gets tighter. **Do not
+reject a 1080p video and do not ask them to re-shoot.**
 
-تحقق أنه وصل: `ffprobe -v error -show_entries format=duration -of csv=p=0 <work>/src.mov`
+Verify it arrived: `ffprobe -v error -show_entries format=duration -of csv=p=0 <work>/src.mov`
 
 ---
 
-## الخطوات 3-11 — الإنتاج
+## Steps 3–11 — production
 
-### 3) خطة القص
+### 3) Cut plan
 ```bash
 python3 scripts/plan_cuts.py <work>
 ```
-قل له كم انشال: «شلت 52 ثانية سكوت — الفيديو صار 46 بدل 98.»
+Tell them how much was removed: "Removed 52 seconds of dead air — the video is 46 now, not 98."
 
-### 4) التفريغ بتوقيت الكلمة
+### 4) Transcription with per-word timing
 ```bash
 ffmpeg -v error -i <work>/src.mov -vn -ac 1 -ar 16000 -y <work>/a.wav
 python3 scripts/transcribe.py <work> --language <LANG> --model large-v3
 ```
-- `<LANG>` = لغة الفيديو: `ar` · `fr` · `en` · أو لهجة صعبة `ar-MA` / `ar-DZ` / `darija` (تفعّل وضع hard-dialect وحدها).
-- المحرّك يختار وحده: faster-whisper على GPU (الأسرع) ← CPU ← openai-whisper احتياطي.
-- على GPU يخلص بثوانٍ؛ على CPU ياخذ دقايق — شغّله بالخلفية.
-- يطلّع `<work>/a.json` بنفس صيغة openai-whisper (segments · words · timings).
+- `<LANG>` = the video's language: `ar` · `fr` · `en` · or a hard dialect `ar-MA` /
+  `ar-DZ` / `darija` (which enables hard-dialect mode on its own).
+- The engine picks itself: faster-whisper on GPU (fastest) ← CPU ← openai-whisper fallback.
+- On GPU it finishes in seconds; on CPU it takes minutes — run it in the background.
+- Produces `<work>/a.json` in the openai-whisper shape (segments · words · timings).
 
-**⛔ اسأل عن اللغة قبل هالخطوة** — لو الفيديو بلهجة والتفريغ طلع بلغة ثانية أو فاضي،
-غالباً اللغة غلط. الدارجة المغربية/الجزائرية: وِسبر يغلط فيها كثير حتى بأفضل موديل —
-حذّر المستخدم من أول، واعرض عليه النص كامل ليصحّحه (خطوة 5).
+**⛔ Ask about the language before this step** — if the video is in a dialect and the
+transcription comes out in another language or empty, the language is probably wrong.
+Moroccan / Algerian darija: Whisper makes a lot of mistakes even with the best model —
+warn the user up front, and show them the full text to correct (step 5).
 
-### 5) التصحيح والكابشن
-اقرأ `a.json`، صحّح كل جملة (وِسبر يغلط بالعاميات — الخليجية والمغربية خصوصاً)، واكتب `<work>/fixes.json`:
+### 5) Correction and captions
+Read `a.json`, correct every sentence (Whisper makes mistakes in colloquial Arabic — Gulf
+and Maghrebi especially), and write `<work>/fixes.json`:
 ```json
 { "fix": [["كل","شي","تشوفه"], ["الكابشن","الزوم"]], "hot": ["تشوفه","الزوم"] }
 ```
-`hot` = الكلمات اللي تنحبس بقرص التمييز وقت نطقها. **عدد كلمات كل جملة لازم يساوي عدد كلمات وِسبر لنفس الجملة** وإلا تختل التوقيتات (السكربت يوقفك لو اختلفت).
+`hot` = the words that get held in the accent pill when spoken. **The word count of each
+sentence must equal Whisper's word count for that sentence** or the timings break (the
+script stops you if they differ).
 ```bash
 python3 scripts/captions.py <work>
 ```
 
-### 5.5) اعرض عليه النص — وشيل أي جملة ما عجبته ← ميزة قوية، لا تتخطّاها
+### 5.5) Show them the text — and drop any sentence they don't want ← a strong feature, don't skip it
 ```bash
 python3 scripts/edit_script.py <work> show
 ```
-يطبع كلامه مرقّماً بالتوقيت ويكتب `script.txt`. **اعرض عليه القائمة بالشات وقل له: «شنو تبي أشيل؟»**
+Prints their speech, numbered and timecoded, and writes `script.txt`. **Show them the list
+in the chat and say: "What do you want me to remove?"**
 
-**🔁 والأهم — الجملة المعادة:** السكربت ينبّهك تلقائياً لأي جملتين متشابهتين خلال جملتين.
-لما يعيد المتحدث صياغة جملة، **الأولى هي الغلط والثانية هي التصحيح** — اعرض الزوج عليه واقترح حذف الأولى:
-> «قلت الجملة مرتين — ‹قدرنا نحل السبب› ثم ‹قدرنا نعرف السبب›. أشيل الأولى؟»
+**🔁 And the important one — the repeated sentence:** the script warns you automatically
+about any two similar sentences within two sentences of each other. When the speaker
+rephrases a sentence, **the first is the mistake and the second is the correction** — show
+them the pair and suggest dropping the first:
+> "You said the sentence twice — 'we could solve the cause' then 'we could identify the
+> cause'. Drop the first?"
 ```bash
 python3 scripts/edit_script.py <work> dupes
 ```
 ```bash
-python3 scripts/edit_script.py <work> drop 6 8       # يشيل الجملتين من الفيديو والصوت
-python3 scripts/edit_script.py <work> keep 1 2 5 9   # يبقي هذي بس (لمقطع مختصر)
-python3 scripts/edit_script.py <work> undo           # تراجع
+python3 scripts/edit_script.py <work> drop 6 8       # removes both sentences from video and audio
+python3 scripts/edit_script.py <work> keep 1 2 5 9   # keeps only these (for a shortened cut)
+python3 scripts/edit_script.py <work> undo           # undo
 ```
-الجملة تنشال من الفيديو والصوت، وكل اللي بعدها ينزاح، و`cut.json` و`caps.json` و`sfx.json` تتحدّث كلها.
+The sentence is removed from the video and the audio, everything after it shifts back, and
+`cut.json`, `caps.json` and `sfx.json` all update.
 
-**⚠️ سوّها هني — قبل تصميم المشاهد.** لو شيّلت جملة بعد ما صمّمت المشاهد، أوقاتها كلها تنزاح ولازم تعدّلها.
-وبعد أي حذف: أعد `reframe.py` واستخراج الفريمات، والرسم بـ`--force`.
+**⚠️ Do this here — before designing the scenes.** If you drop a sentence after designing
+the scenes, all their times shift and you have to redo them. And after any deletion: re-run
+`reframe.py`, re-extract the frames, and re-render with `--force`.
 
-### 6) القص وإعادة التأطير
+### 6) Cut and reframe
 ```bash
 python3 scripts/reframe.py <work>
 mkdir -p <work>/vfr && ffmpeg -v error -i <work>/cutz.mp4 -vf fps=30 -q:v 3 -y <work>/vfr/%05d.jpg
 ```
-- مصدر عمودي (سيلفي) → يمرّ كما هو.
-- مصدر **أفقي** (16:9) → يُقصّ منه إطار عمودي 9:16؛ لو المتحدث مو بالنص، حدّد `xAnchor`
-  في `theme.json` (0 = يسار · 0.5 = وسط · 1 = يمين). عاين فريماً قبل ما تكمّل.
+- Vertical source (selfie) → passes through as-is.
+- **Landscape** source (16:9) → a vertical 9:16 frame is cropped from it; if the speaker
+  isn't centered, set `xAnchor` in `theme.json` (0 = left · 0.5 = center · 1 = right).
+  Preview one frame before continuing.
 
-### 7) صمّم المشاهد ← أهم خطوة
-انسخ `compose.reference.html` إلى `<work>/compose.html` وأعد كتابة دوال المشاهد.
+### 7) Design the scenes ← the most important step
+Copy `compose.reference.html` to `<work>/compose.html` and rewrite the scene functions.
 
-**البنية جاهزة، لا تلمسها:** تصغير الفيديو داخل كرت (`R_FULL` / `R_DOWN` / `R_LOWER` بانتقال ناعم)، شارة الحساب، شريط التقدّم، كروت الكابشن مع تظليل الكلمة المنطوقة، كرت النهاية، واشتقاق الألوان من الثيم.
+**The structure is ready, don't touch it:** shrinking the video into a card (`R_FULL` /
+`R_DOWN` / `R_LOWER` with a smooth transition), the account badge, the progress bar, the
+caption cards with the spoken word highlighted, the end card, and deriving the colors from
+the theme.
 
-**اللي تبتكره:** المشاهد. اعصف ٣-٤ أفكار لكل جملة، والفكرة لازم تكون **استعارة بصرية لما يقوله**، لا زينة:
+**What you invent:** the scenes. Brainstorm 3–4 ideas per sentence; the idea must be a
+**visual metaphor for what's being said**, not decoration:
 
-| يقول | المشهد |
+| Says | Scene |
 |---|---|
-| يعدّد أشياء | بطاقات تدخل وحدة مع كل كلمة ثم تنقلب بعلامة صح |
-| رقم أو سعر | عدّاد يلف وينزل على الرقم بضربة |
-| «فرّغ كلامي» | لوحة تفريغ، كل كلمة تنزل بسطرها وتوقيتها |
-| «انكسر / خطأ» | قليتش يزحزح شرائح الصورة + شقوق |
-| مشكلة تقنية | كرت الفيديو يسوَدّ وفوقه علامة تحذير |
-| إصلاح | شريط تقدّم + قائمة تتعلّم بصح |
-| «ملف واحد» | كرت ملف وبطاقات تطير وتندمج فيه |
-| دعوة للتعليق | مربع تعليق والكلمة تنكتب حرف حرف |
+| counts things off | cards enter one per word, then flip with a checkmark |
+| a number or a price | a counter rolls and lands on the number with a beat |
+| "transcribe my words" | a transcript panel, each word dropping in on its line and timing |
+| "broke / an error" | a glitch that displaces the image slices + cracks |
+| a technical problem | the video card goes black with a warning mark over it |
+| a fix | a progress bar + a list checking itself off |
+| "one file" | a file card, and chips flying in and merging into it |
+| a call to comment | a comment box, and the word typing itself letter by letter |
 
-كل دالة مشهد تاخذ `t` وترسم حسب توقيت الكلمة من `caps.json` — المشهد يلتصق بالكلمة، لا بتوقيت تقريبي.
+Each scene function takes `t` and draws based on the word timing from `caps.json` — the
+scene sticks to the word, not to an approximate time.
 
-**⛔ ما فيه شارة حساب فوق الفيديو** (`badgeUntil: 0` — الافتراضي): اسمه مكتوب بالمنصة نفسها وبكرت النهاية، وأعلى الشاشة مساحة للرسم. لو طلبها أحد: `badgeUntil: 3` تخليها أول ٣ ثوانٍ بس.
+**⛔ No account badge over the video** (`badgeUntil: 0` — the default): the name is on the
+platform itself and on the end card, and the top of the screen is space for the graphics.
+If someone asks for it: `badgeUntil: 3` puts it in the first 3 seconds only.
 
-**⛔ قاعدة التخطيط (معتمدة من المستخدم — لا تخالفها):**
+**⛔ Layout rule (user-approved — do not break it):**
 
-| اللحظة | المستطيل | الشكل |
+| Moment | Rectangle | Shape |
 |---|---|---|
-| كلام بلا رسم | `R_FULL` | وجهه ملء الشاشة، الكابشن تحت عند 1460 |
-| أي رسم أو موشن | `R_DOWN` (الافتراضي) | **الرسم فوق (y 280-520) ← الكابشن راكب على حافة الفيديو ← وجهه تحت بعرض الشاشة كامل** |
-| بي-رول أو لوحة كبيرة | `R_LOWER` | الكرت الكبير فوق ← الكابشن ← وجهه صغيراً تحت |
+| speech, no graphic | `R_FULL` | face fills the screen, caption below at 1460 |
+| any graphic or motion | `R_DOWN` (default) | **graphic on top (y 280–520) ← caption riding the video's edge ← face below, full screen width** |
+| B-roll or a big panel | `R_LOWER` | the big card on top ← caption ← small face below |
 
-**ليش:** الوضع القديم (`R_STAGE`/`R_SIDE`: الفيديو بالنص، الرسم فوق راسه، الكابشن تحت) يخلق ثلاث نقاط تركيز متباعدة والمشاهد يتوه.
+**Why:** the old layout (`R_STAGE`/`R_SIDE`: video in the middle, graphic above the head,
+caption below) creates three separated focus points and the viewer gets lost.
 
-**ثلاث تفاصيل تفرّق (٢ سبتمبر):**
-1. **الفيديو بعرض الشاشة كامل بلا هوامش ولا زوايا مدوّرة** — الوجه يطلع أكبر بمرة ونصف من الكرت الضيق. الثمن: أطراف الكادر فوق وتحت تنقص، وهذا مقبول لأن الوجه هو المهم.
-2. **الكابشن يركب على حافة الفيديو** (‎42٪ من ارتفاعه فوق الحافة و‎58٪ تحتها) — يربط نصفَي الشاشة فما تبين قطعتين ملزوقتين.
-3. **شبكة خفيفة بالخلفية** كل 60px بشفافية 7.5٪ — تعطي عمقاً بلا ما تسحب النظر (`grid:false` بـtheme.json توقفها).
+**Three details that matter (from the layout revision):**
+1. **The video is the full screen width, no margins, no rounded corners** — the face comes
+   out one and a half times bigger than in the narrow card. The cost: the top and bottom
+   edges of the frame get cropped, and that's acceptable because the face is what matters.
+2. **The caption rides the video's edge** (42% of its height above the edge, 58% below) —
+   it ties the two halves of the screen together so they don't look like two stuck-on pieces.
+3. **A faint background grid** every 60px at 7.5% opacity — gives depth without pulling the
+   eye (`grid:false` in `theme.json` turns it off).
 
-**⛔ لا تفرط بـ`R_DOWN`.** هو الافتراضي للحظات الرسم، مو لكل الفيديو:
-- **الهوك (أول ٣-٤ ثوانٍ) ملء الشاشة دائماً** — وجهه كامل، بلا لوحة تسحب النظر.
-- كل جملة فيها **ذروة أو انفعال أو سؤال للمشاهد** → ملء الشاشة، خله يشوف عينه.
-- **لا تتجاوز نصف مدة الفيديو** بـ`R_DOWN`، ولا تخلّه متواصلاً أكثر من **٨ ثوانٍ** بلا لقطة ملء شاشة بينهما — وإلا صار الفيديو لوحة ثابتة ووجه صغير تحتها.
-- ما فيه رسم بهاللحظة؟ إذاً ملء الشاشة. **اللوحة تجي للفكرة، مو للتعبئة.**
+**⛔ Don't overuse `R_DOWN`.** It's the default for graphic moments, not for the whole video:
+- **The hook (first 3–4 seconds) is always full-screen** — their whole face, no panel
+  pulling the eye.
+- Any sentence with a **peak, an emotion, or a question to the viewer** → full-screen, let
+  them see their eyes.
+- **Never exceed half the video's duration** in `R_DOWN`, and never leave it continuous
+  for more than **8 seconds** without a full-screen shot in between — otherwise the video
+  becomes a static panel with a small face under it.
+- No graphic at this moment? Then full-screen. **The panel comes for the idea, not to fill.**
 
-⚠️ **«ملء الشاشة» يُعرف بالمساحة لا بالزوايا** (`isFull()`): R_DOWN صار بلا زوايا مدوّرة مثل R_FULL، فأي فحص قديم يعتمد على `r` ينخدع ويشغّل «الكلام ورا الشخص» بلحظة مو ملء الشاشة.
-بـ`R_DOWN` العين تمشي بخط واحد من فوق لتحت. **والكرت مرن:** يصغر نسبة وتناسب حسب أسفل الرسم (`gb` بكل مشهد، مثال `{s,e,m:R_DOWN,gb:480}`) وعدد أسطر الكابشن بتلك اللحظة، فالرسم والكابشن ما يتزاحمان أبداً. اللوحات تُرسم بإحداثيات `130..950 × 278..458` داخل `panelIn()` وهي تتكبّر 1.2 وحدها.
-`R_STAGE` و`R_SIDE` باقيتان بالملف للتوافق فقط — **لا تستخدمهما بفيديو جديد.**
+⚠️ **"Full screen" is defined by area, not by corners** (`isFull()`): `R_DOWN` now has no
+rounded corners, like `R_FULL`, so any old check that relies on `r` is fooled and triggers
+"speech behind the person" at a moment that isn't full-screen. With `R_DOWN` the eye
+travels in one line top to bottom. **And the card is flexible:** it shrinks in proportion
+(9:16) based on the graphic's bottom (`gb` per scene, e.g. `{s,e,m:R_DOWN,gb:480}`) and
+the number of caption lines at that moment, so the graphic and the caption never crowd
+each other. Panels are drawn at coordinates `130..950 × 278..458` inside `panelIn()` and
+they scale to 1.2 on their own. `R_STAGE` and `R_SIDE` remain in the file for
+back-compat only — **do not use them in a new video.**
 
-**لقطات B-roll (اختياري):** لو عطاك فيديو ثانياً (لقطات جرافيكس من الشركة مثلاً)، استخرج المقاطع المفيدة فريمات إلى `<work>/broll/<اسم>_%04d.jpg`،
-عرّف مداها في `BR_NEED`، واعرضها بـ`brCard()` مع `R_LOWER`. `BRCROP` يقصّ الترجمة المحروقة أسفل اللقطة. ٣-٤ لقطات بالفيديو كافية.
+**B-roll shots (optional):** if they give you a second video (company graphics footage,
+say), extract the useful segments to frames in `<work>/broll/<name>_%04d.jpg`, declare
+their range in `BR_NEED`, and show them with `brCard()` and `R_LOWER`. `BRCROP` trims
+burned-in subtitles from the bottom of a shot. 3–4 shots in a video is enough.
 
-**وضع «الشرح فوق والفيديو تحت» (`R_LOWER`)** — للبي-رول واللوحات الكبيرة:
-الفيديو ينزل تحت ويملأ أسفل الشاشة (وراس المتحدث ينقص من فوق شوي، وهذا مقصود ومقبول بصرياً)،
-واللوحات والكابشن كلها تطلع فوقه. **هذا الوضع يدخل حزام انستقرام عن قصد** — ومسموح، لأن المغطّى صورة لا نص.
-استخدمه لما تكون اللوحة كبيرة (قوائم، مقارنات، جداول) وما يكفيها النصف العلوي.
-الكابشن ينتقل فوق كرت الفيديو تلقائياً بهذا الوضع.
+**"Explanation on top, video below" mode (`R_LOWER`)** — for B-roll and big panels: the
+video moves to the bottom and fills the lower screen (the speaker's head gets cropped a
+little from the top, which is intentional and visually acceptable), and the panels and
+caption all sit above it. **This mode deliberately enters the Instagram belt** — and it's
+allowed, because what's covered is image, not text. Use it when the panel is large
+(lists, comparisons, tables) and the top half isn't enough. The caption moves above the
+video card automatically in this mode.
 
-**⛔ المنطقة الآمنة — انستقرام يغطي أطراف الشاشة بأزراره:**
+**⛔ Safe zone — Instagram covers the screen edges with its buttons:**
 
-| المنطقة | لا تحط فيها نصاً |
+| Zone | Don't put text there |
 |---|---|
-| أعلى | أول 150 بكسل |
-| أسفل | آخر 300 بكسل (وحزام حذر من 1500) |
-| يمين | 180 بكسل بعرض y من 1100 إلى 1750 (لايك · تعليق · مشاركة) |
+| top | first 150 px |
+| bottom | last 300 px (and a caution belt from 1500) |
+| right | 180 px wide, y from 1100 to 1750 (like · comment · share) |
 
-الملف المرجعي مضبوط أصلاً: الشارة عند 190، شريط التقدّم عند 1600، وحافة كرت الكابشن السفلى 1500.
-**وأول كابشن لازم يبان بأول نصف ثانية** — الهوك المتأخر يخسر نصف المشاهدين قبل ما يبدأ الكلام.
+The reference file is already set correctly: the badge at 190, the progress bar at 1600,
+and the caption card's bottom edge at 1500. **And the first caption must appear in the
+first half second** — a late hook loses half the viewers before the speech even starts.
 
-عاين قبل ما ترسم كل شي:
+Preview before rendering everything:
 ```bash
 node scripts/render_frames.js <work> preview 4.6 12.3 27.6 31.0 48.4
 bash scripts/contact_sheet.sh <work> <work>/sheet.jpg 4.6 12.3 27.6 31.0 48.4
 ```
 
-**فتحت له شاشة التعديل (بطلبه)؟** المشاهد تنكتب بـ`<work>/remotion/src/Scenes.tsx` (نفس المنطق: كل مشهد ياخذ `t`):
+**Opened the editing screen for them (at their request)?** Scenes are written in
+`<work>/remotion/src/Scenes.tsx` (same logic: each scene takes `t`):
 ```bash
-bash scripts/remotion/remotion.sh <work> setup            # مرة وحدة — بعد إذنه (~500 ميقا)
-bash scripts/remotion/remotion.sh <work> studio           # تايم-لاين حي على المتصفح
+bash scripts/remotion/remotion.sh <work> setup            # once — after their consent (~500 MB)
+bash scripts/remotion/remotion.sh <work> studio           # a live timeline in the browser
 ```
-مستطيلات عرض الفيديو تنكتب بـ`<work>/stage.json` ونصوص الختام بـ`<work>/outro.json` — وتنعكس بالمحرّكين.
-**اقرأ `sheet.jpg` وحدها — لا تقرأ الصور وحدة وحدة.** ورقة واحدة = قراءة واحدة بدل خمس. **لا ترسم الفيديو كامل قبل ما تعاين ٦ لقطات على الأقل**، واعرض الورقة على المستخدم.
+The video display rectangles are written in `<work>/stage.json` and the end-card text in
+`<work>/outro.json` — and both are reflected in both engines.
+**Read `sheet.jpg` as one image — don't read the frames one by one.** One sheet = one
+read instead of five. **Don't render the whole video before previewing at least 6 shots**,
+and show the sheet to the user.
 
-استوديو تفاعلي (سحب على التايم-لاين ورسم مباشر):
+Interactive studio (scrub the timeline, draw live):
 ```bash
-python3 -m http.server 8791 --directory <work>   # ثم /studio.html
+python3 -m http.server 8791 --directory <work>   # then /studio.html
 ```
 
-### 7.5) الكلام يمرّ ورا الشخص (اختياري — بس قوي)
+### 7.5) Speech passing behind the person (optional — but powerful)
 
-الكلمة تنكتب كبيرة، وتُمدّ بالكشيدة العربية بمقدار عرض جسم المتحدث، فالكشيدة وحدها تمرّ ورا راسه
-والحروف تبقى بارزة على الجانبين. يشتغل بمكتبة ماك المدمجة (Vision) — صفر تنزيل وصفر كلفة.
+The word is written large and stretched with the Arabic kashida to the width of the
+speaker's body, so the elongation alone passes behind their head and the letters stay
+visible on either side. It uses the macOS built-in framework (Vision) — zero download,
+zero cost.
 
 ```bash
-node scripts/fx/behind_text.js <work> plan        # يرشّح الجُمل المناسبة
-node scripts/fx/behind_text.js <work> build 8     # يقصّ الشخص بفريمات هالجملة
+node scripts/fx/behind_text.js <work> plan        # lists the suitable sentences
+node scripts/fx/behind_text.js <work> build 8     # cuts the person out of that sentence's frames
 node scripts/render_frames.js <work> all --force
-node scripts/fx/behind_text.js <work> off         # إلغاء
+node scripts/fx/behind_text.js <work> off         # cancel
 ```
 
-**⛔ متى تستخدمه — القاعدة:**
-1. **مرة أو مرتين بالفيديو كله.** لو تكرر بكل جملة انقلب من «واو» إلى ضجيج.
-2. **الأفضل بالهوك** (أول جملة) أو بذروة الفكرة — الجملة اللي تبيه يحفظها.
-3. الشروط اللي يفحصها السكربت: الجملة **من كلمة لأربع** · مدّتها ≥ 0.85 ثانية.
-4. ويشتغل **بلحظات ملء الشاشة فقط** — لو الفيديو داخل كرت صغير بتلك اللحظة، يتخطّاها وحده.
-5. كرت الكابشن العادي **يختفي تلقائياً** بهاللحظة حتى ما يتكرر النص مرتين.
-6. لو الجملة طويلة أو الشخص واقف بحافة الكادر، الخط يصغّر نفسه — وإذا ما بقي مكان للحروف، لا تصرّ عليها.
+**⛔ When to use it — the rule:**
+1. **Once or twice in the whole video.** Repeated every sentence, it flips from "wow" to noise.
+2. **Best on the hook** (the first sentence) or the idea's peak — the sentence you want
+   them to remember.
+3. The conditions the script checks: the sentence is **one to four words** · its duration
+   is ≥ 0.85 s.
+4. And it works **at full-screen moments only** — if the video is in a small card at that
+   moment, it skips it on its own.
+5. The regular caption card **hides itself automatically** at that moment so the text isn't
+   shown twice.
+6. If the sentence is long or the person is standing at the frame edge, the text shrinks
+   itself — and if no room is left for the letters, don't force it.
 
-**التكلفة:** ~٠.١٥ ثانية لكل فريم للقصّ (جملة ثانيتين ≈ ١٠ ثوانٍ شغل). يحتاج ماك + أدوات Xcode (`xcode-select --install`)؛
-وإذا ما توفّرت، السكربت يقول لك بجملة وحدة وباقي الخط يشتغل عادي.
+**Cost:** ~0.15 s per frame for the cut (a two-second sentence ≈ 10 seconds of work). Needs
+macOS + Xcode CLT (`xcode-select --install`); if unavailable, the script tells you in one
+sentence and the rest of the pipeline runs normally.
 
-### 7.6) أنماط القصّ الثلاثة (اختيارية — تحتاج ماك)
+### 7.6) The three cutout styles (optional — need macOS)
 
-نفس تقنية قصّ الشخص، بثلاثة استعمالات. كلها بأمر واحد ثم إعادة رسم نافذتها فقط:
+Same person-cutout technique, in three uses. Each is one command then re-rendering only
+its window:
 
-| النمط | شكله | الأمر |
+| Style | Shape | Command |
 |---|---|---|
-| **الكلام ورا الشخص** | الكلمة تنمدّ بالكشيدة وتمرّ ورا راسه | `build 2:6-8` |
-| **واقف قدام اللوحة** | بلا كرت — هو مقصوص وواقف قدام التصميم | `cutout 23.8-26.6` |
-| **راسك برّا المستطيل** | الفيديو بكرت صغير تحت، وراسه يطلع فوق حافته | `headout 23.8-26.6` |
+| **Speech behind the person** | the word stretches with the kashida and passes behind the head | `build 2:6-8` |
+| **Standing in front of the panel** | no card — the person is cut out and standing in front of the design | `cutout 23.8-26.6` |
+| **Head outside the rectangle** | the video is in a small card and the head pokes above its edge | `headout 23.8-26.6` |
 
 ```bash
 node scripts/fx/behind_text.js <work> headout 23.8-26.6
 node scripts/render_frames.js <work> range 23.6 26.8
 ```
 
-**متى تستخدم «راسك برّا المستطيل» أو «واقف قدام اللوحة»؟**
-لما يكون عندك **شرح أو رسم أو إنفوقرافيك يبي مساحة** — الكرت ينزل تحت صغيراً (`R_LOWER`) ويخلي **ثلثي الشاشة** للتصميم.
-وبهالوضع **مسموح تكسر حزام انستقرام** — المغطّى صورة لا نص.
+**When to use "head outside the rectangle" or "standing in front of the panel"?**
+When you have an **explanation, a graphic, or an infographic that needs space** — the card
+drops to the bottom small (`R_LOWER`) and leaves **two-thirds of the screen** for the
+design. And in this mode **you're allowed to break the Instagram belt** — what's covered
+is image, not text.
 
-**يضبطه المحرّك تلقائياً:** الكابشن يطلع فوق راسه · شريط التقدّم يختفي · الحجم والموضع يُحسبان من حدود جسمه بكل فريم فما يرقص.
+**The engine handles it automatically:** the caption goes above the head · the progress
+bar hides · the size and position are computed from the person's body bounds every frame
+so it doesn't jitter.
 
-### 8) المؤثرات الصوتية
+### 8) Sound effects
 ```json
 { "outro": 5.2, "whoosh_up": [3.1,11.25], "whoosh_down": [7.85],
   "thud": [27.27,29.47], "tap": [23.08,24.06] }
@@ -315,198 +405,238 @@ node scripts/render_frames.js <work> range 23.6 26.8
 python3 scripts/sound_fx.py <work>
 ```
 
-### 9) الرسم النهائي والتجميع
+### 9) Final render and assembly
 
-**الخفيف:**
+**Light:**
 ```bash
-node scripts/render_frames.js <work> all          # يكمّل من وين وقف — ما يعيد فريماً جاهزاً
+node scripts/render_frames.js <work> all          # resumes where it stopped — doesn't redo a finished frame
 bash scripts/encode.sh <work> <work>/ad-final.mp4
 ```
-عدّلت مشهداً واحداً بعد الرسم؟ لا تعيد الكل — أعد نافذته بس ثم جمّع:
+Edited one scene after rendering? Don't redo everything — re-render its window, then assemble:
 ```bash
 node scripts/render_frames.js <work> range 26.4 31.2
 ```
-(`--force` مع `all` يعيد الرسم من الصفر. السكربت ينبّهك لو بقي فريم ناقص قبل التجميع.)
+(`--force` with `all` re-renders from scratch. The script warns you if a frame is missing
+before assembly.)
 
-**ريموشن:** يطلّع MP4 مباشرة بلا فريمات:
+**Remotion:** produces an MP4 directly, no frames:
 ```bash
 bash scripts/remotion/remotion.sh <work> render <work>/ad-final.mp4
 ```
 
-### 10) معايرة الصوت (+ خلفية صوتية اختيارية)
+### 10) Audio mastering (+ optional background audio)
 ```bash
 bash scripts/master_audio.sh <work> <work>/ad-final.mp4 <work>/ad-master.mp4
 ```
-يرفع الصوت لـ‎-14 LUFS — نفس علو باقي الفيديوهات بالفيد؛ بدونه صوته يطلع أخفض من اللي قبله وبعده.
-ولو حطّيت `<work>/bg-audio.mp3` ينضاف **ملف صوتي بالخلفية ينخفض تلقائياً كل ما يتكلم** ويرجع بالسكتات. الصورة تُنسخ كما هي بلا إعادة ترميز.
+Brings the audio to −14 LUFS — the same loudness as the other videos in the feed; without
+it their audio comes out quieter than what's before and after it. And if you put
+`<work>/bg-audio.mp3`, a **background audio file that ducks automatically whenever they
+speak** is mixed in, coming back in the pauses. The video is copied as-is, no re-encode.
 
-**التسمية:** قل «ملف صوتي بالخلفية» لا «موسيقى» — المحتوى يحدّده هو، وانت تتعامل مع الملف كما هو.
+**Naming:** say "background audio file", not "music" — they decide the content, and you
+handle the file as-is.
 
-### 11) ملف الترجمة
+### 11) Subtitle file
 ```bash
 python3 scripts/subtitles.py <work> ad-master
 ```
-يطلّع `.srt` (يوتيوب ولينكدإن يقراه) و`.txt` = نص كلامه كامل جاهز لكابشن البوست.
+Produces `.srt` (YouTube and LinkedIn read it) and `.txt` = their full speech text, ready
+for the post caption.
 
 ---
 
-# وضع المونتاج — مقاطع بلا كلام
+# Montage mode — speechless clips
 
-مجلد فيه مقاطع كثيرة (مقهى · سفرة · منتج · مكان · فعالية) والمطلوب فيديو واحد بإيقاع.
-⛔ **بلا تفريغ ولا كابشن ولا مشاهد مرسومة.** الاختيار كله على المشهد نفسه.
-تحتاج منه شيئاً واحداً: **مجلد المقاطع**. لا تسأله عن ألوان ولا شعار ولا حساب — ما فيه نص أصلاً.
+A folder with many clips (café · trip · product · place · event) and the ask is one video
+with rhythm. ⛔ **No transcription, no captions, no drawn scenes.** The selection is
+entirely about the shot itself. You need one thing from them: **the clip folder.** Don't
+ask about colors or a logo or an account — there's no text at all.
 
-**شلون يختار المحرّك:** كل لحظة بكل مقطع تُقاس بأربعة — وضوح الصورة · حركة بمقدار · إضاءة · لون.
-الوضوح **نسبي** (يقارن مقاطعك ببعضها)، والحركة والإضاءة **مطلقتان**.
-والمجمّد والمعتم والمهزوز درجاتهم **تُضرب** لا تُطرح: يعني ما ينفعهم إن باقي صفاتهم حلوة.
-وأول ثلث ثانية وآخر ثلث ثانية من كل مقطع يُقصّان — لحظة اليد على الجهاز.
+**How the engine chooses:** every moment of every clip is measured on four axes —
+sharpness · motion by amount · lighting · color. Sharpness is **relative** (it compares
+your clips to each other); motion and lighting are **absolute**. And frozen / dark / shaky
+scores are **multiplied, not subtracted**: their other qualities can't save them. The
+first and last third-second of each clip are trimmed — the hand-on-device moment.
 
-### 1) الفحص
+### 1) Scan
 ```bash
-python3 scripts/montage_mode.py <work> scan <مجلد_المقاطع> --shot 1.5
+python3 scripts/montage_mode.py <work> scan <clip_folder> --shot 1.5
 ```
-يفحص أربعة مقاطع بنفس الوقت. القياس عندنا: **٣٠ ثانية فيديو ≈ ١٥ ثانية فحص** — يعني ٣٠ مقطعاً
-طول كل واحد ١٠ ثوانٍ ≈ دقيقتين ونصف. شغّله بالخلفية وقل له كم يتوقع.
-يطبع كل مقطع بدرجته وأحلى لحظة فيه، ويكتب `montage.json`.
+Scans four clips at a time. Our measured rate: **30 s of video ≈ 15 s of scanning** — so 30
+clips of 10 s each ≈ two and a half minutes. Run it in the background and tell them what to
+expect. It prints each clip with its score and best moment, and writes `montage.json`.
 
-### 2) وريه اللقطات — ورقة وحدة مرقّمة
+### 2) Show them the shots — one numbered sheet
 ```bash
 python3 scripts/montage_mode.py <work> sheet --cols 6
 ```
-كل لقطة عليها رقم مقطعها. **اقرأ الورقة وحدة — لا تقرأ الصور فرادى.**
-واعرضها عليه: «هذي أحلى لحظة بكل مقطع — شنو تبي أشيل؟»
+Each shot has its clip number on it. **Read the sheet as one image — don't read the frames
+one by one.** And show it to them: "This is the best moment of each clip — what do you want
+me to remove?"
 
-### 3) شيل اللي ما عجبه
+### 3) Remove the ones they don't want
 ```bash
-python3 scripts/montage_mode.py <work> drop 4 11      # يشيل
-python3 scripts/montage_mode.py <work> keep 1 2 5 9   # يبقي هذي بس
-python3 scripts/montage_mode.py <work> undo           # تراجع
+python3 scripts/montage_mode.py <work> drop 4 11      # removes
+python3 scripts/montage_mode.py <work> keep 1 2 5 9   # keeps only these
+python3 scripts/montage_mode.py <work> undo           # undo
 ```
 
-### 4) الترتيب والإيقاع
+### 4) Order and rhythm
 ```bash
 python3 scripts/montage_mode.py <work> plan --dur 30 --shot 1.5
 ```
 | | |
 |---|---|
-| `--order energy` (الافتراضي) | يناوب متحرك/هادئ وأقوى لقطة بالبداية |
-| `--order best` \| `folder` | بالدرجة · بترتيب المجلد |
-| `--bpm 96` | أطوال اللقطات على النبضة — القطع يوقع مع الصوت |
-| `--dur 0` | كل المقاطع بلا سقف |
+| `--order energy` (default) | alternates moving/calm, strongest shot first |
+| `--order best` \| `folder` | by score · by folder order |
+| `--bpm 96` | shot lengths on the beat — the cuts land with the sound |
+| `--dur 0` | all clips, no cap |
 
-أطوال اللقطات تتغيّر بنمط متكرر (١.٠ · ٠.٨٢ · ١.٢٤ · ٠.٩٤ من `--shot`) عشان ما يصير رتيباً.
+Shot lengths vary in a repeating pattern (1.0 · 0.82 · 1.24 · 0.94 of `--shot`) so it
+doesn't get monotonous.
 
-### 5) التركيب
+### 5) Build
 ```bash
 python3 scripts/montage_mode.py <work> build <work>/montage.mp4
 ```
 | | |
 |---|---|
-| `--ar 9:16` | المقاس: `9:16` · `4:5` · `1:1` · `16:9` (القص من الوسط) |
-| `--xfade 0.25` | تلاشٍ بين اللقطات بدل القطع الحاد |
-| `--zoom 0` | يوقف الزوم الداخلي الخفيف |
-| `--amb 0.3` | يبقي أجواء المقاطع بصوت خافت (يشترط إن كل المقاطع فيها صوت وبلا تلاشٍ) |
+| `--ar 9:16` | aspect ratio: `9:16` · `4:5` · `1:1` · `16:9` (center crop) |
+| `--xfade 0.25` | a crossfade between shots instead of a hard cut |
+| `--zoom 0` | turns off the faint internal push-in |
+| `--amb 0.3` | keeps the clips' ambience at low volume (needs every clip to have audio and no crossfade) |
 
-**الزوم يشتغل بس إذا كان المصدر أكبر من المخرَج بمرة ونصف على الأقل** (4K مثلاً)، وإلا يوقّفه
-المحرّك وحده ويقول لك — لأن القصّ على مصدر بحجم المخرَج يطلع الزوم متقطّعاً.
+**The zoom only works if the source is at least 1.5× bigger than the output** (4K, say),
+otherwise the engine turns it off itself and tells you — because cropping a source the
+same size as the output makes the zoom look choppy.
 
-### 6) الصوت والتسليم — نفس خط الكلام
+### 6) Audio and delivery — same as the speech pipeline
 ```bash
 bash scripts/master_audio.sh <work> <work>/montage.mp4 <work>/montage-master.mp4
 ```
-حط ملفه الصوتي `<work>/bg-audio.mp3` بمجلد الشغل قبلها. المونتاج يطلع بمسار صامت لو ما طلبت
-الأجواء، فالخلفية الصوتية هني مو زينة — بدونها الفيديو ساكت.
+Put their audio file `<work>/bg-audio.mp3` in the work directory first. The montage comes
+out with a silent track if you don't ask for ambience, so the background audio file here
+isn't decoration — without it the video is silent.
 
-### ⛔ قواعد الوضع
-1. **لا تفرّغ ولا تسوي كابشن.** لو طلع بالمقاطع كلام مهم فهذا وضع الكلام مو المونتاج.
-2. **أرِه الورقة قبل التركيب** — هو يشيل اللي ما يعجبه، مو انت.
-3. **ما فيه ثيم ولا ألوان ولا تدرّج** — الصورة تطلع بألوانها الأصلية (نفس القاعدة ٤).
-4. المدة المعقولة **٢٠-٤٠ ثانية**؛ فوقها يمل المشاهد.
-5. **لا نشر ولا جدولة** — التسليم ملف بس.
-
----
-
-## ⛔ القواعد الثابتة
-
-1. **المؤثر الصوتي يُربط بلحظة لها معنى** — رقم ينزل، شي ينكسر، مشهد ينتقل. المشكلة مو نوع الصوت، المشكلة رشّه على كل كلمة (جرّبناها وطلعت إزعاجاً). لا تتجاوز 15 حدثاً بالدقيقة، والذروة تحت ‎-18 dBFS، واعرض على المستخدم وين حطّيتها قبل التصدير.
-2. **أرقام غربية دائماً** (0-9).
-3. **الألوان من `theme.json` لا غير** — لا لون ثابت بالكود.
-4. **ممنوع أي لون أو فلتر فوق صورته** — لا تدرّج ولا صبغة ولا LUT ولا طبقة ملوّنة على الفيديو. الصورة تطلع بألوانها الأصلية دائماً، إلا إذا طلب هو صراحة. (الألوان للكروت والنصوص فقط.)
-5. **صحّح تفريغ وِسبر** قبل الكابشن.
-6. **لا تخترع محتوى ما قاله المتحدث.** كل نص من كلامه؛ ولو احتجت وصف شي ما تعرفه، عمّم بدل ما تخمّن.
-7. **لا نشر ولا جدولة** — التسليم ملف بس.
-8. **«ورا الشخص» مرة أو مرتين بالفيديو** — لا أكثر، وإلا فقد أثره.
-9. **سمّها «ملف صوتي بالخلفية»** — مو «موسيقى». المستخدم يحدّد محتواه (صوت بشري، أجواء، أو أي شي)، وانت تسمّيه بصيغته المحايدة وتحطه بـ`bg-audio.mp3`.
-10. **اخترع مشاهد جديدة كل مرة.** الملف المرجعي مكتبة أنماط، مو قالباً يُنسخ.
+### ⛔ Mode rules
+1. **Don't transcribe and don't caption.** If the clips turn out to have important speech,
+   that's the speech mode, not montage.
+2. **Show them the sheet before building** — they remove what they don't like, not you.
+3. **No theme, no colors, no grade** — the image comes out in its original colors (same as
+   rule 4).
+4. Reasonable duration is **20–40 seconds**; longer and the viewer gets bored.
+5. **No publishing, no scheduling** — delivery is a file only.
 
 ---
 
-## ✅ التحقق قبل التسليم (إلزامي)
+## ⛔ Fixed rules
 
-0. **المنطقة الآمنة والهوك** — فحص آلي، ما يحتاج عينك:
+1. **A sound effect is tied to a meaningful moment** — a number dropping, something
+   breaking, a scene transition. The problem isn't the kind of sound, it's spraying it on
+   every word (we tried it and it came out as noise). Don't exceed 15 events per minute,
+   keep the peak below −18 dBFS, and show the user where you placed them before export.
+2. **Western digits always** (0–9).
+3. **Colors from `theme.json` only** — no hardcoded color in the code.
+4. **No color or filter over their image** — no grade, no tint, no LUT, no colored layer
+   over the video. The image always comes out in its original colors, unless they
+   explicitly ask. (Colors are for cards and text only.)
+5. **Correct the Whisper transcript** before captioning.
+6. **Don't invent content the speaker didn't say.** Every text comes from their speech;
+   and if you need to describe something you don't know, generalize rather than guess.
+7. **No publishing, no scheduling** — delivery is a file only.
+8. **"Behind the person" once or twice in the video** — no more, or it loses its effect.
+9. **Call it a "background audio file"** — not "music". The user decides its content (a
+   human voice, ambience, or anything), and you name it by its neutral form and put it in
+   `bg-audio.mp3`.
+10. **Invent new scenes every time.** The reference file is a pattern library, not a
+    template to copy.
+
+---
+
+## ✅ Verification before delivery (mandatory)
+
+0. **Safe zone and hook** — an automated check, doesn't need your eyes:
 ```bash
 node scripts/safe_check.js <work> --shot
 ```
-يرسم كل لحظة مرتين بلونين مكان الفيديو، واللي ما يتغيّر = رسمك أنت — فيعدّ نصوصك داخل مناطق أزرار انستقرام بدقة، ويتأكد إن أول كابشن قبل نصف ثانية. يخرج بالرمز 3 لو فيه خرق، ويطلّع `safe.jpg` واللقطة الحمراء توريك وين المشكلة.
-الحدود تُعدّل بملف `<work>/safe.json` لو احتجت (مثلاً فيديو للتيك توك بحدود ثانية).
+It draws each moment twice with two colors where the video is, and whatever doesn't change
+= your graphics — so it counts your text inside the Instagram button zones precisely, and
+confirms the first caption is before half a second. It exits with code 3 if there's a
+violation, and produces `safe.jpg` with the red shot showing where the problem is. The
+bounds are adjusted with `<work>/safe.json` if you need to (a TikTok video with tighter
+bounds, say).
 
-1. **المزامنة** — فرّغ صوت الناتج مرة ثانية وقارن بدايات الجُمل بـ`caps.json`؛ الفرق أقل من 0.1 ثانية:
+1. **Sync** — transcribe the output audio again and compare sentence starts to `caps.json`;
+   the difference should be under 0.1 seconds:
 ```bash
 ffmpeg -v error -i <work>/ad-final.mp4 -vn -ac 1 -ar 16000 -y <work>/fa.wav
 python3 scripts/transcribe.py <work> --language <LANG> --model medium --wav <work>/fa.wav --out <work>/fa.json
 ```
-قارن بدايات جُمل `fa.json` بـ`caps.json`.
-2. **الصوت** — بعد `master_audio.sh` يطبع العلو النهائي: لازم ≈ ‎-14 LUFS والذروة ‎-1.5 dBTP أو أقل.
-3. **العين** — ورقة تواصل بـ٦ لقطات، تُشاف فعلاً.
-4. **الحجم** — تحت 30 ميقا.
+Compare the sentence starts of `fa.json` to `caps.json`.
+2. **Audio** — after `master_audio.sh` it prints the final loudness: it must be ≈ −14 LUFS
+   with a peak of −1.5 dBTP or lower.
+3. **The eye** — a 6-shot contact sheet, actually looked at.
+4. **Size** — under 30 MB.
 
-## 💰 توفير التوكنز — الصور هي العدو
+## 💰 Token economy — images are the enemy
 
-**بالقياس الفعلي: الصور تاكل ٨٠-٨٥٪ من سياق المحادثة.** الصورة بعرض ١٠٨٠ ≈ ١٥٠ ألف حرف؛ ونفسها بعرض ٣٠٠ ≈ ٢٠ ألف.
+**By actual measurement: images eat 80–85% of the conversation context.** A 1080-wide
+image ≈ 150k characters; the same at 300 wide ≈ 20k.
 
-1. **كل لقطة تُصغَّر قبل ما تُعرض:** `-vf scale=300:-1` — تكفي للحكم البصري تماماً.
-2. **ورقة تواصل وحدة** بدل صور منفصلة (`contact_sheet.sh`) — خمس لقطات بصورة وحدة.
-3. **لقطة وحدة لكل مرحلة**، مو لكل محاولة. عدّلت شيئاً؟ افحصه بالأرقام أول، والصورة آخر شي.
-4. **الفحص الآلي بدل العين:** `safe_check.js` يعطيك حكماً بسطر — استخدمه قبل ما تصوّر.
-5. **مخرجات ffmpeg** تُقصّ دائماً: `2>&1 | tail -2`.
-6. **لا تقرأ `compose.html` كاملاً** — `grep -n` للدالة اللي تبيها.
+1. **Every shot is shrunk before it's shown:** `-vf scale=300:-1` — plenty for a visual
+   judgment.
+2. **One contact sheet** instead of separate images (`contact_sheet.sh`) — five shots in
+   one image.
+3. **One shot per stage**, not per attempt. Changed something? Check it by the numbers
+   first, the image last.
+4. **The automated check instead of the eye:** `safe_check.js` gives you a one-line verdict
+   — use it before you take a screenshot.
+5. **ffmpeg output** is always trimmed: `2>&1 | tail -2`.
+6. **Don't read `compose.html` whole** — `grep -n` for the function you need.
 
-⛔ **لا تعرض صورة إلا لسؤال بصري ما ينجاوب بغيرها.**
+⛔ **Don't show an image except for a visual question that nothing else answers.**
 
-## 💰 توفير التوكنز (عام)
+## 💰 Token economy (general)
 
-أغلى شي مو الرسم، بل **عدد الجولات** — كل جولة تعيد إرسال المحادثة كاملة.
+The expensive thing isn't the rendering, it's **the number of turns** — every turn resends
+the whole conversation.
 
-1. **جلسة نظيفة لكل فيديو.**
-2. **ورقة تواصل بدل صور منفصلة.**
-3. **اجمع الأوامر المستقلة بجولة وحدة.**
-4. **شغّل الطويل بالخلفية** وانتظر إشعار الانتهاء مرة وحدة.
-5. **لا تغيّر المعمارية بالنص** — ابنِ على الملف المرجعي.
-6. **احفظ `caps.json` و`cut.json`** — أي تعديل لاحق ما يحتاج إعادة تفريغ.
+1. **A clean session per video.**
+2. **A contact sheet instead of separate images.**
+3. **Batch independent commands into one turn.**
+4. **Run the long thing in the background** and wait for the completion notification once.
+5. **Don't change the architecture in prose** — build on the reference file.
+6. **Save `caps.json` and `cut.json`** — any later edit won't need re-transcription.
 
-## التسليم
-اعرض الملف مع: المدة، كم انشال من السكتات، عدد المشاهد، والعلو النهائي. وسلّم معه `.srt` و`.txt` (نص كلامه لكابشن البوست). واذكر أنك ما نشرت شيئاً.
+## Delivery
+
+Present the file with: the duration, how much dead air was removed, the number of scenes,
+and the final loudness. Deliver alongside it the `.srt` and the `.txt` (their speech text
+for the post caption). And mention that you didn't publish anything.
 
 ---
 
-## خريطة السكربتات
+## Script map
 
-| | يسوي شنو | المحرّك |
+| | Does what | Engine |
 |---|---|---|
-| `setup.sh` | يفحص الأدوات وينزّل الناقص (macOS · Windows · Linux) | مشترك |
-| `lib/platform.sh` · `lib/platform.js` | مساعدات متعدّدة المنصّات (مسارات · كروم · OS) | مشترك |
-| `transcribe.py` | تفريغ الكلام → `a.json` (faster-whisper GPU/CPU ← whisper) | مشترك |
-| `plan_cuts.py` | يقيس السكتات ويطلع مقاطع الكلام | مشترك |
-| `captions.py` | توقيت كل كلمة على التايم-لاين الجديد | مشترك |
-| `reframe.py` | القص + إعادة تأطير 9:16 (يقبل مصدر أفقي) + زوم + وسم bt709 | مشترك |
-| `render_frames.js` | يرسم الفريمات (استئناف + نافذة) | الخفيف |
-| `remotion/remotion.sh` | يجهّز/يفتح/يرندر مشروع ريموشن | ريموشن |
-| `sound_fx.py` | المؤثرات الصوتية من `sfx.json` | مشترك |
-| `encode.sh` | يجمّع الفريمات + الصوت | الخفيف |
-| `master_audio.sh` | ‎-14 LUFS + خلفية صوتية بخفض تلقائي | مشترك |
-| `contact_sheet.sh` | ورقة لقطات وحدة (توفير توكنز) | مشترك |
-| `safe_check.js` | المنطقة الآمنة + الهوك | الخفيف (وبريموشن: `"guides":true` تعطيك المناطق حيّة بالاستوديو) |
-| `subtitles.py` | ملف ترجمة + نص الكابشن | مشترك |
-| `edit_script.py` | شيل جملة من النص → تنشال من الفيديو | مشترك |
-| `fx/behind_text.js` + `personmask.swift` | أنماط القصّ الثلاثة (ورا الشخص · قدام اللوحة · راس برّا الكرت) | الخفيف |
-| `montage_mode.py` | **وضع المونتاج**: يفحص مجلد مقاطع، يختار أحلى لحظة بكل واحد، ويركّبها | مستقل |
+| `setup.sh` | checks the tools and installs what's missing (macOS · Windows · Linux) | shared |
+| `lib/platform.sh` · `lib/platform.js` | cross-platform helpers (paths · Chrome · OS) | shared |
+| `transcribe.py` | transcription → `a.json` (faster-whisper GPU/CPU ← whisper) | shared |
+| `plan_cuts.py` | measures the silences and produces the speech segments | shared |
+| `captions.py` | per-word timing on the new timeline | shared |
+| `reframe.py` | cut + 9:16 reframe (accepts a landscape source) + zoom + bt709 tag | shared |
+| `render_frames.js` | draws the frames (resume + window) | light |
+| `remotion/remotion.sh` | prepares / opens / renders a Remotion project | Remotion |
+| `sound_fx.py` | the sound effects from `sfx.json` | shared |
+| `encode.sh` | assembles the frames + audio | light |
+| `master_audio.sh` | −14 LUFS + ducked background audio | shared |
+| `contact_sheet.sh` | one contact sheet (token economy) | shared |
+| `safe_check.js` | safe zone + hook | light (and Remotion: `"guides":true` gives you the zones live in the studio) |
+| `subtitles.py` | subtitle file + caption text | shared |
+| `edit_script.py` | drop a sentence from the text → it drops from the video | shared |
+| `fx/behind_text.js` + `personmask.swift` | the three cutout styles (behind the person · in front of the panel · head outside the card) | light |
+| `montage_mode.py` | **montage mode**: scans a clip folder, picks the best moment of each, and assembles them | independent |
+
+📖 Full contributor documentation (data flow, the two engines, the ten real-run bugs, the
+target architecture): **`../docs/`** at the repo root.

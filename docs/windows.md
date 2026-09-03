@@ -89,9 +89,9 @@ pipeline is unaffected: `render_frames.js` only activates the person overlay whe
 - `fx/behind_text.js` builds `<work>/bt/personmask` with no `.exe` suffix — irrelevant on
   Windows (it exits early), but note it if anyone ports the effect.
 
-## What the fork changed for Windows (reference)
+## How Windows support was added (reference)
 
-See `FORK.md` "passe 1". In short: `lib/platform.sh` + `lib/platform.js` created;
+See [`../FORK.md`](../FORK.md). In short: `lib/platform.sh` + `lib/platform.js` created;
 `render_frames.js` / `safe_check.js` switched to `lib/platform.js`; `encode.sh` /
 `master_audio.sh` / `contact_sheet.sh` / `remotion.sh` source `lib/platform.sh`;
 `transcribe.py` added (replaces `python -m whisper`, adds Windows CUDA support);

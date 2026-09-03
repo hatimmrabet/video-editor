@@ -44,7 +44,7 @@ Remotion engine if the user explicitly asks to edit visually.
 | Licensing | free | paid for companies with 4+ employees |
 | Full 48 s render | ≈ 12 min (1461 frames) | comparable, no intermediate frames |
 
-Both consume the same upstream data (`caps.json`, `theme.json`, `sfx.json`/`sfx.wav`,
+Both consume the same inputs (`caps.json`, `theme.json`, `sfx.json`/`sfx.wav`,
 `cutz.mp4`, `logo.png`). See [engines.md](engines.md) for how they draw and where they
 have diverged.
 

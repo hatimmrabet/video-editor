@@ -89,7 +89,7 @@ rotation side-data and the ffmpeg 7-vs-8 `crop:eval=frame` difference.
 
 ## Place in the flow
 
-The entire montage mode (`SKILL.md` "وضع المونتاج"). Independent of the speech-ad flow —
+The entire montage mode (`SKILL.md` "Montage mode"). Independent of the speech-ad flow —
 no theme, no colours, no logo. After `build`: `master_audio.sh <work> montage.mp4
 montage-master.mp4` with a `bg-audio.mp3` in place.
 

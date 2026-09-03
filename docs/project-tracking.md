@@ -4,8 +4,8 @@ Work is tracked with **GitHub Issues + Projects** on
 `github.com/hatimmrabet/video-editor`. This file is the **draft** of what to create — it
 is not yet applied. Once reviewed, run the `gh` commands below.
 
-`HANDOFF.md`'s forward-looking list has moved here; its architecture/bug content has moved
-into [`docs/`](README.md).
+The old `HANDOFF.md` was removed — its "what's next" list is the backlog below, and its
+architecture / bug-history content is in [`docs/`](README.md).
 
 ---
 
@@ -63,8 +63,7 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 |---|---|---|
 | docs: land the `docs/` tree (this branch) | `area:docs` `prio:high` | the PR that adds `docs/` |
 | docs: verify each script page against `--help` / code | `area:docs` | spot-check pass; the coverage check |
-| docs: distil the ten bugs into `docs/invariants.md` | `area:docs` | ✅ drafted — verify wording against `HANDOFF.md` |
-| docs: keep `HANDOFF.md` as a thin pointer | `area:docs` `type:chore` | done in this branch |
+| docs: verify `docs/invariants.md` wording against the code fixes | `area:docs` | ✅ drafted from the ten real-run bugs |
 
 ### Pass 1 — Config
 
@@ -123,7 +122,7 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 | chore: regenerate the root `video-ad-editor.skill` package (stale — old numbered scripts) | `type:chore` |
 | chore: merge `feature/windows-i18n-rename` into `main` | `type:chore` `area:windows` |
 
-### From `HANDOFF.md` "المطلوب بعدها" (Majed's list)
+### Carried over from the previous handoff notes
 
 | Title | Labels | Notes |
 |---|---|---|

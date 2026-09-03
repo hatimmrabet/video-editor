@@ -59,7 +59,7 @@ but the wrapper itself needs Git-Bash / WSL. `set -e`.
 
 ## Place in the flow
 
-Only when the user explicitly asks to edit visually (`SKILL.md` — "أبي أعدّل بنفسي").
+Only when the user explicitly asks to edit visually (`SKILL.md` — "I want to edit it myself").
 Replaces stage 9a (`render_frames.js` + `encode.sh`). Never redo the earlier stages — cut,
 transcribe, caption, effects are all shared.
 

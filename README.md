@@ -1,94 +1,135 @@
-# video-editor — سكل لكلود كود
+# video-editor — a Claude Code skill
 
-> 🍴 Fork de [majedphotos/video-ad-editor](https://github.com/majedphotos/video-ad-editor) (MIT).
-> Ajouts : **macOS · Windows · Linux**, transcription **faster-whisper (GPU)** avec mode
-> dialecte, sources **paysage → vertical**, scripts renommés. Détails + roadmap : [`FORK.md`](FORK.md).
-> Documentation technique (anglais) : [`docs/`](docs/).
+**Record yourself talking. Get back a vertical 9:16 ad, ready to publish.** No editing
+app, and your video is never uploaded to any server — everything runs on your machine.
 
-<div dir="rtl">
+![a frame from an ad produced by the skill](video-editor/img/behind.jpg)
 
-**تصوّر نفسك تتكلم… وتستلم إعلاناً عمودياً جاهزاً للنشر.** بلا برنامج مونتاج، وبلا ما ترفع فيديوك لأي سيرفر.
+## What it does
 
-سكل عربي لـ[Claude Code](https://claude.com/claude-code) يشتغل كله على جهازك.
+- **Removes the silences** — the video shrinks to roughly half and picks up pace
+- **Word-synced captions** — it knows the start and end of every word, not an approximation
+- **Motion graphics from your speech** — say a number, a counter rolls; list things, cards fly in
+- **Speech passing behind you** — a word is stretched with the Arabic kashida to the exact
+  width of your body, so the elongation alone disappears behind you and the letters stay
+  readable *(macOS only)*
+- **Delete any sentence from the text** — it drops out of the video, audio and captions, and
+  everything after it shifts back
+- **Repeated-sentence detector** — when you rephrase a sentence, it suggests dropping the first
+- **Platform-loudness audio** (−14 LUFS) + optional background audio that ducks under speech
+- **Safe-zone check** — verifies no text hides under Instagram's buttons
+- **An `.srt` subtitle file + your full transcript** ready for the post caption
 
-![لقطة من إعلان أُنتج بالسكل](video-editor/img/behind.jpg)
+A second, independent **montage mode** takes a folder of speechless clips and cuts them
+into one rhythmic montage, picking the best moment of each clip.
 
-## شنو يسوي
+The captions, end card and trigger phrases are currently **Arabic**. Multi-language output
+is on the [roadmap](docs/design/roadmap.md).
 
-- **يشيل السكتات** — الفيديو ينقص للنص تقريباً ويصير سريعاً
-- **كابشن عربي يمشي مع فمك** — يعرف بداية ونهاية كل كلمة، مو تقريباً
-- **مشاهد متحركة من كلامك** — تذكر رقماً يطلع عدّاد، تعدّد أشياء تدخل بطاقات
-- **الكلام يمرّ ورا ظهرك** — الكلمة تنمدّ بالكشيدة العربية بمقدار عرض جسمك بالضبط، فالمدّ وحده يختفي وراك والحروف تبقى مقروءة *(ماك فقط)*
-- **شيل أي جملة من النص** — تحذفها من الكلام المكتوب فتنشال من الفيديو والصوت والكابشن، والباقي ينزاح مكانه
-- **ينبّهك للجملة المعادة** — لما تعيد صياغة جملة، يقترح حذف الأولى
-- **صوت معاير لمستوى المنصات** (‎-14 LUFS) + خلفية صوتية اختيارية تنخفض وقت الكلام
-- **فحص المنطقة الآمنة** — يتأكد إن ولا نص يختفي تحت أزرار انستقرام
-- **ملف ترجمة `.srt` + نص كلامك** جاهز لكابشن البوست
+---
 
-## التنصيب
+## Install
 
-**الطريقة السهلة:** نزّل `video-ad-editor.skill` من [الإصدارات](../../releases) ← دبل كليك ← كلود يسألك التثبيت ← وافق.
+The skill is the `video-editor/` folder in this repo — it contains `SKILL.md` plus the
+`scripts/`. Claude Code loads a skill from `SKILL.md` inside a directory under a skills
+path.
 
-**الطريقة اليدوية:** نزّل المستودع وحط مجلد `video-editor` داخل:
+### Option A — from a release (easiest)
 
+Download `video-ad-editor.skill` from [Releases](../../releases), double-click it, and
+approve the install when Claude asks.
+
+> Note: the packaged `.skill` at the repo root is currently **stale** (older script
+> layout). Until it is rebuilt, use Option B or C.
+
+### Option B — manual copy
+
+Clone the repo and copy the skill folder into your personal skills directory:
+
+```bash
+# macOS / Linux
+git clone https://github.com/hatimmrabet/video-editor.git
+cp -r video-editor/video-editor ~/.claude/skills/video-ad-editor
 ```
-~/.claude/skills/            # ماك ولينكس
-%USERPROFILE%\.claude\skills # ويندوز
+
+```powershell
+# Windows (PowerShell)
+git clone https://github.com/hatimmrabet/video-editor.git
+Copy-Item -Recurse video-editor\video-editor $env:USERPROFILE\.claude\skills\video-ad-editor
 ```
 
-المسار الصحيح بعدها: `.claude/skills/video-editor/SKILL.md`
+Resulting path: `~/.claude/skills/video-ad-editor/SKILL.md`.
 
-## الاستخدام
+### Option C — you forked the repo and want live edits
 
-افتح كلود كود واكتب:
+Symlink your working copy into the skills directory, so every change you make to
+`SKILL.md` or the scripts is picked up on the next Claude Code session — no re-copy.
 
-> **منتج هذا المقطع**
+```bash
+# macOS / Linux — from the repo root
+ln -s "$(pwd)/video-editor" ~/.claude/skills/video-ad-editor
+```
 
-ويطلب منك الفيديو. أي صياغة ثانية تشتغل بعد: «سو من هذا الفيديو إعلان» · «شيّل السكتات» · «حوّل الفيديو لريل» · «ركّب كابشن عربي».
+```powershell
+# Windows (PowerShell, as admin or with Developer Mode on) — from the repo root
+New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.claude\skills\video-ad-editor" `
+  -Target "$(Get-Location)\video-editor"
+```
 
-📘 **[الدليل الكامل بالعربي (PDF — ١٣ صفحة)](GUIDE.pdf)** — بلغة إنسان عادي، بلا ولا أمر تكتبه بنفسك.
+**Project-scoped instead of personal:** put the link (or copy) under `.claude/skills/` in a
+specific project's directory rather than `~/.claude/skills/` — the skill is then only
+available in that project.
 
-## المتطلبات
+Verify Claude Code sees it: run `/help` or start a session and check the skill appears, or
+just type a trigger phrase (below).
 
-السكل ينزّلها بنفسه بعد إذنك — ما تحتاج تسوي شي:
+### First run
 
-| الأداة | لأجل |
+`bash video-editor/scripts/setup.sh` checks for the tools it needs (ffmpeg, Node,
+puppeteer-core, a Whisper engine, Chrome) — or the skill runs it for you and asks before
+installing anything.
+
+---
+
+## Usage
+
+Open Claude Code and type:
+
+> **منتج هذا المقطع**  *("edit this clip into an ad")*
+
+It asks for your video. Other phrasings work too: «سو من هذا الفيديو إعلان» ·
+«شيّل السكتات» · «حوّل الفيديو لريل» · «ركّب كابشن عربي».
+
+📘 **[Full guide (Arabic, PDF — 13 pages)](video-editor/GUIDE.pdf)** — in plain language,
+with no command you type yourself.
+
+## Requirements
+
+The skill installs these for you after your approval:
+
+| Tool | For |
 |---|---|
-| ffmpeg | القص والتجميع والصوت |
-| faster-whisper *(أو openai-whisper)* | تفريغ الكلام بتوقيت كل كلمة — على GPU إن وُجد |
-| Chrome + puppeteer-core | رسم المشاهد |
-| nvidia-cublas-cu12 / nvidia-cudnn-cu12 *(اختياري)* | تفريغ على GPU (NVIDIA) |
-| Xcode CLT *(اختياري، ماك فقط)* | تأثير «الكلام ورا الشخص» |
-| Remotion *(اختياري)* | شاشة تعديل مباشرة بتايم-لاين |
+| ffmpeg | cutting, assembling, audio |
+| faster-whisper *(or openai-whisper)* | word-timed transcription — on GPU if available |
+| Chrome + puppeteer-core | drawing the scenes |
+| nvidia-cublas-cu12 / nvidia-cudnn-cu12 *(optional)* | GPU transcription (NVIDIA) |
+| Xcode CLT *(optional, macOS only)* | the "speech behind the person" effect |
+| Remotion *(optional)* | a live timeline editing screen |
 
-## الخصوصية
+Runs on **macOS · Windows (Git-Bash / WSL) · Linux**. See
+[`docs/windows.md`](docs/windows.md) for Windows notes.
 
-كل شي على جهازك. **فيديوك ما يرتفع لأي سيرفر** — لا سيرفرنا ولا غيره.
+## Privacy
 
-## للمطوّرين
+Everything is local. **Your video is never uploaded** — not to us, not to anyone.
 
-| السكربت | يسوي |
-|---|---|
-| `setup.sh` | فحص وتنزيل الأدوات (macOS · Windows · Linux) |
-| `transcribe.py` | تفريغ الكلام → `a.json` (faster-whisper GPU/CPU ← whisper) |
-| `plan_cuts.py` | قياس السكتات → `cut.json` |
-| `captions.py` | توقيت الكلمة → `caps.json` |
-| `reframe.py` | القص والزوم ووسم bt709 |
-| `render_frames.js` | الرسم (استئناف · نافذة · معاينة) |
-| `remotion/remotion.sh` | المحرّك الثاني (تايم-لاين حي) |
-| `sound_fx.py` | مؤثرات صوتية مولّدة بـnumpy |
-| `encode.sh` · `master_audio.sh` | التجميع + معايرة ‎-14 LUFS |
-| `contact_sheet.sh` | ورقة لقطات وحدة |
-| `safe_check.js` | المنطقة الآمنة + الهوك |
-| `subtitles.py` | ترجمة + نص الكابشن |
-| `edit_script.py` | حذف الجُمل من النص |
-| `fx/behind_text.js` | الكلام ورا الشخص |
+## Documentation
 
-📖 **الوثائق الكاملة (إنجليزي):** [`docs/`](docs/) — خريطة كل سكربت، تدفّق البيانات،
-المحرّكان، العلل العشر، ومعمارية الهدف. و`video-editor/HANDOFF.md` = حالة المشروع الحالية.
+- **[`docs/`](docs/)** — technical reference: a page per script, data flow, the two
+  rendering engines, the invariants, and the target architecture.
+- **[`FORK.md`](FORK.md)** — origin and what has changed here.
+- **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — where things live, how work is tracked.
 
-## الرخصة
+## License
 
-MIT — استخدمه وعدّله ووزّعه بحرية.
-
-</div>
+MIT — use it, modify it, distribute it freely.

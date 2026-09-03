@@ -1,7 +1,6 @@
 # Contributing
 
-This is a fork of [`majedphotos/video-ad-editor`](https://github.com/majedphotos/video-ad-editor)
-(MIT). See [`FORK.md`](FORK.md) for what diverged and why.
+Origin and history: [`FORK.md`](FORK.md).
 
 ## Where things are
 
@@ -12,7 +11,7 @@ This is a fork of [`majedphotos/video-ad-editor`](https://github.com/majedphotos
 - **Rules you must not break:** [`docs/invariants.md`](docs/invariants.md) — read this
   before touching either rendering engine.
 - **Where the project is going:** [`docs/design/`](docs/design/).
-- **The end-user skill:** `video-editor/SKILL.md` (Arabic) — the operational source of truth.
+- **The skill itself:** `video-editor/SKILL.md` — the operational source of truth.
 
 ## Picking up work
 
@@ -28,8 +27,8 @@ Comment on an issue before starting it.
 
 ## Ground rules
 
-- **Don't break macOS.** The fork's cross-platform work adds Windows/Linux branches
-  without changing macOS behavior — keep it that way.
+- **Don't break macOS.** The cross-platform layer adds Windows/Linux branches without
+  changing macOS behavior — keep it that way.
 - **Cross-platform hygiene:** shell scripts source `lib/platform.sh` and resolve the work
   dir through `vevo_abspath`; Node scripts use `lib/platform.js` for paths and Chrome;
   Python scripts keep the UTF-8 reconfigure header. See [`docs/windows.md`](docs/windows.md).
@@ -41,4 +40,4 @@ Comment on an issue before starting it.
 ## Commit messages
 
 - Conventional prefixes (`docs:`, `feat:`, `fix:`, `chore:`, `refactor:`).
-- The upstream project's history is in Arabic; the fork's is mixed — French or English is fine.
+- English or French for new commits.
