@@ -173,8 +173,8 @@ Also:
   "config-driven staging" that exists today is Remotion-only.
 - Scene graphics are maintained **three times**: `compose.html` (imperative Canvas 2D),
   `Scenes.tsx` (declarative JSX), `studio.html` (a third imperative copy).
-- The root `video-ad-editor.skill` package is a **stale** snapshot of an older tree
-  (numbered scripts, before the rename). See [project-tracking.md](project-tracking.md).
+- No `.skill` distribution package is published yet — the old one (a stale snapshot from
+  before the script rename) was removed. See [project-tracking.md](project-tracking.md).
 
 ## Transitions today
 

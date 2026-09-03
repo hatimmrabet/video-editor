@@ -34,13 +34,11 @@ The skill is the `video-editor/` folder in this repo — it contains `SKILL.md` 
 `scripts/`. Claude Code loads a skill from `SKILL.md` inside a directory under a skills
 path.
 
-### Option A — from a release (easiest)
+### Option A — from a release
 
-Download `video-ad-editor.skill` from [Releases](../../releases), double-click it, and
-approve the install when Claude asks.
-
-> Note: the packaged `.skill` at the repo root is currently **stale** (older script
-> layout). Until it is rebuilt, use Option B or C.
+If a `video-ad-editor.skill` package is attached to a [Release](../../releases),
+double-click it and approve the install when Claude asks. No package is published yet —
+until then, use Option B or C.
 
 ### Option B — manual copy
 

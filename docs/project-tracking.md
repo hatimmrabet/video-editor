@@ -119,7 +119,7 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 
 | Title | Labels |
 |---|---|
-| chore: regenerate the root `video-ad-editor.skill` package (stale — old numbered scripts) | `type:chore` |
+| chore: build & publish a `video-ad-editor.skill` package as a GitHub Release | `type:chore` |
 | chore: merge `feature/windows-i18n-rename` into `main` | `type:chore` `area:windows` |
 
 ### Carried over from the previous handoff notes
