@@ -1,4 +1,8 @@
-# محرّر إعلان الفيديو — سكل لكلود كود
+# video-editor — سكل لكلود كود
+
+> 🍴 Fork de [majedphotos/video-ad-editor](https://github.com/majedphotos/video-ad-editor) (MIT).
+> Ajouts : **macOS · Windows · Linux**, transcription **faster-whisper (GPU)** avec mode
+> dialecte, sources **paysage → vertical**, scripts renommés. Détails + roadmap : [`FORK.md`](FORK.md).
 
 <div dir="rtl">
 
@@ -6,7 +10,7 @@
 
 سكل عربي لـ[Claude Code](https://claude.com/claude-code) يشتغل كله على جهازك.
 
-![لقطة من إعلان أُنتج بالسكل](video-ad-editor/img/behind.jpg)
+![لقطة من إعلان أُنتج بالسكل](video-editor/img/behind.jpg)
 
 ## شنو يسوي
 
@@ -24,14 +28,14 @@
 
 **الطريقة السهلة:** نزّل `video-ad-editor.skill` من [الإصدارات](../../releases) ← دبل كليك ← كلود يسألك التثبيت ← وافق.
 
-**الطريقة اليدوية:** نزّل المستودع وحط مجلد `video-ad-editor` داخل:
+**الطريقة اليدوية:** نزّل المستودع وحط مجلد `video-editor` داخل:
 
 ```
 ~/.claude/skills/            # ماك ولينكس
 %USERPROFILE%\.claude\skills # ويندوز
 ```
 
-المسار الصحيح بعدها: `.claude/skills/video-ad-editor/SKILL.md`
+المسار الصحيح بعدها: `.claude/skills/video-editor/SKILL.md`
 
 ## الاستخدام
 
@@ -50,9 +54,10 @@
 | الأداة | لأجل |
 |---|---|
 | ffmpeg | القص والتجميع والصوت |
-| Whisper | تفريغ الكلام بتوقيت كل كلمة |
+| faster-whisper *(أو openai-whisper)* | تفريغ الكلام بتوقيت كل كلمة — على GPU إن وُجد |
 | Chrome + puppeteer-core | رسم المشاهد |
-| Xcode CLT *(اختياري، ماك)* | تأثير «الكلام ورا الشخص» |
+| nvidia-cublas-cu12 / nvidia-cudnn-cu12 *(اختياري)* | تفريغ على GPU (NVIDIA) |
+| Xcode CLT *(اختياري، ماك فقط)* | تأثير «الكلام ورا الشخص» |
 | Remotion *(اختياري)* | شاشة تعديل مباشرة بتايم-لاين |
 
 ## الخصوصية
@@ -63,21 +68,22 @@
 
 | السكربت | يسوي |
 |---|---|
-| `00_setup.sh` | فحص وتنزيل الأدوات |
-| `01_cut_plan.py` | قياس السكتات → `cut.json` |
-| `02_captions.py` | توقيت الكلمة → `caps.json` |
-| `03_cut_zoom.py` | القص والزوم ووسم bt709 |
-| `04_render_frames.js` | الرسم (استئناف · نافذة · معاينة) |
-| `04b_remotion.sh` | المحرّك الثاني (تايم-لاين حي) |
-| `05_sfx.py` | مؤثرات صوتية مولّدة بـnumpy |
-| `06_encode.sh` · `06b_master.sh` | التجميع + معايرة ‎-14 LUFS |
-| `07_contact_sheet.sh` | ورقة لقطات وحدة |
-| `08_safe_check.js` | المنطقة الآمنة + الهوك |
-| `09_srt.py` | ترجمة + نص الكابشن |
-| `10_script_edit.py` | حذف الجُمل من النص |
-| `11_behind_text.js` | الكلام ورا الشخص |
+| `setup.sh` | فحص وتنزيل الأدوات (macOS · Windows · Linux) |
+| `transcribe.py` | تفريغ الكلام → `a.json` (faster-whisper GPU/CPU ← whisper) |
+| `plan_cuts.py` | قياس السكتات → `cut.json` |
+| `captions.py` | توقيت الكلمة → `caps.json` |
+| `reframe.py` | القص والزوم ووسم bt709 |
+| `render_frames.js` | الرسم (استئناف · نافذة · معاينة) |
+| `remotion/remotion.sh` | المحرّك الثاني (تايم-لاين حي) |
+| `sound_fx.py` | مؤثرات صوتية مولّدة بـnumpy |
+| `encode.sh` · `master_audio.sh` | التجميع + معايرة ‎-14 LUFS |
+| `contact_sheet.sh` | ورقة لقطات وحدة |
+| `safe_check.js` | المنطقة الآمنة + الهوك |
+| `subtitles.py` | ترجمة + نص الكابشن |
+| `edit_script.py` | حذف الجُمل من النص |
+| `fx/behind_text.js` | الكلام ورا الشخص |
 
-`HANDOFF.md` فيه المعمارية كاملة والعلل اللي انكشفت وانصلحت.
+`video-editor/HANDOFF.md` فيه المعمارية كاملة والعلل اللي انكشفت وانصلحت.
 
 ## الرخصة
 

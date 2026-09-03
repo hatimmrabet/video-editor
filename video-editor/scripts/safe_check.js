@@ -1,6 +1,6 @@
 /* ═══ فحص المنطقة الآمنة + الهوك ═══
-   node 08_safe_check.js <workdir>            → يفحص ويطبع النتيجة
-   node 08_safe_check.js <workdir> --shot     → يطلّع كمان safe.jpg (اللقطة الأسوأ وفوقها المناطق بالأحمر)
+   node safe_check.js <workdir>            → يفحص ويطبع النتيجة
+   node safe_check.js <workdir> --shot     → يطلّع كمان safe.jpg (اللقطة الأسوأ وفوقها المناطق بالأحمر)
 
    ليش: انستقرام يغطي أسفل الريل بالكابشن والصوت وأزرار الحساب، ويمينه بأزرار اللايك والمشاركة.
    أي نص يدخل هالمناطق ينختفي على المشاهد وأنت ما تشوفه بالمعاينة.
@@ -9,6 +9,7 @@
    نعدّ بكسلات رسمك داخل كل منطقة خطرة.
    الحدود تتعدّل بملف <work>/safe.json إذا احتجت.                                             */
 const path=require('path'), fs=require('fs');
+const {fileUrl,launchOptions,resolvePuppeteer}=require('./lib/platform');
 const W=path.resolve(process.argv[2])+path.sep;
 const SHOT=process.argv.includes('--shot');
 const CFG=JSON.parse(fs.readFileSync(W+'sfx.json','utf8'));
@@ -28,14 +29,6 @@ const DEF={
 };
 const SAFE=fs.existsSync(W+'safe.json')?{...DEF,...JSON.parse(fs.readFileSync(W+'safe.json','utf8'))}:DEF;
 
-function resolvePuppeteer(){
-  for(const p of [process.env.PUPPETEER_PATH,'puppeteer-core','puppeteer',
-      path.join(process.cwd(),'node_modules/puppeteer-core')]) {
-    if(!p) continue; try{ return require(p); }catch(e){}
-  }
-  throw new Error('ما لقيت puppeteer-core — ثبّته: npm i puppeteer-core');
-}
-const CHROME=process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 /* بكسلان مصمتان (أحمر وأخضر) يحلّان محل صورة الفيديو.
    نرسم كل لحظة مرتين: البكسل اللي يتغيّر بينهما = مكان الفيديو، واللي يثبت = رسمك أنت.
    بهالطريقة الفحص ما يعتمد على ألوان الثيم إطلاقاً. */
@@ -53,19 +46,18 @@ const FLAT_B='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2
     console.log(hookOK?`✅ أول كابشن عند ${hook.toFixed(2)} ثانية`
       :`❌ أول كابشن عند ${hook.toFixed(2)} ثانية — لازم قبل ${SAFE.hook_max}`);
     console.log('ℹ️  ما فيه compose.html — فحص البكسل للمحرّك الخفيف بس.');
-    console.log('   بريموشن: خلّ "guides": true بـsafe.json ثم 04b_remotion.sh <work> studio — تشوف المناطق الحمراء حيّة.');
+    console.log('   بريموشن: خلّ "guides": true بـsafe.json ثم remotion/remotion.sh <work> studio — تشوف المناطق الحمراء حيّة.');
     process.exit(hookOK?0:3);
   }
 
   /* ── 2) المنطقة الآمنة ── */
   const puppeteer=resolvePuppeteer();
-  const b=await puppeteer.launch({executablePath:CHROME,headless:'new',
-    args:['--no-sandbox','--allow-file-access-from-files','--font-render-hinting=none','--force-color-profile=srgb']});
+  const b=await puppeteer.launch(launchOptions());
   const p=await b.newPage();
   p.on('pageerror',e=>console.log('PAGEERR',e.message));
   await p.setViewport({width:1080,height:1920,deviceScaleFactor:1});
   await p.setCacheEnabled(false);   // لا تقرأ نسخة مخبّأة من compose.html
-  await p.goto('file://'+W+'compose.html',{waitUntil:'networkidle0'});
+  await p.goto(fileUrl(W+'compose.html'),{waitUntil:'networkidle0'});
   const FF=THEME.font||'Cairo';
   await p.evaluate(()=>new Promise(r=>{const l=document.getElementById('LOGO');
     if(!l||l.complete)return r(); l.onload=r; l.onerror=r; setTimeout(r,3000);}));
@@ -149,7 +141,7 @@ const FLAT_B='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2
     if(fs.existsSync(W+'vfr')){
       const NVF=fs.readdirSync(W+'vfr').filter(f=>f.endsWith('.jpg')).length;
       const i=Math.min(NVF,Math.max(1,Math.round(worst.at*FPS)+1));
-      await p.evaluate(s=>window.setFrame(s),'file://'+W+'vfr/'+String(i).padStart(5,'0')+'.jpg');
+      await p.evaluate(s=>window.setFrame(s),fileUrl(W+'vfr/'+String(i).padStart(5,'0')+'.jpg'));
     }else{ await p.evaluate(s=>window.setFrame(s),FLAT_A); }   // بلا فريمات: اللون المسطّح يكفي للمعاينة
     const d=await p.evaluate((t,zones)=>{
       window.draw(t);

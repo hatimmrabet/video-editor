@@ -1,4 +1,65 @@
+# === Node ===
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm/
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# === Remotion / build ===
+.remotion/
+out/
+build/
+dist/
+
+# === Médias / rendus (fichiers lourds) ===
 *.mov
 *.mp4
+*.mkv
+*.webm
+*.wav
+*.mp3
+*.m4a
+*.aac
+!video-editor/img/*.png
+!video-editor/img/*.jpg
+
+# === Sorties de travail ===
+work/
+tmp/
+temp/
+output/
+renders/
+*.srt.tmp
+transcript*.json
+!**/project.sample.json
+
+# === OS ===
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# === Éditeurs ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# === Divers ===
+.env
+.env.local
+*.log

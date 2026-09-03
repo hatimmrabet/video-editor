@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""خطة القص: يقيس السكتات بالصوت ويطلع مقاطع الكلام.  الاستخدام: python3 01_cut_plan.py <workdir>"""
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+"""خطة القص: يقيس السكتات بالصوت ويطلع مقاطع الكلام.  الاستخدام: python3 plan_cuts.py <workdir>"""
 import subprocess, re, json, sys, os
 W = os.path.abspath(sys.argv[1]); SRC = os.path.join(W, "src.mov")
 NOISE, MIND, PAD, MERGE = "-32dB", 0.35, 0.13, 0.20

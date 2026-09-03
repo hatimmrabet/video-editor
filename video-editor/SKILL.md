@@ -32,7 +32,7 @@ description: يحوّل فيديو حديث-للكاميرا (سيلفي/تيل�
 > «أبي أعدّل بنفسي» · «ما عجبني مكان هالشي، أبي أحرّكه» · «فيه شاشة أشوف فيها التعديل؟» · «أبي أجرّب أشياء بنفسي»
 
 عندها قل له جملة وحدة بلا مصطلحات: «أفتح لك شاشة تعديل مباشرة تشوف فيها الفيديو وتحرّك أي شي وتشوف النتيجة فوراً — تنزيلها ياخذ ٥ دقايق مرة وحدة، أبدأ؟»
-وبعد موافقته: `04b_remotion.sh <work> setup` ثم `studio`.
+وبعد موافقته: `remotion/remotion.sh <work> setup` ثم `studio`.
 **ما تعيد أي خطوة سابقة** — القص والتفريغ والكابشن والمؤثرات كلها مشتركة، ينتقل الشغل كما هو.
 
 | | **الخفيف** (الافتراضي) | **شاشة التعديل** |
@@ -41,7 +41,7 @@ description: يحوّل فيديو حديث-للكاميرا (سيلفي/تيل�
 | التنزيل | صفر إضافي | ~500 ميقا مرة وحدة |
 | ما يشوفه | لقطات تعرضها عليه | فيديو حي يسحب فيه ويشوف فوراً |
 | الترخيص | حر | شركة بأربعة موظفين فأكثر تدفع (بلّغه إذا كان شركة) |
-| الأمر | `04_render_frames.js` | `04b_remotion.sh` |
+| الأمر | `render_frames.js` | `remotion/remotion.sh` |
 
 ---
 
@@ -60,16 +60,20 @@ description: يحوّل فيديو حديث-للكاميرا (سيلفي/تيل�
 ## الخطوة 0 — جهّز بصمت
 
 ```bash
-bash scripts/00_setup.sh
+bash scripts/setup.sh
 ```
 - رجّع «كل شي جاهز» → لا تذكر الموضوع أصلاً، انتقل للخطوة التالية.
 - رجّع ناقصاً → قل له بجملة وحدة شنو راح تنزّل وليش، خذ موافقته، ثم:
 ```bash
-bash scripts/00_setup.sh --install
+bash scripts/setup.sh --install
 ```
 لو فشل شي (مثلاً كروم مو منصّب) قل له الحل بجملة بشرية، بلا لصق رسالة الخطأ.
 
-جهّز مجلد شغل، وانسخ له `scripts/compose.REFERENCE.html` باسم `compose.html` و`scripts/studio.html`.
+**المنصّات:** السكل يشتغل على macOS و Windows (Git-Bash/WSL) و Linux — `setup.sh` يتعرّف على النظام
+ويستخدم brew / winget / apt حسب الحاجة. الميزات اللي تحتاج ماك (خطوات 7.5 · 7.6 · «الكلام ورا الشخص»)
+تتخطّى نفسها تلقائياً على غير ماك، وباقي الخط يشتغل عادي.
+
+جهّز مجلد شغل، وانسخ له `scripts/compose.reference.html` باسم `compose.html` و`scripts/studio.html`.
 
 ---
 
@@ -113,31 +117,37 @@ bash scripts/00_setup.sh --install
 
 ### 3) خطة القص
 ```bash
-python3 scripts/01_cut_plan.py <work>
+python3 scripts/plan_cuts.py <work>
 ```
 قل له كم انشال: «شلت 52 ثانية سكوت — الفيديو صار 46 بدل 98.»
 
 ### 4) التفريغ بتوقيت الكلمة
 ```bash
 ffmpeg -v error -i <work>/src.mov -vn -ac 1 -ar 16000 -y <work>/a.wav
-python3 -m whisper <work>/a.wav --language ar --model medium --word_timestamps True \
-  --output_format json --output_dir <work> --fp16 False
+python3 scripts/transcribe.py <work> --language <LANG> --model large-v3
 ```
-ياخذ دقايق — شغّله بالخلفية وقل له كم يتوقع.
+- `<LANG>` = لغة الفيديو: `ar` · `fr` · `en` · أو لهجة صعبة `ar-MA` / `ar-DZ` / `darija` (تفعّل وضع hard-dialect وحدها).
+- المحرّك يختار وحده: faster-whisper على GPU (الأسرع) ← CPU ← openai-whisper احتياطي.
+- على GPU يخلص بثوانٍ؛ على CPU ياخذ دقايق — شغّله بالخلفية.
+- يطلّع `<work>/a.json` بنفس صيغة openai-whisper (segments · words · timings).
+
+**⛔ اسأل عن اللغة قبل هالخطوة** — لو الفيديو بلهجة والتفريغ طلع بلغة ثانية أو فاضي،
+غالباً اللغة غلط. الدارجة المغربية/الجزائرية: وِسبر يغلط فيها كثير حتى بأفضل موديل —
+حذّر المستخدم من أول، واعرض عليه النص كامل ليصحّحه (خطوة 5).
 
 ### 5) التصحيح والكابشن
-اقرأ `a.json`، صحّح كل جملة (وِسبر يغلط بالعامية الخليجية)، واكتب `<work>/fixes.json`:
+اقرأ `a.json`، صحّح كل جملة (وِسبر يغلط بالعاميات — الخليجية والمغربية خصوصاً)، واكتب `<work>/fixes.json`:
 ```json
 { "fix": [["كل","شي","تشوفه"], ["الكابشن","الزوم"]], "hot": ["تشوفه","الزوم"] }
 ```
 `hot` = الكلمات اللي تنحبس بقرص التمييز وقت نطقها. **عدد كلمات كل جملة لازم يساوي عدد كلمات وِسبر لنفس الجملة** وإلا تختل التوقيتات (السكربت يوقفك لو اختلفت).
 ```bash
-python3 scripts/02_captions.py <work>
+python3 scripts/captions.py <work>
 ```
 
 ### 5.5) اعرض عليه النص — وشيل أي جملة ما عجبته ← ميزة قوية، لا تتخطّاها
 ```bash
-python3 scripts/10_script_edit.py <work> show
+python3 scripts/edit_script.py <work> show
 ```
 يطبع كلامه مرقّماً بالتوقيت ويكتب `script.txt`. **اعرض عليه القائمة بالشات وقل له: «شنو تبي أشيل؟»**
 
@@ -145,26 +155,29 @@ python3 scripts/10_script_edit.py <work> show
 لما يعيد المتحدث صياغة جملة، **الأولى هي الغلط والثانية هي التصحيح** — اعرض الزوج عليه واقترح حذف الأولى:
 > «قلت الجملة مرتين — ‹قدرنا نحل السبب› ثم ‹قدرنا نعرف السبب›. أشيل الأولى؟»
 ```bash
-python3 scripts/10_script_edit.py <work> dupes
+python3 scripts/edit_script.py <work> dupes
 ```
 ```bash
-python3 scripts/10_script_edit.py <work> drop 6 8       # يشيل الجملتين من الفيديو والصوت
-python3 scripts/10_script_edit.py <work> keep 1 2 5 9   # يبقي هذي بس (لمقطع مختصر)
-python3 scripts/10_script_edit.py <work> undo           # تراجع
+python3 scripts/edit_script.py <work> drop 6 8       # يشيل الجملتين من الفيديو والصوت
+python3 scripts/edit_script.py <work> keep 1 2 5 9   # يبقي هذي بس (لمقطع مختصر)
+python3 scripts/edit_script.py <work> undo           # تراجع
 ```
 الجملة تنشال من الفيديو والصوت، وكل اللي بعدها ينزاح، و`cut.json` و`caps.json` و`sfx.json` تتحدّث كلها.
 
 **⚠️ سوّها هني — قبل تصميم المشاهد.** لو شيّلت جملة بعد ما صمّمت المشاهد، أوقاتها كلها تنزاح ولازم تعدّلها.
-وبعد أي حذف: أعد `03_cut_zoom.py` واستخراج الفريمات، والرسم بـ`--force`.
+وبعد أي حذف: أعد `reframe.py` واستخراج الفريمات، والرسم بـ`--force`.
 
-### 6) القص والزوم
+### 6) القص وإعادة التأطير
 ```bash
-python3 scripts/03_cut_zoom.py <work>
+python3 scripts/reframe.py <work>
 mkdir -p <work>/vfr && ffmpeg -v error -i <work>/cutz.mp4 -vf fps=30 -q:v 3 -y <work>/vfr/%05d.jpg
 ```
+- مصدر عمودي (سيلفي) → يمرّ كما هو.
+- مصدر **أفقي** (16:9) → يُقصّ منه إطار عمودي 9:16؛ لو المتحدث مو بالنص، حدّد `xAnchor`
+  في `theme.json` (0 = يسار · 0.5 = وسط · 1 = يمين). عاين فريماً قبل ما تكمّل.
 
 ### 7) صمّم المشاهد ← أهم خطوة
-انسخ `compose.REFERENCE.html` إلى `<work>/compose.html` وأعد كتابة دوال المشاهد.
+انسخ `compose.reference.html` إلى `<work>/compose.html` وأعد كتابة دوال المشاهد.
 
 **البنية جاهزة، لا تلمسها:** تصغير الفيديو داخل كرت (`R_FULL` / `R_DOWN` / `R_LOWER` بانتقال ناعم)، شارة الحساب، شريط التقدّم، كروت الكابشن مع تظليل الكلمة المنطوقة، كرت النهاية، واشتقاق الألوان من الثيم.
 
@@ -232,14 +245,14 @@ mkdir -p <work>/vfr && ffmpeg -v error -i <work>/cutz.mp4 -vf fps=30 -q:v 3 -y <
 
 عاين قبل ما ترسم كل شي:
 ```bash
-node scripts/04_render_frames.js <work> preview 4.6 12.3 27.6 31.0 48.4
-bash scripts/07_contact_sheet.sh <work> <work>/sheet.jpg 4.6 12.3 27.6 31.0 48.4
+node scripts/render_frames.js <work> preview 4.6 12.3 27.6 31.0 48.4
+bash scripts/contact_sheet.sh <work> <work>/sheet.jpg 4.6 12.3 27.6 31.0 48.4
 ```
 
 **فتحت له شاشة التعديل (بطلبه)؟** المشاهد تنكتب بـ`<work>/remotion/src/Scenes.tsx` (نفس المنطق: كل مشهد ياخذ `t`):
 ```bash
-bash scripts/04b_remotion.sh <work> setup            # مرة وحدة — بعد إذنه (~500 ميقا)
-bash scripts/04b_remotion.sh <work> studio           # تايم-لاين حي على المتصفح
+bash scripts/remotion/remotion.sh <work> setup            # مرة وحدة — بعد إذنه (~500 ميقا)
+bash scripts/remotion/remotion.sh <work> studio           # تايم-لاين حي على المتصفح
 ```
 مستطيلات عرض الفيديو تنكتب بـ`<work>/stage.json` ونصوص الختام بـ`<work>/outro.json` — وتنعكس بالمحرّكين.
 **اقرأ `sheet.jpg` وحدها — لا تقرأ الصور وحدة وحدة.** ورقة واحدة = قراءة واحدة بدل خمس. **لا ترسم الفيديو كامل قبل ما تعاين ٦ لقطات على الأقل**، واعرض الورقة على المستخدم.
@@ -255,10 +268,10 @@ python3 -m http.server 8791 --directory <work>   # ثم /studio.html
 والحروف تبقى بارزة على الجانبين. يشتغل بمكتبة ماك المدمجة (Vision) — صفر تنزيل وصفر كلفة.
 
 ```bash
-node scripts/11_behind_text.js <work> plan        # يرشّح الجُمل المناسبة
-node scripts/11_behind_text.js <work> build 8     # يقصّ الشخص بفريمات هالجملة
-node scripts/04_render_frames.js <work> all --force
-node scripts/11_behind_text.js <work> off         # إلغاء
+node scripts/fx/behind_text.js <work> plan        # يرشّح الجُمل المناسبة
+node scripts/fx/behind_text.js <work> build 8     # يقصّ الشخص بفريمات هالجملة
+node scripts/render_frames.js <work> all --force
+node scripts/fx/behind_text.js <work> off         # إلغاء
 ```
 
 **⛔ متى تستخدمه — القاعدة:**
@@ -283,8 +296,8 @@ node scripts/11_behind_text.js <work> off         # إلغاء
 | **راسك برّا المستطيل** | الفيديو بكرت صغير تحت، وراسه يطلع فوق حافته | `headout 23.8-26.6` |
 
 ```bash
-node scripts/11_behind_text.js <work> headout 23.8-26.6
-node scripts/04_render_frames.js <work> range 23.6 26.8
+node scripts/fx/behind_text.js <work> headout 23.8-26.6
+node scripts/render_frames.js <work> range 23.6 26.8
 ```
 
 **متى تستخدم «راسك برّا المستطيل» أو «واقف قدام اللوحة»؟**
@@ -299,30 +312,30 @@ node scripts/04_render_frames.js <work> range 23.6 26.8
   "thud": [27.27,29.47], "tap": [23.08,24.06] }
 ```
 ```bash
-python3 scripts/05_sfx.py <work>
+python3 scripts/sound_fx.py <work>
 ```
 
 ### 9) الرسم النهائي والتجميع
 
 **الخفيف:**
 ```bash
-node scripts/04_render_frames.js <work> all          # يكمّل من وين وقف — ما يعيد فريماً جاهزاً
-bash scripts/06_encode.sh <work> <work>/ad-final.mp4
+node scripts/render_frames.js <work> all          # يكمّل من وين وقف — ما يعيد فريماً جاهزاً
+bash scripts/encode.sh <work> <work>/ad-final.mp4
 ```
 عدّلت مشهداً واحداً بعد الرسم؟ لا تعيد الكل — أعد نافذته بس ثم جمّع:
 ```bash
-node scripts/04_render_frames.js <work> range 26.4 31.2
+node scripts/render_frames.js <work> range 26.4 31.2
 ```
 (`--force` مع `all` يعيد الرسم من الصفر. السكربت ينبّهك لو بقي فريم ناقص قبل التجميع.)
 
 **ريموشن:** يطلّع MP4 مباشرة بلا فريمات:
 ```bash
-bash scripts/04b_remotion.sh <work> render <work>/ad-final.mp4
+bash scripts/remotion/remotion.sh <work> render <work>/ad-final.mp4
 ```
 
 ### 10) معايرة الصوت (+ خلفية صوتية اختيارية)
 ```bash
-bash scripts/06b_master.sh <work> <work>/ad-final.mp4 <work>/ad-master.mp4
+bash scripts/master_audio.sh <work> <work>/ad-final.mp4 <work>/ad-master.mp4
 ```
 يرفع الصوت لـ‎-14 LUFS — نفس علو باقي الفيديوهات بالفيد؛ بدونه صوته يطلع أخفض من اللي قبله وبعده.
 ولو حطّيت `<work>/bg-audio.mp3` ينضاف **ملف صوتي بالخلفية ينخفض تلقائياً كل ما يتكلم** ويرجع بالسكتات. الصورة تُنسخ كما هي بلا إعادة ترميز.
@@ -331,7 +344,7 @@ bash scripts/06b_master.sh <work> <work>/ad-final.mp4 <work>/ad-master.mp4
 
 ### 11) ملف الترجمة
 ```bash
-python3 scripts/09_srt.py <work> ad-master
+python3 scripts/subtitles.py <work> ad-master
 ```
 يطلّع `.srt` (يوتيوب ولينكدإن يقراه) و`.txt` = نص كلامه كامل جاهز لكابشن البوست.
 
@@ -350,7 +363,7 @@ python3 scripts/09_srt.py <work> ad-master
 
 ### 1) الفحص
 ```bash
-python3 scripts/12_montage.py <work> scan <مجلد_المقاطع> --shot 1.5
+python3 scripts/montage_mode.py <work> scan <مجلد_المقاطع> --shot 1.5
 ```
 يفحص أربعة مقاطع بنفس الوقت. القياس عندنا: **٣٠ ثانية فيديو ≈ ١٥ ثانية فحص** — يعني ٣٠ مقطعاً
 طول كل واحد ١٠ ثوانٍ ≈ دقيقتين ونصف. شغّله بالخلفية وقل له كم يتوقع.
@@ -358,21 +371,21 @@ python3 scripts/12_montage.py <work> scan <مجلد_المقاطع> --shot 1.5
 
 ### 2) وريه اللقطات — ورقة وحدة مرقّمة
 ```bash
-python3 scripts/12_montage.py <work> sheet --cols 6
+python3 scripts/montage_mode.py <work> sheet --cols 6
 ```
 كل لقطة عليها رقم مقطعها. **اقرأ الورقة وحدة — لا تقرأ الصور فرادى.**
 واعرضها عليه: «هذي أحلى لحظة بكل مقطع — شنو تبي أشيل؟»
 
 ### 3) شيل اللي ما عجبه
 ```bash
-python3 scripts/12_montage.py <work> drop 4 11      # يشيل
-python3 scripts/12_montage.py <work> keep 1 2 5 9   # يبقي هذي بس
-python3 scripts/12_montage.py <work> undo           # تراجع
+python3 scripts/montage_mode.py <work> drop 4 11      # يشيل
+python3 scripts/montage_mode.py <work> keep 1 2 5 9   # يبقي هذي بس
+python3 scripts/montage_mode.py <work> undo           # تراجع
 ```
 
 ### 4) الترتيب والإيقاع
 ```bash
-python3 scripts/12_montage.py <work> plan --dur 30 --shot 1.5
+python3 scripts/montage_mode.py <work> plan --dur 30 --shot 1.5
 ```
 | | |
 |---|---|
@@ -385,7 +398,7 @@ python3 scripts/12_montage.py <work> plan --dur 30 --shot 1.5
 
 ### 5) التركيب
 ```bash
-python3 scripts/12_montage.py <work> build <work>/montage.mp4
+python3 scripts/montage_mode.py <work> build <work>/montage.mp4
 ```
 | | |
 |---|---|
@@ -399,7 +412,7 @@ python3 scripts/12_montage.py <work> build <work>/montage.mp4
 
 ### 6) الصوت والتسليم — نفس خط الكلام
 ```bash
-bash scripts/06b_master.sh <work> <work>/montage.mp4 <work>/montage-master.mp4
+bash scripts/master_audio.sh <work> <work>/montage.mp4 <work>/montage-master.mp4
 ```
 حط ملفه الصوتي `<work>/bg-audio.mp3` بمجلد الشغل قبلها. المونتاج يطلع بمسار صامت لو ما طلبت
 الأجواء، فالخلفية الصوتية هني مو زينة — بدونها الفيديو ساكت.
@@ -432,7 +445,7 @@ bash scripts/06b_master.sh <work> <work>/montage.mp4 <work>/montage-master.mp4
 
 0. **المنطقة الآمنة والهوك** — فحص آلي، ما يحتاج عينك:
 ```bash
-node scripts/08_safe_check.js <work> --shot
+node scripts/safe_check.js <work> --shot
 ```
 يرسم كل لحظة مرتين بلونين مكان الفيديو، واللي ما يتغيّر = رسمك أنت — فيعدّ نصوصك داخل مناطق أزرار انستقرام بدقة، ويتأكد إن أول كابشن قبل نصف ثانية. يخرج بالرمز 3 لو فيه خرق، ويطلّع `safe.jpg` واللقطة الحمراء توريك وين المشكلة.
 الحدود تُعدّل بملف `<work>/safe.json` لو احتجت (مثلاً فيديو للتيك توك بحدود ثانية).
@@ -440,9 +453,10 @@ node scripts/08_safe_check.js <work> --shot
 1. **المزامنة** — فرّغ صوت الناتج مرة ثانية وقارن بدايات الجُمل بـ`caps.json`؛ الفرق أقل من 0.1 ثانية:
 ```bash
 ffmpeg -v error -i <work>/ad-final.mp4 -vn -ac 1 -ar 16000 -y <work>/fa.wav
-python3 -m whisper <work>/fa.wav --language ar --model small --output_format json --output_dir <work> --fp16 False
+python3 scripts/transcribe.py <work> --language <LANG> --model medium --wav <work>/fa.wav --out <work>/fa.json
 ```
-2. **الصوت** — بعد `06b_master.sh` يطبع العلو النهائي: لازم ≈ ‎-14 LUFS والذروة ‎-1.5 dBTP أو أقل.
+قارن بدايات جُمل `fa.json` بـ`caps.json`.
+2. **الصوت** — بعد `master_audio.sh` يطبع العلو النهائي: لازم ≈ ‎-14 LUFS والذروة ‎-1.5 dBTP أو أقل.
 3. **العين** — ورقة تواصل بـ٦ لقطات، تُشاف فعلاً.
 4. **الحجم** — تحت 30 ميقا.
 
@@ -451,9 +465,9 @@ python3 -m whisper <work>/fa.wav --language ar --model small --output_format jso
 **بالقياس الفعلي: الصور تاكل ٨٠-٨٥٪ من سياق المحادثة.** الصورة بعرض ١٠٨٠ ≈ ١٥٠ ألف حرف؛ ونفسها بعرض ٣٠٠ ≈ ٢٠ ألف.
 
 1. **كل لقطة تُصغَّر قبل ما تُعرض:** `-vf scale=300:-1` — تكفي للحكم البصري تماماً.
-2. **ورقة تواصل وحدة** بدل صور منفصلة (`07_contact_sheet.sh`) — خمس لقطات بصورة وحدة.
+2. **ورقة تواصل وحدة** بدل صور منفصلة (`contact_sheet.sh`) — خمس لقطات بصورة وحدة.
 3. **لقطة وحدة لكل مرحلة**، مو لكل محاولة. عدّلت شيئاً؟ افحصه بالأرقام أول، والصورة آخر شي.
-4. **الفحص الآلي بدل العين:** `08_safe_check.js` يعطيك حكماً بسطر — استخدمه قبل ما تصوّر.
+4. **الفحص الآلي بدل العين:** `safe_check.js` يعطيك حكماً بسطر — استخدمه قبل ما تصوّر.
 5. **مخرجات ffmpeg** تُقصّ دائماً: `2>&1 | tail -2`.
 6. **لا تقرأ `compose.html` كاملاً** — `grep -n` للدالة اللي تبيها.
 
@@ -479,18 +493,20 @@ python3 -m whisper <work>/fa.wav --language ar --model small --output_format jso
 
 | | يسوي شنو | المحرّك |
 |---|---|---|
-| `00_setup.sh` | يفحص الأدوات وينزّل الناقص | مشترك |
-| `01_cut_plan.py` | يقيس السكتات ويطلع مقاطع الكلام | مشترك |
-| `02_captions.py` | توقيت كل كلمة على التايم-لاين الجديد | مشترك |
-| `03_cut_zoom.py` | القص + زوم لكل مقطع + وسم bt709 | مشترك |
-| `04_render_frames.js` | يرسم الفريمات (استئناف + نافذة) | الخفيف |
-| `04b_remotion.sh` | يجهّز/يفتح/يرندر مشروع ريموشن | ريموشن |
-| `05_sfx.py` | المؤثرات الصوتية من `sfx.json` | مشترك |
-| `06_encode.sh` | يجمّع الفريمات + الصوت | الخفيف |
-| `06b_master.sh` | ‎-14 LUFS + خلفية صوتية بخفض تلقائي | مشترك |
-| `07_contact_sheet.sh` | ورقة لقطات وحدة (توفير توكنز) | مشترك |
-| `08_safe_check.js` | المنطقة الآمنة + الهوك | الخفيف (وبريموشن: `"guides":true` تعطيك المناطق حيّة بالاستوديو) |
-| `09_srt.py` | ملف ترجمة + نص الكابشن | مشترك |
-| `10_script_edit.py` | شيل جملة من النص → تنشال من الفيديو | مشترك |
-| `11_behind_text.js` + `personmask.swift` | أنماط القصّ الثلاثة (ورا الشخص · قدام اللوحة · راس برّا الكرت) | الخفيف |
-| `12_montage.py` | **وضع المونتاج**: يفحص مجلد مقاطع، يختار أحلى لحظة بكل واحد، ويركّبها | مستقل |
+| `setup.sh` | يفحص الأدوات وينزّل الناقص (macOS · Windows · Linux) | مشترك |
+| `lib/platform.sh` · `lib/platform.js` | مساعدات متعدّدة المنصّات (مسارات · كروم · OS) | مشترك |
+| `transcribe.py` | تفريغ الكلام → `a.json` (faster-whisper GPU/CPU ← whisper) | مشترك |
+| `plan_cuts.py` | يقيس السكتات ويطلع مقاطع الكلام | مشترك |
+| `captions.py` | توقيت كل كلمة على التايم-لاين الجديد | مشترك |
+| `reframe.py` | القص + إعادة تأطير 9:16 (يقبل مصدر أفقي) + زوم + وسم bt709 | مشترك |
+| `render_frames.js` | يرسم الفريمات (استئناف + نافذة) | الخفيف |
+| `remotion/remotion.sh` | يجهّز/يفتح/يرندر مشروع ريموشن | ريموشن |
+| `sound_fx.py` | المؤثرات الصوتية من `sfx.json` | مشترك |
+| `encode.sh` | يجمّع الفريمات + الصوت | الخفيف |
+| `master_audio.sh` | ‎-14 LUFS + خلفية صوتية بخفض تلقائي | مشترك |
+| `contact_sheet.sh` | ورقة لقطات وحدة (توفير توكنز) | مشترك |
+| `safe_check.js` | المنطقة الآمنة + الهوك | الخفيف (وبريموشن: `"guides":true` تعطيك المناطق حيّة بالاستوديو) |
+| `subtitles.py` | ملف ترجمة + نص الكابشن | مشترك |
+| `edit_script.py` | شيل جملة من النص → تنشال من الفيديو | مشترك |
+| `fx/behind_text.js` + `personmask.swift` | أنماط القصّ الثلاثة (ورا الشخص · قدام اللوحة · راس برّا الكرت) | الخفيف |
+| `montage_mode.py` | **وضع المونتاج**: يفحص مجلد مقاطع، يختار أحلى لحظة بكل واحد، ويركّبها | مستقل |

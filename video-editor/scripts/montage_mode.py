@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 """وضع المونتاج — مجموعة مقاطع بلا كلام → مونتاج واحد.
 
-  python3 12_montage.py <work> scan <مجلد_المقاطع> [--shot 1.5] [--fps 4]
-  python3 12_montage.py <work> show
-  python3 12_montage.py <work> sheet [out.jpg] [--cols 6]
-  python3 12_montage.py <work> drop 3 7      |  keep 1 2 5   |  undo
-  python3 12_montage.py <work> plan [--dur 30] [--shot 1.5] [--bpm 0] [--order energy|best|folder]
-  python3 12_montage.py <work> build [out.mp4] [--ar 9:16] [--xfade 0] [--amb 0] [--zoom 1]
+  python3 montage_mode.py <work> scan <مجلد_المقاطع> [--shot 1.5] [--fps 4]
+  python3 montage_mode.py <work> show
+  python3 montage_mode.py <work> sheet [out.jpg] [--cols 6]
+  python3 montage_mode.py <work> drop 3 7      |  keep 1 2 5   |  undo
+  python3 montage_mode.py <work> plan [--dur 30] [--shot 1.5] [--bpm 0] [--order energy|best|folder]
+  python3 montage_mode.py <work> build [out.mp4] [--ar 9:16] [--xfade 0] [--amb 0] [--zoom 1]
 
 الاختيار على المشهد نفسه: وضوح الصورة · حركة بمقدار (لا جمود ولا رجّة) · إضاءة · لون.
 بلا تفريغ ولا كابشن — هذا وضع مستقل عن إعلان الكلام.
@@ -543,7 +548,7 @@ def cmd_build(W, args):
     print(f"✅ {out}")
     print(run(["ffprobe", "-v", "error", "-show_entries", "format=duration,size",
                "-show_entries", "stream=width,height", "-of", "default=nw=1", out]).stdout.strip())
-    print(f"↩︎ بعدها: bash scripts/06b_master.sh {W} {out} "
+    print(f"↩︎ بعدها: bash scripts/master_audio.sh {W} {out} "
           f"{os.path.join(W, 'montage-master.mp4')}")
 
 

@@ -1,35 +1,27 @@
 /* يركّب الفيديو + الموشن قرافيكس ويطلع فريمات.
-   node 04_render_frames.js <workdir> all                       ← يكمّل من وين وقف (يتخطّى الموجود)
-   node 04_render_frames.js <workdir> all --force               ← يعيد الرسم من الصفر
-   node 04_render_frames.js <workdir> range 12.0 18.5           ← يعيد رسم نافذة وحدة بس (بعد تعديل مشهد)
-   node 04_render_frames.js <workdir> preview 4.6 12.3 31.0     */
+   node render_frames.js <workdir> all                       ← يكمّل من وين وقف (يتخطّى الموجود)
+   node render_frames.js <workdir> all --force               ← يعيد الرسم من الصفر
+   node render_frames.js <workdir> range 12.0 18.5           ← يعيد رسم نافذة وحدة بس (بعد تعديل مشهد)
+   node render_frames.js <workdir> preview 4.6 12.3 31.0     */
 const path=require('path'), fs=require('fs');
+const {fileUrl,launchOptions,resolvePuppeteer}=require('./lib/platform');
 const W=path.resolve(process.argv[2])+path.sep;
 const CFG=JSON.parse(fs.readFileSync(W+'sfx.json','utf8'));       // فيه outro
 const THEME=fs.existsSync(W+'theme.json')?JSON.parse(fs.readFileSync(W+'theme.json','utf8')):{};
 const BEHIND=fs.existsSync(W+'behind.json')?JSON.parse(fs.readFileSync(W+'behind.json','utf8')):null;  // الكلام ورا الشخص
 const OUT_D=CFG.outro, FPS=30;
-function resolvePuppeteer(){
-  for(const p of [process.env.PUPPETEER_PATH,'puppeteer-core','puppeteer',
-      path.join(process.cwd(),'node_modules/puppeteer-core')]) {
-    if(!p) continue; try{ return require(p); }catch(e){}
-  }
-  throw new Error('ما لقيت puppeteer-core — ثبّته: npm i puppeteer-core');
-}
-const CHROME=process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 (async()=>{
   const puppeteer=resolvePuppeteer();
   const mode=process.argv[3]||'all';
   const caps=JSON.parse(fs.readFileSync(W+'caps.json','utf8'));
   const NVF=fs.readdirSync(W+'vfr').filter(f=>f.endsWith('.jpg')).length;
   const dur=caps.total+OUT_D;
-  const b=await puppeteer.launch({executablePath:CHROME,headless:'new',
-    args:['--no-sandbox','--allow-file-access-from-files','--font-render-hinting=none','--force-color-profile=srgb']});
+  const b=await puppeteer.launch(launchOptions());
   const p=await b.newPage();
   p.on('pageerror',e=>console.log('PAGEERR',e.message));
   await p.setViewport({width:1080,height:1920,deviceScaleFactor:1});
   await p.setCacheEnabled(false);   // لا تقرأ نسخة مخبّأة من compose.html
-  await p.goto('file://'+W+'compose.html',{waitUntil:'networkidle0'});
+  await p.goto(fileUrl(W+'compose.html'),{waitUntil:'networkidle0'});
   const FF=THEME.font||'Cairo';
   await p.evaluate(()=>new Promise(r=>{const l=document.getElementById('LOGO');l.complete?r():l.onload=r;}));
   await p.evaluate((c,o,t,b)=>window.init({cards:c.cards,total:c.total,outro:o,theme:t,behind:b}),caps,OUT_D,THEME,BEHIND);
@@ -46,12 +38,12 @@ const CHROME=process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/
   const grab=async(t,file,q)=>{
     const i=Math.min(NVF,Math.max(1,Math.round(t*FPS)+1));
     const id=String(i).padStart(5,'0');
-    await p.evaluate(s=>window.setFrame(s),'file://'+W+'vfr/'+id+'.jpg');
+    await p.evaluate(s=>window.setFrame(s),fileUrl(W+'vfr/'+id+'.jpg'));
     if(BEHIND){                                   // صورة الشخص المقصوص لهالفريم (إن وُجدت)
       const inR=BEHIND.ranges.some(r=>i>=r[0]&&i<=r[1]);
       const pf=W+'bt/person/'+id+'.png';
       const ok=inR&&fs.existsSync(pf);
-      await p.evaluate((s,f)=>window.setPerson(s,f), ok?('file://'+pf):null, (BEHIND.faces&&BEHIND.faces[i])||null);
+      await p.evaluate((s,f)=>window.setPerson(s,f), ok?fileUrl(pf):null, (BEHIND.faces&&BEHIND.faces[i])||null);
     }
     const d=await p.evaluate((t,q)=>{window.draw(t);return window.shot(q);},t,q);
     fs.writeFileSync(file,Buffer.from(d.split(',')[1],'base64'));
@@ -81,7 +73,7 @@ const CHROME=process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/
     console.log('تم',drawn,'فريم مرسوم من',n,'— المدة',dur.toFixed(3));
     if(mode!=='range'){                  // ناقص فريم = تجميع مكسور، لازم ينكشف الحين
       let miss=0; for(let i=0;i<n;i++) if(!done(W+'out/'+String(i).padStart(5,'0')+'.jpg')) miss++;
-      if(miss)console.log('⚠️ ناقص',miss,'فريماً — أعد التشغيل قبل 06_encode.sh');
+      if(miss)console.log('⚠️ ناقص',miss,'فريماً — أعد التشغيل قبل encode.sh');
     }
   }
   await b.close();

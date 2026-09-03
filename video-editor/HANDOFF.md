@@ -1,11 +1,15 @@
 # تسليم — محرّر إعلان الفيديو (v2.2)
 
+> 🍴 **هذا فرع (fork) من مشروع ماجد الأصلي.** التغييرات الخاصة بالفرع (دعم Windows/Linux،
+> `transcribe.py`، إعادة التأطير الأفقي، إعادة تسمية السكربتات) موثّقة في `../FORK.md` بجذر المستودع.
+> باقي هذا الملف = سياق المشروع الأصلي كما تركه ماجد.
+
 > ⛔ **اقرأ هذا القسم أولاً — تعليمات للجلسة الجديدة**
 >
 > **الشغل الجاي: تطوير سكل الفيديو نفسه.** كمّل من وين وقفنا، ولا تفتح مواضيع ثانية.
 >
 > **وين وقفنا (٣٠ أغسطس، آخر شي سويناه): وضع المونتاج خلص وانجرّب.**
-> - `scripts/12_montage.py` — مجلد مقاطع بلا كلام → مونتاج واحد. أوامره:
+> - `scripts/montage_mode.py` — مجلد مقاطع بلا كلام → مونتاج واحد. أوامره:
 >   `scan` · `show` · `sheet` · `drop/keep/undo` · `plan` · `build`.
 > - الاختيار على المشهد: وضوح (blurdetect) · حركة (YDIF) · إضاءة (YAVG) · لون (SATAVG).
 >   **الوضوح والإضاءة والجمود تضرب لا تضاف** — جرّبنا الطريقتين، والجمع كان يرفع المقطع
@@ -17,7 +21,7 @@
 > - السكل مثبّت بـ`~/.claude/skills/video-ad-editor/`.
 >
 > **المطلوب بعدها (بالترتيب اللي يبيه ماجد):**
-> 1. **تنقية الصوت بأدوبي** (`media_enhance_speech`) كخطوة اختيارية قبل `06b_master.sh` — تنبيه: ترفع الصوت لسيرفر أدوبي بعكس باقي الخط.
+> 1. **تنقية الصوت بأدوبي** (`media_enhance_speech`) كخطوة اختيارية قبل `master_audio.sh` — تنبيه: ترفع الصوت لسيرفر أدوبي بعكس باقي الخط.
 > 2. **بي-رول من مكتبة أدوبي** — مقطع مجرَّب ومنزّل بـ`broll/AdobeStock_739776879.mov` (ProRes ١٨٠ ميقا لـ١٢ ثانية → لازم تحويل تلقائي بعد التنزيل).
 > 3. **نسخة بلقن (plugin)** للتوزيع مثل `content-engine-v4.plugin`.
 > 4. **ملاحظات ماجد المتبقية على `ad2/ad-final.mp4`** — يقولها هو.
@@ -53,22 +57,22 @@
 ## خط الإنتاج — ١٣ سكربتاً
 
 ```
-00_setup.sh          فحص وتنزيل الأدوات (ffmpeg · whisper · chrome · puppeteer)
-01_cut_plan.py       silencedetect → cut.json
-02_captions.py       توقيت الكلمة على التايم-لاين الجديد → caps.json
-03_cut_zoom.py       القص + الزوم + وسم bt709 → cutz.mp4
-04_render_frames.js  الرسم (all | range من إلى | preview | --force)
-04b_remotion.sh      المحرّك الثاني: setup · sync · studio · render
-05_sfx.py            المؤثرات من sfx.json
-06_encode.sh         فريمات + صوت → mp4
-06b_master.sh        ‎-14 LUFS + خلفية صوتية اختيارية (bg-audio.mp3)
-07_contact_sheet.sh  ورقة لقطات وحدة (توفير توكنز)
-08_safe_check.js     المنطقة الآمنة + الهوك
-09_srt.py            srt + نص الكابشن
-10_script_edit.py    show · dupes · drop · keep · apply · undo
-11_behind_text.js    أنماط القصّ (plan · build 2:6-8 · cutout · headout · off)
+setup.sh          فحص وتنزيل الأدوات (ffmpeg · whisper · chrome · puppeteer)
+plan_cuts.py       silencedetect → cut.json
+captions.py       توقيت الكلمة على التايم-لاين الجديد → caps.json
+reframe.py       القص + الزوم + وسم bt709 → cutz.mp4
+render_frames.js  الرسم (all | range من إلى | preview | --force)
+remotion/remotion.sh      المحرّك الثاني: setup · sync · studio · render
+sound_fx.py            المؤثرات من sfx.json
+encode.sh         فريمات + صوت → mp4
+master_audio.sh        ‎-14 LUFS + خلفية صوتية اختيارية (bg-audio.mp3)
+contact_sheet.sh  ورقة لقطات وحدة (توفير توكنز)
+safe_check.js     المنطقة الآمنة + الهوك
+subtitles.py            srt + نص الكابشن
+edit_script.py    show · dupes · drop · keep · apply · undo
+fx/behind_text.js    أنماط القصّ (plan · build 2:6-8 · cutout · headout · off)
 personmask.swift     قصّ الشخص بمكتبة ماك (Vision) — يبنيه 11 تلقائياً
-12_montage.py        وضع المونتاج: scan · show · sheet · drop/keep/undo · plan · build
+montage_mode.py        وضع المونتاج: scan · show · sheet · drop/keep/undo · plan · build
 ```
 
 ## قواعد لا تُكسر
@@ -91,15 +95,15 @@ personmask.swift     قصّ الشخص بمكتبة ماك (Vision) — يبني
 6. **قصّ الكادر كان ثابتاً** → `faceAnchor` بـtheme.json (افتراضي 0.30 · ماجد 0.45).
 7. **«ورا الشخص» كان يشترط جملة قصيرة** → أُضيف اختيار كلمات داخل الجملة.
 8. **فحص المنطقة الآمنة كان يعطي إنذارات كاذبة** → هامش حواف ٢٤px · عتبة خلفية ٥٠ (تتجاهل الظلال) · استثناء إطار كرت الفيديو عبر `window.vrect` · وتخطّي أي لقطة ما تغيّرت بين الفحصين.
-9. **`drawtext` مو موجود بكل بناءات ffmpeg** (مفقود ببناء ماجد نفسه!) — و`07_contact_sheet.sh`
+9. **`drawtext` مو موجود بكل بناءات ffmpeg** (مفقود ببناء ماجد نفسه!) — و`contact_sheet.sh`
    كان يسقط للنسخ بصمت فتطلع ورقة لقطات **بلا توقيت**، وانت تحسبها موسومة. الحل: الوسم
    يُرسم ببايثون/PIL بـ07 وبـ12، وffmpeg للفريمات بس. ولا تضيف `drawtext` لأي سكربت جديد.
-10. **`06b_master.sh` كان ينكسر على مسار صوتي صامت** — المونتاج بلا خلفية صوتية يقيس ‎-inf LUFS
+10. **`master_audio.sh` كان ينكسر على مسار صوتي صامت** — المونتاج بلا خلفية صوتية يقيس ‎-inf LUFS
    وloudnorm يرفض القيمة ويوقف الخط. الحين يتخطّى المعايرة وينبّه بجملة.
 
 ## دروس تشغيلية
 
-- **استئناف الرسم يوفّر نصف الوقت**: عدّلت مشهداً؟ `04_render_frames.js <work> range 20.5 48.7` بدل الفيديو كامل.
+- **استئناف الرسم يوفّر نصف الوقت**: عدّلت مشهداً؟ `render_frames.js <work> range 20.5 48.7` بدل الفيديو كامل.
 - **الرسم الكامل** لفيديو ٤٨ ثانية ≈ ١٢ دقيقة (١٤٦١ فريم) · **قصّ الشخص** ≈ ٠.١٥ ثانية للفريم.
 - **وِسبر medium** أدق للخليجي، و`fixes.json` **لازم يطابق عدد كلمات كل جملة** حرفياً.
 - تسليم الملفات الكبيرة للجوال يفشل فوق ~٤ ميقا أحياناً → انسخ نسخة لسطح المكتب أو صدّر نسخة ٧٢٠p.

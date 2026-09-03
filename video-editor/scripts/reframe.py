@@ -1,18 +1,42 @@
 # -*- coding: utf-8 -*-
-"""قص السكتات + زوم مختلف لكل مقطع + تدرّج دافئ.  python3 03_cut_zoom.py <workdir>"""
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+"""قص السكتات + إعادة تأطير عمودي 9:16 + زوم مختلف لكل مقطع + تدرّج اختياري.
+python3 reframe.py <workdir>
+
+يشتغل مع أي مصدر:
+- مصدر عمودي (سيلفي ~9:16)  → يمرّ كما هو (السلوك الأصلي، بلا تغيير)
+- مصدر أفقي (16:9 / كاميرا)  → يُقصّ منه إطار عمودي 9:16 من الوسط قبل الزوم
+theme.json (اختياري): xAnchor (0-1، أفقي · افتراضي 0.5) · yAnchor (0-1، عمودي · افتراضي 0.30)
+"""
 import json, subprocess, sys, os
 W=os.path.abspath(sys.argv[1]); SRC=os.path.join(W,"src.mov")
 k=json.load(open(os.path.join(W,"cut.json")))["keep"]
 _tp=os.path.join(W,"theme.json")
-GRADE=json.load(open(_tp)).get("grade",False) if os.path.exists(_tp) else False
-Z=[1.00,1.08,1.00,1.06,1.00,1.12,1.04,1.14,1.00,1.08,1.00,1.05,1.10,1.00]; ANCH=0.30
+_theme=json.load(open(_tp)) if os.path.exists(_tp) else {}
+GRADE=_theme.get("grade",False)
+XANCH=float(_theme.get("xAnchor",0.5)); YANCH=float(_theme.get("yAnchor",0.30))
+Z=[1.00,1.08,1.00,1.06,1.00,1.12,1.04,1.14,1.00,1.08,1.00,1.05,1.10,1.00]
 p=subprocess.run(["ffprobe","-v","error","-select_streams","v:0","-show_entries",
    "stream=width,height","-of","csv=p=0:s=x",SRC],capture_output=True,text=True).stdout.strip()
 SW,SH=[int(x) for x in p.split("x")[:2]]
+TARGET=9/16
+# الإطار الأساسي (z=1): أكبر مستطيل 9:16 يدخل داخل المصدر
+if SW/SH > TARGET + 1e-3:          # مصدر أفقي → نقص عمودياً
+    BW,BH = int(SH*TARGET)//2*2, SH
+    print(f"مصدر أفقي {SW}x{SH} → إطار عمودي {BW}x{BH} (ancre x={XANCH})")
+elif SW/SH < TARGET - 1e-3:        # مصدر أعرض من 9:16 عمودياً؟ نادر — نقص أفقياً
+    BW,BH = SW, int(SW/TARGET)//2*2
+    print(f"مصدر ضيّق {SW}x{SH} → إطار {BW}x{BH}")
+else:                              # عمودي ~9:16 → كما هو (السلوك الأصلي)
+    BW,BH = SW, SH
 fc=[];v=[];a=[]
 for i,(s,e) in enumerate(k):
-    z=Z[i%len(Z)]; cw=int(SW/z)//2*2; ch=int(SH/z)//2*2
-    x=(SW-cw)//2; y=int((SH-ch)*ANCH)
+    z=Z[i%len(Z)]; cw=int(BW/z)//2*2; ch=int(BH/z)//2*2
+    x=max(0,min(SW-cw,int((SW-cw)*XANCH))); y=max(0,min(SH-ch,int((SH-ch)*YANCH)))
     fc.append(f"[0:v]trim=start={s:.4f}:end={e:.4f},setpts=PTS-STARTPTS,crop={cw}:{ch}:{x}:{y},"
               f"scale=1080:1920:flags=lanczos,setsar=1[v{i}]")
     fc.append(f"[0:a]atrim=start={s:.4f}:end={e:.4f},asetpts=PTS-STARTPTS[a{i}]")

@@ -1,3 +1,8 @@
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 import wave,numpy as np
 import sys, os
 S=os.path.abspath(sys.argv[1])+"/"

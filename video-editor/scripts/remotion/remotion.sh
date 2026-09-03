@@ -1,13 +1,14 @@
 #!/bin/bash
 # ═══ المحرّك الثاني: ريموشن (تايم-لاين حي بدل رسم فريمات) ═══
-#   ./04b_remotion.sh <work> setup            → يجهّز المشروع بمجلد الشغل (ينزّل ~500 ميقا أول مرة)
-#   ./04b_remotion.sh <work> sync             → يحدّث البيانات والأصول فقط (بلا تنزيل)
-#   ./04b_remotion.sh <work> studio [port]    → يفتح الاستوديو الحي
-#   ./04b_remotion.sh <work> render [out.mp4] → يطلّع MP4 مباشرة (بلا فريمات)
+#   remotion/remotion.sh <work> setup            → يجهّز المشروع بمجلد الشغل (ينزّل ~500 ميقا أول مرة)
+#   remotion/remotion.sh <work> sync             → يحدّث البيانات والأصول فقط (بلا تنزيل)
+#   remotion/remotion.sh <work> studio [port]    → يفتح الاستوديو الحي
+#   remotion/remotion.sh <work> render [out.mp4] → يطلّع MP4 مباشرة (بلا فريمات)
 # المشاهد تُكتب بـ<work>/remotion/src/Scenes.tsx — ما يُمسح بأي إعادة تشغيل.
 set -e
-W="$(cd "$1" && pwd)"; CMD="${2:-setup}"; ARG="$3"
-TPL="$(cd "$(dirname "$0")/remotion-template" && pwd)"
+. "$(cd "$(dirname "$0")/.." && pwd)/lib/platform.sh"
+W="$(vevo_abspath "$1")"; CMD="${2:-setup}"; ARG="$3"
+TPL="$(cd "$(dirname "$0")/template" && pwd)"
 R="$W/remotion"
 
 sync_all(){
