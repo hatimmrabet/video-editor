@@ -12,7 +12,7 @@ Suivi d'avancement : [`docs/project-tracking.md`](docs/project-tracking.md).
 
 ---
 
-## Ce que cette branche a changé (passe 1 — nettoyage)
+## Passe de nettoyage (multiplateforme + renommage)
 
 ### 1. Multiplateforme (macOS · Windows · Linux)
 Rien de cassé côté macOS — on a seulement ajouté les branches Windows/Linux.
@@ -52,11 +52,23 @@ et le paquet de distribution devient `video-editor.skill`.
 
 ---
 
-## Roadmap (passes suivantes — chacune son propre design)
+## Roadmap
 
-1. **Système de config par projet** — `project.config.json` dans le dossier de la vidéo
-   (langue, thème, orientation source, style de scènes) + defaults globaux.
-2. **Bibliothèque de styles / thèmes** — presets de scènes réutilisables, rotation, personnalisation.
-3. **Agent orchestrateur** — skills + workflows qui déroulent le pipeline sans commandes manuelles.
-4. **Montage long-format YouTube** — moteur distinct du reel (jump cuts en masse, b-roll, chapitrage).
-5. **Interface web** — dépôt vidéo + formulaire + bouton générer, sur le même moteur.
+Séquençage détaillé et à jour : [`docs/design/roadmap.md`](docs/design/roadmap.md)
+(chaque passe = un milestone GitHub, son propre plan avant le code). Suivi :
+[`docs/project-tracking.md`](docs/project-tracking.md).
+
+| Passe | | État |
+|---|---|---|
+| 0 | **Documentation** — `docs/` (cartographie, contrats de données, moteurs, invariants) | ✅ fait |
+| 1 | **Exécution isolée** — `uv` pour Python, Chromium embarqué, plus de `--break-system-packages` ([`docs/design/execution.md`](docs/design/execution.md)) | ✅ fait |
+| 2 | **Config par projet** — `project.config.json` (langue, thème, layout, scènes) + adaptateur rétro-compat | à faire |
+| 3 | **Bibliothèque de transitions** — vocabulaire nommé et paramétré, commun aux 2 moteurs + montage | à faire |
+| 4 | **Scènes-données + registre de motifs** — une scène = donnée, rendue à l'identique par les 2 moteurs (fin de la triple maintenance) | à faire |
+| 5 | **Runner orchestrateur** — `scripts/run.py` piloté par la config, pauses aux points de décision | à faire |
+| 6 | **Monde `long-form`** — montage YouTube 16:9 (jump cuts, chapitrage, b-roll) | à faire |
+| 7 | **Interface web** — dépôt vidéo + formulaire → `run.py`, sur le même moteur | à faire |
+
+Correspondance avec la vision d'origine de ce fork : config par projet → 2 · bibliothèque de
+styles → 4 · agent orchestrateur → 5 · long-format YouTube → 6 · interface web → 7.
+Les passes 1 (exécution) et 3 (transitions) ont été explicitées en cours de route.

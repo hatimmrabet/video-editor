@@ -3,19 +3,20 @@
 Each pass is one GitHub **milestone**, gets its own implementation plan before code, and
 must keep every [invariant](../invariants.md) and stay backward compatible.
 
-This maps `FORK.md`'s five-point roadmap onto concrete work, with transitions and the
-scene split made explicit.
+This turns `FORK.md`'s vision (config per project, style library, orchestrator agent,
+long-form YouTube, web UI) into concrete work, with execution isolation, transitions and
+the scene split made explicit. `FORK.md` carries the short version of this table.
 
-| # | Pass | Milestone | Depends on | `FORK.md` item |
+| # | Pass | Milestone | Depends on | Status |
 |---|---|---|---|---|
-| 0 | **Documentation** (this `docs/` tree) | `Pass 0 — Documentation` | — | — |
-| 1 | **Isolated execution & dependencies** | `Pass 1 — Execution & dependencies` | 0 | — (new — enables the rest) |
-| 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | 1 |
-| 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | — (new) |
-| 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | 2 |
-| 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | 3 |
-| 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | 4 |
-| 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | 5 |
+| 0 | **Documentation** (this `docs/` tree) | `Pass 0 — Documentation` | — | ✅ done |
+| 1 | **Isolated execution & dependencies** | `Pass 1 — Execution & dependencies` | 0 | ✅ done (PR #37) |
+| 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | — |
+| 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | — |
+| 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | — |
+| 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | — |
+| 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | — |
+| 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | — |
 
 ## Pass 1 — Execution & dependencies
 
