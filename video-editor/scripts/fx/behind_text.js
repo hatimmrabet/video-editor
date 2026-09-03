@@ -1,10 +1,10 @@
 /* ═══ الكلام يمرّ ورا الشخص (كشيدة عربية) ═══
-   node 11_behind_text.js <work> plan            → يرشّح الجُمل المناسبة
-   node 11_behind_text.js <work> build 1 9       → يجهّز قصّ الشخص لهالجُمل ويكتب behind.json
-   node 11_behind_text.js <work> build 2:6-8     → كلمات بعينها داخل جملة
-   node 11_behind_text.js <work> cutout 23.8-26.6 → «واقف قدام اللوحة»: بلا كرت، أنت العنصر
-   node 11_behind_text.js <work> headout 23.8-26.6 → «راسك برّا المستطيل»: الفيديو بكرت وراسك يطلع فوق حافته
-   node 11_behind_text.js <work> off             → يلغي التأثير
+   node fx/behind_text.js <work> plan            → يرشّح الجُمل المناسبة
+   node fx/behind_text.js <work> build 1 9       → يجهّز قصّ الشخص لهالجُمل ويكتب behind.json
+   node fx/behind_text.js <work> build 2:6-8     → كلمات بعينها داخل جملة
+   node fx/behind_text.js <work> cutout 23.8-26.6 → «واقف قدام اللوحة»: بلا كرت، أنت العنصر
+   node fx/behind_text.js <work> headout 23.8-26.6 → «راسك برّا المستطيل»: الفيديو بكرت وراسك يطلع فوق حافته
+   node fx/behind_text.js <work> off             → يلغي التأثير
 
    شلون يشتغل: ماك فيه فصل الأشخاص مدمج بالنظام (Vision). نقصّ جسم المتحدث بكل فريم،
    نرسم الكلمة ممدودة بالكشيدة تحته، ثم نرجّع جسمه فوقها — فالكشيدة وحدها تمرّ ورا الراس
@@ -29,7 +29,7 @@ if(MODE==='plan'){
   });
   if(!n) console.log('  ما فيه جملة قصيرة — اختر كلمات بعينها: build 2:6-8 (الكلمات 6→8 من الجملة 2)');
   console.log('\n⚠️ اختر وحدة أو ثنتين بالكثير — لو تكرر بكل جملة يفقد أثره.');
-  console.log('ثم: node 11_behind_text.js <work> build <أرقام الجُمل>');
+  console.log('ثم: node fx/behind_text.js <work> build <أرقام الجُمل>');
   process.exit(0);
 }
 
@@ -66,7 +66,7 @@ if(MODE==='cutout'||MODE==='headout'){
   for(const mm of meta) if(mm.face) prev.faces[parseInt(mm.f,10)]=mm.face;
   fs.writeFileSync(W+'behind.json',JSON.stringify(prev,null,1));
   console.log('✅ '+(MODE==='headout'?'«راسك برّا المستطيل»':'«واقف قدام اللوحة»')+' جاهز من',a,'إلى',b,'ثانية.');
-  console.log('   ارسم: node 04_render_frames.js '+W+' range '+a+' '+b);
+  console.log('   ارسم: node render_frames.js '+W+' range '+a+' '+b);
   process.exit(0);
 }
 if(MODE!=='build'){ console.log('الأوامر: plan · build · cutout · headout · off'); process.exit(2); }
@@ -123,4 +123,4 @@ const faces={};
 for(const m of meta) if(m.face) faces[parseInt(m.f,10)]=m.face;
 fs.writeFileSync(W+'behind.json',JSON.stringify({lines,ranges,faces},null,1));
 console.log('✅ behind.json جاهز —',lines.length,'جملة يمرّ كلامها ورا الشخص.');
-console.log('   الحين ارسم: node 04_render_frames.js '+W+' all --force');
+console.log('   الحين ارسم: node render_frames.js '+W+' all --force');

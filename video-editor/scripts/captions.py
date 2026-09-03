@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""يبني توقيتات الكابشن على التايم-لاين الجديد.  python3 02_captions.py <workdir>
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+"""يبني توقيتات الكابشن على التايم-لاين الجديد.  python3 captions.py <workdir>
 يقرأ: cut.json · a.json (وِسبر) · fixes.json  ← {"fix":[[كلمات الجملة 0],...], "hot":[كلمات تُظلَّل]}
 عدد كلمات كل جملة في fix لازم يساوي عدد كلمات وِسبر لنفس الجملة (عشان التوقيتات تبقى مضبوطة)."""
 import json, sys, os

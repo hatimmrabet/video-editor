@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 """شيل أي جملة من الفيديو بحذفها من النص.
 
-    python3 10_script_edit.py <work> show              # يطبع الجُمل مرقّمة (وينبّه للجُمل المعادة)
-    python3 10_script_edit.py <work> dupes             # الجُمل المعادة وحدها
-    python3 10_script_edit.py <work> drop 3 7 12       # يشيل هالجُمل من الفيديو
-    python3 10_script_edit.py <work> keep 1 2 5 6      # يبقي هذي بس ويشيل الباقي
-    python3 10_script_edit.py <work> apply             # يقرأ script.txt المعدّل ويشيل الناقص منه
-    python3 10_script_edit.py <work> undo              # يرجّع آخر تعديل
+    python3 edit_script.py <work> show              # يطبع الجُمل مرقّمة (وينبّه للجُمل المعادة)
+    python3 edit_script.py <work> dupes             # الجُمل المعادة وحدها
+    python3 edit_script.py <work> drop 3 7 12       # يشيل هالجُمل من الفيديو
+    python3 edit_script.py <work> keep 1 2 5 6      # يبقي هذي بس ويشيل الباقي
+    python3 edit_script.py <work> apply             # يقرأ script.txt المعدّل ويشيل الناقص منه
+    python3 edit_script.py <work> undo              # يرجّع آخر تعديل
     (أضف --dry لأي أمر: يوريك النتيجة بلا ما يغيّر شي)
 
 الفكرة: الجملة اللي تنحذف من النص ينحذف مقطعها من الفيديو والصوت، وكل اللي بعدها ينزاح لمكانه.
 يعدّل: cut.json (مقاطع الفيديو) · caps.json (الكابشن) · sfx.json (أوقات المؤثرات).
-بعده: أعد بناء الفيديو ← 03_cut_zoom.py ثم استخراج الفريمات ثم الرسم.
+بعده: أعد بناء الفيديو ← reframe.py ثم استخراج الفريمات ثم الرسم.
 """
 import json, os, sys, shutil
 
@@ -64,7 +69,7 @@ def line(i, c):
 
 # ── show ──────────────────────────────────────────────────────────────────
 if CMD == "show":
-    body = ("# احذف أي سطر ما تبيه بالفيديو، واحفظ الملف، ثم:  python3 10_script_edit.py <work> apply\n"
+    body = ("# احذف أي سطر ما تبيه بالفيديو، واحفظ الملف، ثم:  python3 edit_script.py <work> apply\n"
             "# (لا تغيّر الأرقام — هي اللي تربط السطر بمقطعه)\n\n"
             + "\n".join(line(i, c) for i, c in enumerate(cards)) + "\n")
     if not DRY: open(P("script.txt"), "w", encoding="utf-8").write(body)
@@ -197,8 +202,8 @@ if os.path.exists(P("sfx.json")):
 
 print(f"""
 ✅ تم. الحين أعد بناء الفيديو:
-   python3 scripts/03_cut_zoom.py {W}
+   python3 scripts/reframe.py {W}
    mkdir -p {W}/vfr && ffmpeg -v error -i {W}/cutz.mp4 -vf fps=30 -q:v 3 -y {W}/vfr/%05d.jpg
-   node scripts/04_render_frames.js {W} all --force     (أو 04b_remotion.sh {W} render)
+   node scripts/render_frames.js {W} all --force     (أو remotion/remotion.sh {W} render)
 ⚠️ لو كنت مصمّماً مشاهد بأوقات ثابتة — أوقاتها انزاحت، راجعها.
-↩️ للتراجع: python3 scripts/10_script_edit.py {W} undo""")
+↩️ للتراجع: python3 scripts/edit_script.py {W} undo""")

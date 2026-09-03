@@ -1,11 +1,12 @@
 #!/bin/bash
 # ورقة تواصل: يجمع لقطات كثيرة بصورة وحدة — كلود يشوفها بقراءة وحدة بدل عشر قراءات (توفير توكنز كبير).
-# ./07_contact_sheet.sh <workdir> <sheet.jpg> <t1> <t2> ...
+# ./contact_sheet.sh <workdir> <sheet.jpg> <t1> <t2> ...
 #   المصدر: SRC=<ملف.mp4> إن أُعطي · وإلا ad-final.mp4 · وإلا مجلد prev/
 # ⚠️ وسم التوقيت يُرسم ببايثون (PIL) لأن كثيراً من بناءات ffmpeg تجي بلا drawtext —
 #    وبلا وسم الورقة تصير ألغازاً: تشوف لقطات وما تدري أي لحظة كل وحدة.
 set -e
-W="$(cd "$1" && pwd)"; OUT="$2"; shift 2
+. "$(dirname "$0")/lib/platform.sh"
+W="$(vevo_abspath "$1")"; OUT="$2"; shift 2
 TMP="$W/.sheet"; rm -rf "$TMP"; mkdir -p "$TMP"; i=0; IN=""
 for t in "$@"; do
   i=$((i+1)); f="$TMP/$(printf %02d $i).jpg"
@@ -26,7 +27,8 @@ sheet = Image.new("RGB", (w * len(ims), h), (17, 17, 17))
 dr = ImageDraw.Draw(sheet)
 fnt = None
 for p in ("/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-          "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
+          "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+          r"C:\Windows\Fonts\arialbd.ttf", r"C:\Windows\Fonts\segoeuib.ttf"):
     if os.path.exists(p):
         fnt = ImageFont.truetype(p, 22); break
 if fnt is None:

@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""ملف ترجمة SRT + نص كامل من الكابشن.  python3 09_srt.py <workdir> [اسم_الأساس]
+import sys as _sys
+try:
+    _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+"""ملف ترجمة SRT + نص كامل من الكابشن.  python3 subtitles.py <workdir> [اسم_الأساس]
 يطلّع: <base>.srt (يوتيوب يقراه، وانستقرام يقبله بالرفع) و<base>.txt (نص جاهز لكابشن البوست).
 يقرأ caps.json — نفس التوقيتات اللي انرسمت بالفيديو، فالمزامنة مضمونة."""
 import json, sys, os

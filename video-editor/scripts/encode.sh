@@ -1,7 +1,8 @@
 #!/bin/bash
-# ./06_encode.sh <workdir> [اسم_الملف]   → يجمّع الفريمات + الصوت + المؤثرات
+# ./encode.sh <workdir> [اسم_الملف]   → يجمّع الفريمات + الصوت + المؤثرات
 set -e
-W="$(cd "$1" && pwd)"; OUT="${2:-$W/ad-final.mp4}"
+. "$(dirname "$0")/lib/platform.sh"
+W="$(vevo_abspath "$1")"; OUT="${2:-$W/ad-final.mp4}"
 DUR=$(python3 -c "import json;c=json.load(open('$W/caps.json'));s=json.load(open('$W/sfx.json'));print(round(c['total']+s['outro'],3))")
 FADE=$(python3 -c "print(round($DUR-0.6,3))")
 ffmpeg -v error -stats -framerate 30 -i "$W/out/%05d.jpg" -i "$W/cutz.mp4" -i "$W/sfx.wav" \

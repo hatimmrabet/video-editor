@@ -1,6 +1,6 @@
 #!/bin/bash
 # ═══ معايرة الصوت لمعيار المنصات + ملف صوتي بالخلفية (اختياري) بخفض تلقائي ═══
-#   ./06b_master.sh <work> <in.mp4> [out.mp4]
+#   ./master_audio.sh <work> <in.mp4> [out.mp4]
 # • المعايرة: ‎-14 LUFS (نفس علو الفيديوهات الثانية بالفيد — بدونها صوتك يطلع أخفض)
 # • الخلفية الصوتية: تشتغل بس إذا وُجد <work>/bg-audio.mp3|m4a|wav (أو BG=مسار)،
 #   وتنخفض تلقائياً كل ما تتكلم (sidechain) فما تزاحم صوتك.
@@ -8,7 +8,8 @@
 # • الصورة تُنسخ كما هي — لا إعادة ترميز ولا خسارة جودة.
 # متغيرات: BG · BG_GAIN (0.28) · LUFS (-14) · NO_LOUDNORM=1
 set -e
-W="$(cd "$1" && pwd)"; IN="$2"; OUT="${3:-${IN%.mp4}-master.mp4}"
+. "$(dirname "$0")/lib/platform.sh"
+W="$(vevo_abspath "$1")"; IN="$2"; OUT="${3:-${IN%.mp4}-master.mp4}"
 [ -f "$IN" ] || { echo "❌ ما لقيت $IN"; exit 2; }
 G="${BG_GAIN:-${MUSIC_GAIN:-0.28}}"; I="${LUFS:--14}"
 DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$IN")

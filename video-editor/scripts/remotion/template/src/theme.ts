@@ -1,4 +1,4 @@
-/* كل القيم تجي من project.json — يبنيه 04b_remotion.sh من theme.json و caps.json.
+/* كل القيم تجي من project.json — يبنيه remotion/remotion.sh من theme.json و caps.json.
    ⛔ لا تكتب لوناً ثابتاً هني. */
 import P from './project.json';
 
