@@ -16,7 +16,7 @@ for t in "$@"; do
   IN="$IN -i $f"
 done
 
-if python3 - "$OUT" "$TMP" "$@" <<'PY' 2>/dev/null
+if "${VEVO_PY[@]}" - "$OUT" "$TMP" "$@" <<'PY' 2>/dev/null
 import sys, os, glob
 from PIL import Image, ImageDraw, ImageFont
 out, tmp = sys.argv[1], sys.argv[2]; times = sys.argv[3:]
