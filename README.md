@@ -36,7 +36,8 @@ path.
 
 ### Option A — from a release
 
-If a `video-editor.skill` package is attached to a [Release](../../releases),
+If a `video-editor.skill` package is attached to a
+[Release](https://github.com/hatimmrabet/video-editor/releases),
 double-click it and approve the install when Claude asks. No package is published yet —
 until then, use Option B or C.
 
