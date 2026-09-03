@@ -122,8 +122,9 @@ than reading it whole.
 - **`.sh` scripts** need Git-Bash/WSL, source `lib/platform.sh`, and use `"${VEVO_PY[@]}"`
   for inline Python (never a bare `python3`). Python scripts the skill calls directly do
   `os.path.abspath(sys.argv[1])` — the caller must pass a Windows-style path, not `/c/...`.
-- **Docs live with the change:** a new script gets a `docs/scripts/` page; a changed JSON
-  shape updates `docs/data-contracts.md`.
+- **Docs live with the change:** a new script gets a `docs/scripts/` page (verify with
+  `node docs/check-script-coverage.mjs`); a changed JSON shape updates
+  `docs/data-contracts.md`.
 
 ## Git / workflow
 
