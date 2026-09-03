@@ -41,7 +41,7 @@ report what it needs". The agent (or a web form) fills the gap and resumes.
 ## Skill / subagent structure
 
 ```
-skill: video-ad-editor  (the entry point — unchanged trigger phrases)
+skill: video-editor  (the entry point — unchanged trigger phrases)
   │
   ├─ reads/creates project.config.json with the user
   ├─ subagent: transcript-fixer   (reads a.json, proposes fixes.json)

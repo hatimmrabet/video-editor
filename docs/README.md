@@ -50,7 +50,7 @@ video-editor/                     ← repo root
   FORK.md                          origin + roadmap
   CONTRIBUTING.md                  where things live, how work is tracked
   docs/                            ← you are here
-  video-editor/                    ← the actual skill (installed to ~/.claude/skills/video-ad-editor)
+  video-editor/                    ← the actual skill (installed to ~/.claude/skills/video-editor)
     SKILL.md                       the Claude skill spec — operational source of truth
     GUIDE.html / GUIDE.pdf         13-page end-user guide (Arabic)
     package.json                   one dep: puppeteer-core

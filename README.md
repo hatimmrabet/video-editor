@@ -36,7 +36,7 @@ path.
 
 ### Option A — from a release
 
-If a `video-ad-editor.skill` package is attached to a [Release](../../releases),
+If a `video-editor.skill` package is attached to a [Release](../../releases),
 double-click it and approve the install when Claude asks. No package is published yet —
 until then, use Option B or C.
 
@@ -47,16 +47,16 @@ Clone the repo and copy the skill folder into your personal skills directory:
 ```bash
 # macOS / Linux
 git clone https://github.com/hatimmrabet/video-editor.git
-cp -r video-editor/video-editor ~/.claude/skills/video-ad-editor
+cp -r video-editor/video-editor ~/.claude/skills/video-editor
 ```
 
 ```powershell
 # Windows (PowerShell)
 git clone https://github.com/hatimmrabet/video-editor.git
-Copy-Item -Recurse video-editor\video-editor $env:USERPROFILE\.claude\skills\video-ad-editor
+Copy-Item -Recurse video-editor\video-editor $env:USERPROFILE\.claude\skills\video-editor
 ```
 
-Resulting path: `~/.claude/skills/video-ad-editor/SKILL.md`.
+Resulting path: `~/.claude/skills/video-editor/SKILL.md`.
 
 ### Option C — you forked the repo and want live edits
 
@@ -65,12 +65,12 @@ Symlink your working copy into the skills directory, so every change you make to
 
 ```bash
 # macOS / Linux — from the repo root
-ln -s "$(pwd)/video-editor" ~/.claude/skills/video-ad-editor
+ln -s "$(pwd)/video-editor" ~/.claude/skills/video-editor
 ```
 
 ```powershell
 # Windows (PowerShell, as admin or with Developer Mode on) — from the repo root
-New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.claude\skills\video-ad-editor" `
+New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.claude\skills\video-editor" `
   -Target "$(Get-Location)\video-editor"
 ```
 
