@@ -29,3 +29,16 @@ One page per script. Each follows [`_template.md`](_template.md).
 For the order these run in and the files that flow between them, see
 [../pipeline.md](../pipeline.md). For the JSON schemas, see
 [../data-contracts.md](../data-contracts.md).
+
+## Coverage
+
+Every script under `video-editor/scripts/` must have a page here (CLAUDE.md rule). Verify
+it with:
+
+```
+node docs/check-script-coverage.mjs
+```
+
+It fails if a script is undocumented, if a page is an orphan, or if the coverage table in
+that script points at a path that no longer exists. Run it after adding or renaming a
+script.

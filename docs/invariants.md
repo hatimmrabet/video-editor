@@ -39,9 +39,11 @@ continuous. `R_STAGE` / `R_SIDE` are legacy — do not use them in a new video.
 
 ### Instagram safe zone
 
-No text in: top 150 px · bottom 300 px (caution belt from 1500) · right 180 px for
-y 1100–1750. First caption must appear within the first 0.5 s. Verified by
-[`safe_check.js`](scripts/safe_check.md) (exit 3 on violation).
+No text in: top 150 px · bottom 300 px (caution belt from 1500) · right 130 px (x ≥ 950)
+for y 1100–1750. First caption must appear within the first 0.5 s. Verified by
+[`safe_check.js`](scripts/safe_check.md) (exit 3 on violation) — these are the exact
+`DEF.zones` it enforces; [`SKILL.md`](../video-editor/SKILL.md) still describes the right
+belt as 180 px wide.
 
 ---
 
