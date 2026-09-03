@@ -8,9 +8,9 @@ below are created. Board:
 Backlog · Design · In progress · Review · Done; all seed issues start in Backlog).
 The `gh` snippets are kept as a record and for adding more.
 
-> Renumbering note: `Pass 1 — Execution & dependencies` was inserted before Config; the
-> milestone objects Config…Web were renamed to Pass 2…7 (issues follow the object, so
-> assignments were preserved).
+> Renumbering (done): `Pass 1 — Execution & dependencies` (milestone #8) was inserted
+> before Config; milestone objects #2…#7 were renamed to Pass 2…7 and their issues
+> followed automatically.
 
 The old `HANDOFF.md` was removed — its "what's next" list is the backlog below, and its
 architecture / bug-history content is in [`docs/`](README.md).
@@ -77,20 +77,19 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 
 ### Pass 1 — Execution & dependencies
 
-Most of these are implemented by the Pass 1 PR — close on merge. See
-[design/execution.md](design/execution.md).
+Milestone #8. Implemented by **PR #37**. See [design/execution.md](design/execution.md).
 
-| Title | Labels |
-|---|---|
-| execution: `pyproject.toml` + `uv.lock` + `.python-version` | `area:pipeline` `type:chore` `prio:high` |
-| execution: rewrite `setup.sh` (uv bootstrap + `uv sync` + `npm ci`; drop `--break-system-packages`) | `area:pipeline` `area:windows` `type:chore` `prio:high` |
-| execution: `VEVO_PY` / `VEVO_SKILL_DIR` in `lib/platform.sh`; `.sh` inline `python3` → `VEVO_PY` | `area:pipeline` `type:chore` |
-| execution: switch to full `puppeteer` (bundled Chromium) + `launchOptions()` | `area:engine-light` `type:chore` `prio:high` |
-| execution: `.nvmrc` (Node ≥ 22.12) | `area:pipeline` `type:chore` |
-| execution: `SKILL.md` + docs — `python3` → `uv run` | `area:pipeline` `area:docs` |
-| execution: `VEVO_FFMPEG` / `VEVO_FFPROBE` + optional static-binary fallback (deferred) | `area:pipeline` `type:chore` |
-| execution: commit a lockfile for the Remotion template (deferred) | `area:engine-remotion` `type:chore` |
-| execution: optional CPU-only `Dockerfile` (deferred) | `area:pipeline` `type:chore` |
+| Title | Labels | Issue |
+|---|---|---|
+| ~~execution: `pyproject.toml` + `uv.lock` + `.python-version`~~ | `type:chore` `prio:high` | ✅ #38 |
+| ~~execution: rewrite `setup.sh` (drop `--break-system-packages`)~~ | `area:windows` `type:chore` `prio:high` | ✅ #39 |
+| ~~execution: `VEVO_PY` / `VEVO_SKILL_DIR`; `.sh` inline `python3` → `VEVO_PY`~~ | `type:chore` | ✅ #40 |
+| ~~execution: switch to full `puppeteer` (bundled Chromium)~~ | `area:engine-light` `type:chore` `prio:high` | ✅ #41 |
+| ~~execution: `.nvmrc` (Node ≥ 22.12)~~ | `type:chore` | ✅ #42 |
+| ~~execution: `SKILL.md` + docs — `python3` → `uv run`~~ | `area:docs` | ✅ #43 |
+| execution: `VEVO_FFMPEG` / `VEVO_FFPROBE` + static-binary fallback | `area:pipeline` `type:chore` | #44 |
+| execution: commit a lockfile for the Remotion template | `area:engine-remotion` `type:chore` | #45 |
+| execution: optional CPU-only `Dockerfile` | `area:pipeline` `type:chore` | #46 |
 
 ### Pass 2 — Config
 
