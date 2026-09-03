@@ -1,8 +1,11 @@
 # Project tracking
 
-Work is tracked with **GitHub Issues + Projects** on
-`github.com/hatimmrabet/video-editor`. This file is the **draft** of what to create — it
-is not yet applied. Once reviewed, run the `gh` commands below.
+Work is tracked with **GitHub Issues + Projects** on `github.com/hatimmrabet/video-editor`.
+
+**Applied.** The labels, the 7 milestones (Pass 0–6), and the seed issues below are
+created. Board: **[video-editor roadmap](https://github.com/users/hatimmrabet/projects/4)**
+(columns Backlog · Design · In progress · Review · Done; all seed issues start in Backlog).
+The `gh` snippets are kept as a record and for adding more.
 
 The old `HANDOFF.md` was removed — its "what's next" list is the backlog below, and its
 architecture / bug-history content is in [`docs/`](README.md).
@@ -61,9 +64,10 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 
 | Title | Labels | Notes |
 |---|---|---|
-| docs: land the `docs/` tree (this branch) | `area:docs` `prio:high` | the PR that adds `docs/` |
-| docs: verify each script page against `--help` / code | `area:docs` | spot-check pass; the coverage check |
-| docs: verify `docs/invariants.md` wording against the code fixes | `area:docs` | ✅ drafted from the ten real-run bugs |
+| ~~docs: land the `docs/` tree~~ | — | ✅ done — PR #2 |
+| ~~chore: merge cross-platform branch into `main`~~ | — | ✅ done — PR #1 |
+| docs: verify each script page against `--help` / code | `area:docs` | #3 |
+| docs: verify `docs/invariants.md` wording against the code fixes | `area:docs` | #4 |
 
 ### Pass 1 — Config
 
@@ -120,7 +124,6 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 | Title | Labels |
 |---|---|
 | chore: build & publish a `video-editor.skill` package as a GitHub Release | `type:chore` |
-| chore: merge `feature/windows-i18n-rename` into `main` | `type:chore` `area:windows` |
 
 ### Carried over from the previous handoff notes
 
