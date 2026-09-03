@@ -25,7 +25,7 @@ visually. This document explains how each draws and — importantly — where th
 `render_frames.js`:
 
 1. Reads `sfx.json` (`.outro`), `theme.json`, optional `behind.json`.
-2. `resolvePuppeteer()` → `puppeteer-core` + system Chrome; `browser.launch(launchOptions())`;
+2. `resolvePuppeteer()` → `puppeteer` (bundled Chromium); `browser.launch(launchOptions())`;
    new page at **1080×1920**; `setCacheEnabled(false)` (Chrome would otherwise serve a
    stale `compose.html`).
 3. `page.goto(fileUrl(<work>/compose.html))`, wait for the logo image.

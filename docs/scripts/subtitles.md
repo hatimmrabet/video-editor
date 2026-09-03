@@ -9,7 +9,7 @@
 ## CLI
 
 ```
-python3 subtitles.py <work> [basename]     # default basename: ad-final
+uv run scripts/subtitles.py <work> [basename]     # default basename: ad-final
 ```
 
 The skill calls it with `ad-master`.

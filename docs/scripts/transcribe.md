@@ -12,7 +12,7 @@
 ## CLI
 
 ```
-python3 transcribe.py <work> [--language ar] [--model large-v3]
+uv run scripts/transcribe.py <work> [--language ar] [--model large-v3]
                              [--engine auto|faster-whisper|whisper]
                              [--device auto|cuda|cpu] [--hard-dialect]
                              [--wav PATH] [--out PATH]

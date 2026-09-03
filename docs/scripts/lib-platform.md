@@ -24,25 +24,31 @@ Source it at the top of a shell script:
 |---|---|
 | `PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8` | so Arabic `print()` doesn't crash under Windows cp1252 |
 | `VEVO_OS` | `mac` \| `windows` \| `linux` \| `unknown` (from `uname -s`) |
+| `VEVO_SKILL_DIR` | absolute path of the skill root, found via `${BASH_SOURCE[0]}` (independent of the sourcing script) |
+| `VEVO_PY` | a **bash array**: `uv run --project "$VEVO_SKILL_DIR" python` if `uv` is on PATH; else the skill's `.venv` python (`bin/python` or `Scripts/python.exe`); else `python3`. Used as `"${VEVO_PY[@]}" -c "…"` |
+
+`.sh` scripts run their inline Python (`encode.sh`, `master_audio.sh`, `contact_sheet.sh`,
+`remotion.sh`) through `"${VEVO_PY[@]}"`, never a bare `python3`.
 
 ### Functions
 
 | Function | Purpose |
 |---|---|
 | `vevo_abspath <dir>` | `cd "$dir" && { pwd -W \|\| pwd }`. The `pwd -W` is the key Windows fix: Git-Bash's `/c/...` is not understood by native Windows Python — `pwd -W` yields `C:/...` |
-| `vevo_chrome_path` | `$CHROME_PATH` → per-OS candidate list → empty. Windows candidates: `%PROGRAMFILES%`, `%PROGRAMFILES(X86)%`, `%LOCALAPPDATA%` + `\Google\Chrome\Application\chrome.exe` |
+| `vevo_chrome_path` | `$CHROME_PATH` → per-OS candidate list → empty. **System-Chrome fallback only** — `puppeteer` normally brings its own |
 | `vevo_pkg_mgr` | `brew` \| `winget` \| `apt` \| `dnf` |
 
 ### Sourced by
 
 `setup.sh`, `encode.sh`, `master_audio.sh`, `contact_sheet.sh`, `remotion/remotion.sh`.
+Every one gets `VEVO_SKILL_DIR` and the `VEVO_PY` array.
 
 ---
 
 ## `lib/platform.js`
 
 ```js
-const { fileUrl, chromePath, launchOptions, resolvePuppeteer } = require('./lib/platform');
+const { fileUrl, chromePath, launchOptions, resolvePuppeteer, hasFullPuppeteer } = require('./lib/platform');
 ```
 
 ### Exports
@@ -50,9 +56,10 @@ const { fileUrl, chromePath, launchOptions, resolvePuppeteer } = require('./lib/
 | Function | Purpose |
 |---|---|
 | `fileUrl(p)` | `pathToFileURL(path.resolve(p)).href` — a correct `file://` URL on every OS (drive letter, spaces) |
-| `chromePath()` | `$CHROME_PATH` → per-OS candidates → `null` (caller then passes `{ channel: 'chrome' }` to Puppeteer) |
-| `launchOptions(extra)` | ready-made Puppeteer options: `headless:'new'`, args `--no-sandbox --allow-file-access-from-files --font-render-hinting=none --force-color-profile=srgb`; sets `executablePath` if Chrome found, else `channel:'chrome'` |
-| `resolvePuppeteer()` | tries `$PUPPETEER_PATH`, `puppeteer-core`, `puppeteer`, `./node_modules/...`, `../../node_modules/puppeteer-core`; throws with an install hint if none found |
+| `chromePath()` | system-Chrome fallback: `$CHROME_PATH` → per-OS candidates → `null` |
+| `hasFullPuppeteer()` | is the full `puppeteer` package (bundled Chromium) resolvable? |
+| `launchOptions(extra)` | ready-made options: `headless:true`, the four `--no-sandbox …` args, and a browser only if needed — `$CHROME_PATH` if set; else nothing when `hasFullPuppeteer()` (puppeteer finds its own via `.puppeteerrc.cjs`); else the system-Chrome path or `channel:'chrome'` |
+| `resolvePuppeteer()` | tries `$PUPPETEER_PATH`, `puppeteer` (preferred), `puppeteer-core`, then the same names under `./node_modules` and the skill's `node_modules`; throws with a `setup.sh` hint if none found |
 
 ### Required by
 

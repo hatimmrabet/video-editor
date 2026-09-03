@@ -49,7 +49,7 @@ remotion.sh <work> render [out.mp4] # npx remotion render Ad <out> --codec h264 
 
 ## External tools
 
-`npm`, `npx remotion`, `python3` (inline), `ffprobe`, `grep`.
+`npm`, `npx remotion`, `"${VEVO_PY[@]}"` (inline — generates `project.json`), `ffprobe`, `grep`.
 
 ## Cross-platform
 

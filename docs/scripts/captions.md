@@ -10,7 +10,7 @@
 ## CLI
 
 ```
-python3 captions.py <work>
+uv run scripts/captions.py <work>
 ```
 
 ## Inputs

@@ -36,36 +36,41 @@ is the Arabic end-user guide.
 ## Running the pipeline (there are no unit tests)
 
 "Testing" a change means running the relevant pipeline stage on a real video. Every script
-takes a **work directory** `<work>` as its first argument and reads/writes its files
-there.
+takes a **work directory** `<work>` as its first argument and reads/writes its files there.
+
+**Python scripts run via `uv run` from the skill dir** (`cd video-editor`); `uv` syncs the
+`.venv/` on demand. Node scripts via `node`, shell steps via `bash`. Dependencies are
+isolated — see `docs/design/execution.md`.
 
 ```bash
-# check / install tools (ffmpeg, node, puppeteer-core, a Whisper engine, Chrome)
-bash video-editor/scripts/setup.sh              # probe
-bash video-editor/scripts/setup.sh --install    # install what's missing
+cd video-editor
+
+# tools: installs ffmpeg / node / uv (system), then `uv sync` + `npm ci` (isolated)
+bash scripts/setup.sh              # report only
+bash scripts/setup.sh --install    # install + sync
 
 # speech-ad pipeline (see docs/pipeline.md for the full order + manual steps)
-python3 video-editor/scripts/plan_cuts.py <work>                 # src.mov -> cut.json
-python3 video-editor/scripts/transcribe.py <work> --language ar --model large-v3
-python3 video-editor/scripts/captions.py <work>                  # -> caps.json
-python3 video-editor/scripts/edit_script.py <work> show          # drop sentences (BEFORE scene design)
-python3 video-editor/scripts/reframe.py <work>                   # -> cutz.mp4
-node   video-editor/scripts/render_frames.js <work> all          # -> out/*.jpg  (resume; --force re-renders)
-node   video-editor/scripts/render_frames.js <work> range 12 18  # re-render one window after editing a scene
-node   video-editor/scripts/render_frames.js <work> preview 4.6 12.3   # stills for review
-bash   video-editor/scripts/encode.sh <work>                     # -> ad-final.mp4
-node   video-editor/scripts/safe_check.js <work> --shot          # MANDATORY: safe zone + hook, exit 3 on violation
-bash   video-editor/scripts/master_audio.sh <work> <work>/ad-final.mp4 <work>/ad-master.mp4
+uv run scripts/plan_cuts.py <work>                 # src.mov -> cut.json
+uv run scripts/transcribe.py <work> --language ar --model large-v3
+uv run scripts/captions.py <work>                  # -> caps.json
+uv run scripts/edit_script.py <work> show          # drop sentences (BEFORE scene design)
+uv run scripts/reframe.py <work>                   # -> cutz.mp4
+node  scripts/render_frames.js <work> all          # -> out/*.jpg  (resume; --force re-renders)
+node  scripts/render_frames.js <work> range 12 18  # re-render one window after editing a scene
+node  scripts/render_frames.js <work> preview 4.6 12.3   # stills for review
+bash  scripts/encode.sh <work>                     # -> ad-final.mp4
+node  scripts/safe_check.js <work> --shot          # MANDATORY: safe zone + hook, exit 3 on violation
+bash  scripts/master_audio.sh <work> <work>/ad-final.mp4 <work>/ad-master.mp4
 
 # Remotion engine (opt-in, replaces render_frames.js + encode.sh)
-bash video-editor/scripts/remotion/remotion.sh <work> setup      # ~500 MB, once
-bash video-editor/scripts/remotion/remotion.sh <work> render <work>/ad-final.mp4
+bash scripts/remotion/remotion.sh <work> setup      # ~500 MB, once
+bash scripts/remotion/remotion.sh <work> render <work>/ad-final.mp4
 
 # montage mode (independent — folder of speechless clips)
-python3 video-editor/scripts/montage_mode.py <work> scan <clipdir> --shot 1.5
-python3 video-editor/scripts/montage_mode.py <work> sheet --cols 6
-python3 video-editor/scripts/montage_mode.py <work> plan --dur 30
-python3 video-editor/scripts/montage_mode.py <work> build <work>/montage.mp4
+uv run scripts/montage_mode.py <work> scan <clipdir> --shot 1.5
+uv run scripts/montage_mode.py <work> sheet --cols 6
+uv run scripts/montage_mode.py <work> plan --dur 30
+uv run scripts/montage_mode.py <work> build <work>/montage.mp4
 ```
 
 Token economy matters here: a 1080-wide image ≈ 150k chars of context. Always review via
@@ -89,9 +94,13 @@ than reading it whole.
   `Scenes.tsx` for Remotion). Timestamps are hardcoded per video. `edit_script.py` shifts
   all times, so run it *before* scene design. Making scenes data-driven is the largest
   item in `docs/design/`.
-- **Cross-platform layer:** `scripts/lib/platform.sh` (sourced by every `.sh`) and
-  `scripts/lib/platform.js` (required by the Node scripts) absorb macOS/Windows/Linux
-  differences. Nothing else may hard-code a path or a Chrome location.
+- **Cross-platform layer:** `scripts/lib/platform.sh` (sourced by every `.sh`; provides
+  `VEVO_SKILL_DIR` + the `VEVO_PY` array) and `scripts/lib/platform.js` (required by the
+  Node scripts) absorb macOS/Windows/Linux differences. Nothing else may hard-code a path
+  or a browser location.
+- **Isolated deps:** Python via `uv` (`.venv/`), browser via `puppeteer`'s bundled
+  Chromium. `setup.sh` installs only ffmpeg/node/uv at system level. See
+  `docs/design/execution.md`.
 - **One hard macOS dependency:** `fx/personmask.swift` (Apple Vision) and therefore
   `fx/behind_text.js`. Everything that needs it skips itself elsewhere.
 
@@ -110,8 +119,8 @@ than reading it whole.
   `montage_mode.py` do this).
 - **Python scripts** keep `sys.stdout.reconfigure(encoding="utf-8")` at the top and write
   files with explicit `encoding="utf-8"` (Windows cp1252 otherwise breaks Arabic).
-- **`.sh` scripts** need Git-Bash/WSL and resolve `<work>` through `vevo_abspath` before
-  passing it to Python/Node. The Python scripts the skill calls directly do
+- **`.sh` scripts** need Git-Bash/WSL, source `lib/platform.sh`, and use `"${VEVO_PY[@]}"`
+  for inline Python (never a bare `python3`). Python scripts the skill calls directly do
   `os.path.abspath(sys.argv[1])` — the caller must pass a Windows-style path, not `/c/...`.
 - **Docs live with the change:** a new script gets a `docs/scripts/` page; a changed JSON
   shape updates `docs/data-contracts.md`.

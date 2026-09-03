@@ -81,17 +81,21 @@ and doesn't want to. Never hand them a list of commands to run.
 ```bash
 bash scripts/setup.sh
 ```
-- Returned "everything ready" → don't mention it at all, move to the next step.
+- Returned "✅ ready." → don't mention it at all, move to the next step.
 - Returned something missing → tell them in one sentence what you'll install and why, get
   their consent, then:
 ```bash
 bash scripts/setup.sh --install
 ```
-If something fails (e.g. Chrome isn't installed) tell them the fix in one human sentence,
-without pasting the error message.
+If something fails tell them the fix in one human sentence, without pasting the error message.
 
-**Platforms:** the skill runs on macOS, Windows (Git-Bash/WSL) and Linux — `setup.sh`
-detects the OS and uses brew / winget / apt as needed. The macOS-only features (steps 7.5
+**Dependencies are isolated.** `setup.sh --install` installs only **ffmpeg**, **Node** and
+**uv** at the system level (via brew / winget / apt). Everything else is contained:
+Python packages go in a `uv`-managed `.venv/` (never the system Python), and the browser
+that draws the scenes is downloaded by `npm` into the skill's `node_modules/` — **no
+separate Chrome install**. `uv run scripts/…` re-syncs the venv on its own if needed.
+
+**Platforms:** macOS, Windows (Git-Bash/WSL) and Linux. The macOS-only features (steps 7.5
 · 7.6 · "speech behind the person") skip themselves automatically elsewhere, and the rest
 of the pipeline runs normally.
 
@@ -151,14 +155,14 @@ Verify it arrived: `ffprobe -v error -show_entries format=duration -of csv=p=0 <
 
 ### 3) Cut plan
 ```bash
-python3 scripts/plan_cuts.py <work>
+uv run scripts/plan_cuts.py <work>
 ```
 Tell them how much was removed: "Removed 52 seconds of dead air — the video is 46 now, not 98."
 
 ### 4) Transcription with per-word timing
 ```bash
 ffmpeg -v error -i <work>/src.mov -vn -ac 1 -ar 16000 -y <work>/a.wav
-python3 scripts/transcribe.py <work> --language <LANG> --model large-v3
+uv run scripts/transcribe.py <work> --language <LANG> --model large-v3
 ```
 - `<LANG>` = the video's language: `ar` · `fr` · `en` · or a hard dialect `ar-MA` /
   `ar-DZ` / `darija` (which enables hard-dialect mode on its own).
@@ -181,12 +185,12 @@ and Maghrebi especially), and write `<work>/fixes.json`:
 sentence must equal Whisper's word count for that sentence** or the timings break (the
 script stops you if they differ).
 ```bash
-python3 scripts/captions.py <work>
+uv run scripts/captions.py <work>
 ```
 
 ### 5.5) Show them the text — and drop any sentence they don't want ← a strong feature, don't skip it
 ```bash
-python3 scripts/edit_script.py <work> show
+uv run scripts/edit_script.py <work> show
 ```
 Prints their speech, numbered and timecoded, and writes `script.txt`. **Show them the list
 in the chat and say: "What do you want me to remove?"**
@@ -198,12 +202,12 @@ them the pair and suggest dropping the first:
 > "You said the sentence twice — 'we could solve the cause' then 'we could identify the
 > cause'. Drop the first?"
 ```bash
-python3 scripts/edit_script.py <work> dupes
+uv run scripts/edit_script.py <work> dupes
 ```
 ```bash
-python3 scripts/edit_script.py <work> drop 6 8       # removes both sentences from video and audio
-python3 scripts/edit_script.py <work> keep 1 2 5 9   # keeps only these (for a shortened cut)
-python3 scripts/edit_script.py <work> undo           # undo
+uv run scripts/edit_script.py <work> drop 6 8       # removes both sentences from video and audio
+uv run scripts/edit_script.py <work> keep 1 2 5 9   # keeps only these (for a shortened cut)
+uv run scripts/edit_script.py <work> undo           # undo
 ```
 The sentence is removed from the video and the audio, everything after it shifts back, and
 `cut.json`, `caps.json` and `sfx.json` all update.
@@ -214,7 +218,7 @@ the scenes, all their times shift and you have to redo them. And after any delet
 
 ### 6) Cut and reframe
 ```bash
-python3 scripts/reframe.py <work>
+uv run scripts/reframe.py <work>
 mkdir -p <work>/vfr && ffmpeg -v error -i <work>/cutz.mp4 -vf fps=30 -q:v 3 -y <work>/vfr/%05d.jpg
 ```
 - Vertical source (selfie) → passes through as-is.
@@ -336,7 +340,7 @@ and show the sheet to the user.
 
 Interactive studio (scrub the timeline, draw live):
 ```bash
-python3 -m http.server 8791 --directory <work>   # then /studio.html
+uv run python -m http.server 8791 --directory <work>   # then /studio.html
 ```
 
 ### 7.5) Speech passing behind the person (optional — but powerful)
@@ -402,7 +406,7 @@ so it doesn't jitter.
   "thud": [27.27,29.47], "tap": [23.08,24.06] }
 ```
 ```bash
-python3 scripts/sound_fx.py <work>
+uv run scripts/sound_fx.py <work>
 ```
 
 ### 9) Final render and assembly
@@ -438,7 +442,7 @@ handle the file as-is.
 
 ### 11) Subtitle file
 ```bash
-python3 scripts/subtitles.py <work> ad-master
+uv run scripts/subtitles.py <work> ad-master
 ```
 Produces `.srt` (YouTube and LinkedIn read it) and `.txt` = their full speech text, ready
 for the post caption.
@@ -460,7 +464,7 @@ first and last third-second of each clip are trimmed — the hand-on-device mome
 
 ### 1) Scan
 ```bash
-python3 scripts/montage_mode.py <work> scan <clip_folder> --shot 1.5
+uv run scripts/montage_mode.py <work> scan <clip_folder> --shot 1.5
 ```
 Scans four clips at a time. Our measured rate: **30 s of video ≈ 15 s of scanning** — so 30
 clips of 10 s each ≈ two and a half minutes. Run it in the background and tell them what to
@@ -468,7 +472,7 @@ expect. It prints each clip with its score and best moment, and writes `montage.
 
 ### 2) Show them the shots — one numbered sheet
 ```bash
-python3 scripts/montage_mode.py <work> sheet --cols 6
+uv run scripts/montage_mode.py <work> sheet --cols 6
 ```
 Each shot has its clip number on it. **Read the sheet as one image — don't read the frames
 one by one.** And show it to them: "This is the best moment of each clip — what do you want
@@ -476,14 +480,14 @@ me to remove?"
 
 ### 3) Remove the ones they don't want
 ```bash
-python3 scripts/montage_mode.py <work> drop 4 11      # removes
-python3 scripts/montage_mode.py <work> keep 1 2 5 9   # keeps only these
-python3 scripts/montage_mode.py <work> undo           # undo
+uv run scripts/montage_mode.py <work> drop 4 11      # removes
+uv run scripts/montage_mode.py <work> keep 1 2 5 9   # keeps only these
+uv run scripts/montage_mode.py <work> undo           # undo
 ```
 
 ### 4) Order and rhythm
 ```bash
-python3 scripts/montage_mode.py <work> plan --dur 30 --shot 1.5
+uv run scripts/montage_mode.py <work> plan --dur 30 --shot 1.5
 ```
 | | |
 |---|---|
@@ -497,7 +501,7 @@ doesn't get monotonous.
 
 ### 5) Build
 ```bash
-python3 scripts/montage_mode.py <work> build <work>/montage.mp4
+uv run scripts/montage_mode.py <work> build <work>/montage.mp4
 ```
 | | |
 |---|---|
@@ -570,7 +574,7 @@ bounds, say).
    the difference should be under 0.1 seconds:
 ```bash
 ffmpeg -v error -i <work>/ad-final.mp4 -vn -ac 1 -ar 16000 -y <work>/fa.wav
-python3 scripts/transcribe.py <work> --language <LANG> --model medium --wav <work>/fa.wav --out <work>/fa.json
+uv run scripts/transcribe.py <work> --language <LANG> --model medium --wav <work>/fa.wav --out <work>/fa.json
 ```
 Compare the sentence starts of `fa.json` to `caps.json`.
 2. **Audio** — after `master_audio.sh` it prints the final loudness: it must be ≈ −14 LUFS
@@ -620,8 +624,8 @@ for the post caption). And mention that you didn't publish anything.
 
 | | Does what | Engine |
 |---|---|---|
-| `setup.sh` | checks the tools and installs what's missing (macOS · Windows · Linux) | shared |
-| `lib/platform.sh` · `lib/platform.js` | cross-platform helpers (paths · Chrome · OS) | shared |
+| `setup.sh` | installs ffmpeg/Node/uv (system), then `uv sync` + `npm ci` (isolated) | shared |
+| `lib/platform.sh` · `lib/platform.js` | cross-platform helpers (paths · `VEVO_PY` · browser · OS) | shared |
 | `transcribe.py` | transcription → `a.json` (faster-whisper GPU/CPU ← whisper) | shared |
 | `plan_cuts.py` | measures the silences and produces the speech segments | shared |
 | `captions.py` | per-word timing on the new timeline | shared |

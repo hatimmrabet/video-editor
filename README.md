@@ -83,9 +83,10 @@ just type a trigger phrase (below).
 
 ### First run
 
-`bash video-editor/scripts/setup.sh` checks for the tools it needs (ffmpeg, Node,
-puppeteer-core, a Whisper engine, Chrome) — or the skill runs it for you and asks before
-installing anything.
+`bash video-editor/scripts/setup.sh` reports what's needed; `--install` installs
+**ffmpeg, Node and uv** at the system level and isolates the rest (Python deps in a
+`uv`-managed `.venv/`, the browser bundled by `npm`). The skill runs this for you and asks
+before installing anything. See [`docs/design/execution.md`](docs/design/execution.md).
 
 ---
 
@@ -105,14 +106,14 @@ with no command you type yourself.
 
 The skill installs these for you after your approval:
 
-| Tool | For |
-|---|---|
-| ffmpeg | cutting, assembling, audio |
-| faster-whisper *(or openai-whisper)* | word-timed transcription — on GPU if available |
-| Chrome + puppeteer-core | drawing the scenes |
-| nvidia-cublas-cu12 / nvidia-cudnn-cu12 *(optional)* | GPU transcription (NVIDIA) |
-| Xcode CLT *(optional, macOS only)* | the "speech behind the person" effect |
-| Remotion *(optional)* | a live timeline editing screen |
+| Tool | For | Where it lives |
+|---|---|---|
+| ffmpeg · Node · uv | cutting/audio · JS scripts · Python env | system (brew / winget / apt) |
+| numpy · Pillow · faster-whisper | sound synthesis · labels · transcription | `uv`-managed `.venv/` |
+| Chromium | drawing the scenes | bundled by `npm` under `node_modules/` |
+| nvidia-cublas-cu12 / nvidia-cudnn-cu12 *(optional)* | GPU transcription (NVIDIA) | `.venv/` (`uv sync --extra gpu`) |
+| Xcode CLT *(optional, macOS only)* | the "speech behind the person" effect | system |
+| Remotion *(optional)* | a live timeline editing screen | `<work>/remotion/` on demand |
 
 Runs on **macOS · Windows (Git-Bash / WSL) · Linux**. See
 [`docs/windows.md`](docs/windows.md) for Windows notes.

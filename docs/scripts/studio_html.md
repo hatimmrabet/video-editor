@@ -6,7 +6,7 @@
 > alongside `compose.html`. Serve it and open it to scrub the composition by hand:
 >
 > ```
-> python3 -m http.server 8791 --directory <work>   # then open /studio.html
+> uv run python -m http.server 8791 --directory <work>   # then open /studio.html
 > ```
 
 ## What it is

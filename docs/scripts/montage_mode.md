@@ -10,12 +10,12 @@
 ## CLI
 
 ```
-python3 montage_mode.py <work> scan <clipdir> [--shot 1.5] [--fps 4]
-python3 montage_mode.py <work> show
-python3 montage_mode.py <work> sheet [out.jpg] [--cols 6]
-python3 montage_mode.py <work> drop 3 7   |  keep 1 2 5   |  undo
-python3 montage_mode.py <work> plan [--dur 30] [--shot 1.5] [--bpm 0] [--order energy|best|folder]
-python3 montage_mode.py <work> build [out.mp4] [--ar 9:16|1:1|16:9|4:5] [--xfade 0] [--amb 0] [--zoom 1]
+uv run scripts/montage_mode.py <work> scan <clipdir> [--shot 1.5] [--fps 4]
+uv run scripts/montage_mode.py <work> show
+uv run scripts/montage_mode.py <work> sheet [out.jpg] [--cols 6]
+uv run scripts/montage_mode.py <work> drop 3 7   |  keep 1 2 5   |  undo
+uv run scripts/montage_mode.py <work> plan [--dur 30] [--shot 1.5] [--bpm 0] [--order energy|best|folder]
+uv run scripts/montage_mode.py <work> build [out.mp4] [--ar 9:16|1:1|16:9|4:5] [--xfade 0] [--amb 0] [--zoom 1]
 ```
 
 ## Inputs
@@ -84,7 +84,7 @@ The first and last third-second of every clip are trimmed (hand-on-device moment
 ## Cross-platform
 
 `os.path.abspath` / `os.path.join`. PIL font list includes `C:/Windows/Fonts/arialbd.ttf`.
-UTF-8 reconfigure. **No shell wrapper — pure `python3`, Windows-friendly.** Handles mobile
+UTF-8 reconfigure. **No shell wrapper — run via `uv run`, Windows-friendly.** Handles mobile
 rotation side-data and the ffmpeg 7-vs-8 `crop:eval=frame` difference.
 
 ## Place in the flow

@@ -48,7 +48,7 @@ system doesn't apply. It reuses: `transcribe.py`, the silence/pause detection id
 `plan_cuts.py` (tuned much tighter), `montage_mode.py`'s shot scorer (for B-roll
 selection), `master_audio.sh`, `subtitles.py`, the transitions vocabulary.
 
-This is roadmap item 5 — deliberately last among the engine work, because it needs the
+This is roadmap Pass 6 — deliberately last among the engine work, because it needs the
 config system, the transitions vocabulary, and ideally the motif/scene split to already
 exist.
 

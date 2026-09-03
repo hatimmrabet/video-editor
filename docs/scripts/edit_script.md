@@ -10,12 +10,12 @@
 ## CLI
 
 ```
-python3 edit_script.py <work> show           # numbered sentences + timecodes, writes script.txt, flags dupes
-python3 edit_script.py <work> dupes          # list repeated pairs only
-python3 edit_script.py <work> drop 3 7 12    # remove those sentence numbers
-python3 edit_script.py <work> keep 1 2 5 6   # keep only those, remove the rest
-python3 edit_script.py <work> apply          # re-read the edited script.txt, drop whatever lines were deleted
-python3 edit_script.py <work> undo           # restore from .bak
+uv run scripts/edit_script.py <work> show           # numbered sentences + timecodes, writes script.txt, flags dupes
+uv run scripts/edit_script.py <work> dupes          # list repeated pairs only
+uv run scripts/edit_script.py <work> drop 3 7 12    # remove those sentence numbers
+uv run scripts/edit_script.py <work> keep 1 2 5 6   # keep only those, remove the rest
+uv run scripts/edit_script.py <work> apply          # re-read the edited script.txt, drop whatever lines were deleted
+uv run scripts/edit_script.py <work> undo           # restore from .bak
 ```
 
 Append `--dry` to any command to preview without writing.

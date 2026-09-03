@@ -50,7 +50,7 @@ node render_frames.js <work> preview <t1> <t2> ...  # write prev/tNN.NN.jpg stil
 
 ## External tools
 
-`node`, `puppeteer-core`, Chrome/Chromium.
+`node`, `puppeteer` (which bundles its own Chromium — no system Chrome needed).
 
 ## Cross-platform
 

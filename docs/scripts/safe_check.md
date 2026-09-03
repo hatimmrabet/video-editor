@@ -58,7 +58,7 @@ node safe_check.js <work> --shot   # also write safe.jpg (worst frame with zones
 
 ## External tools
 
-`node`, `puppeteer-core`, Chrome.
+`node`, `puppeteer` (bundled Chromium).
 
 ## Cross-platform
 
