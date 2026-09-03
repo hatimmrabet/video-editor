@@ -3,6 +3,7 @@
 > 🍴 Fork de [majedphotos/video-ad-editor](https://github.com/majedphotos/video-ad-editor) (MIT).
 > Ajouts : **macOS · Windows · Linux**, transcription **faster-whisper (GPU)** avec mode
 > dialecte, sources **paysage → vertical**, scripts renommés. Détails + roadmap : [`FORK.md`](FORK.md).
+> Documentation technique (anglais) : [`docs/`](docs/).
 
 <div dir="rtl">
 
@@ -83,7 +84,8 @@
 | `edit_script.py` | حذف الجُمل من النص |
 | `fx/behind_text.js` | الكلام ورا الشخص |
 
-`video-editor/HANDOFF.md` فيه المعمارية كاملة والعلل اللي انكشفت وانصلحت.
+📖 **الوثائق الكاملة (إنجليزي):** [`docs/`](docs/) — خريطة كل سكربت، تدفّق البيانات،
+المحرّكان، العلل العشر، ومعمارية الهدف. و`video-editor/HANDOFF.md` = حالة المشروع الحالية.
 
 ## الرخصة
 

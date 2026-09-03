@@ -6,6 +6,10 @@ multi-langue, bibliothèque de styles, et plus tard une interface web. Voir la r
 
 Mainteneur du fork : Hatim Mrabet.
 
+**Documentation technique complète : [`docs/`](docs/)** — cartographie des scripts, flux de
+données, moteurs de rendu, invariants, et architecture cible ([`docs/design/`](docs/design/)).
+Suivi d'avancement : [`docs/project-tracking.md`](docs/project-tracking.md).
+
 ---
 
 ## Ce que cette branche a changé (passe 1 — nettoyage)
