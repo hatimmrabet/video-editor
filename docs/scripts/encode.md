@@ -18,7 +18,7 @@ bash encode.sh <work> [outfile]     # default: <work>/ad-final.mp4
 | `<work>/out/%05d.jpg` | the composited frames (framerate 30) |
 | `<work>/cutz.mp4` | audio track only |
 | `<work>/sfx.wav` | sound-effect bed |
-| `<work>/caps.json` + `<work>/sfx.json` | inline `python3 -c` reads `caps.total + sfx.outro` for duration |
+| `<work>/caps.json` + `<work>/sfx.json` | inline `"${VEVO_PY[@]}" -c` reads `caps.total + sfx.outro` for duration |
 
 ## Outputs
 
@@ -31,7 +31,7 @@ Audio graph: `[1:a]apad=pad_dur=8` (pad the speech), `amix` with `sfx.wav`
 
 ## External tools
 
-`ffmpeg`, `ffprobe`, `python3` (inline).
+`ffmpeg`, `ffprobe`, `"${VEVO_PY[@]}"` (inline `-c` — DUR/FADE calc).
 
 ## Cross-platform
 

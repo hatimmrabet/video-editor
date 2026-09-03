@@ -1,5 +1,12 @@
 {
+  "name": "video-editor",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Node dependencies for the video-editor skill (the light rendering engine).",
+  "engines": {
+    "node": ">=22.12"
+  },
   "dependencies": {
-    "puppeteer-core": "^25.9.0"
+    "puppeteer": "^25.9.0"
   }
 }

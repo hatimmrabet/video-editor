@@ -6,17 +6,13 @@ The pipeline runs on Windows, but there are sharp edges. This page collects them
 
 - **Git-Bash or WSL.** Every `.sh` script (`setup.sh`, `encode.sh`, `master_audio.sh`,
   `contact_sheet.sh`, `remotion/remotion.sh`) requires a real bash. They will **not** run
-  in `cmd.exe` or PowerShell. The `.py` and `.js` scripts run under native `python3` /
-  `node` and are the Windows-friendly core.
-- **Python 3** on `PATH` as `python3` (or aliased). numpy required (`sound_fx.py`,
-  `montage_mode.py` metrics).
-- **Node** + `puppeteer-core` (installed by `setup.sh --install`).
-- **Chrome** — see discovery below.
-- **ffmpeg** — `setup.sh --install` uses `winget install --id Gyan.FFmpeg`.
-- **Whisper** — `faster-whisper` (preferred) or `openai-whisper`.
-
-`setup.sh` detects the OS via `lib/platform.sh` and uses `winget` for system packages.
-Baked-in winget IDs: `Gyan.FFmpeg`, `OpenJS.NodeJS.LTS`.
+  in `cmd.exe` or PowerShell. The `.py` scripts run via `uv run` and the `.js` scripts via
+  `node`.
+- **Three system tools**, installed by `setup.sh --install` via `winget`:
+  `astral-sh.uv` (`uv`), `OpenJS.NodeJS.LTS` (Node ≥ 22.12), `Gyan.FFmpeg` (ffmpeg).
+- **Everything else is isolated** — Python deps in `video-editor/.venv/` (uv), the browser
+  in `video-editor/node_modules/.cache/puppeteer/` (npm). **No system Chrome, no system
+  `pip install`.** See [design/execution.md](design/execution.md).
 
 ## Gotcha 1 — path translation
 
@@ -37,17 +33,16 @@ also does `sys.stdout.reconfigure(encoding="utf-8")` at the top and writes files
 `encoding="utf-8"`. Without this, Arabic `print()` crashes under Windows cp1252. Keep
 these lines in any new Python script.
 
-## Gotcha 3 — Chrome discovery
+## Gotcha 3 — the browser
 
-`lib/platform.sh` / `lib/platform.js` look for Chrome in this order:
+`puppeteer` (full) downloads a version-matched Chromium into
+`video-editor/node_modules/.cache/puppeteer/` on `npm ci` (via `.puppeteerrc.cjs`), and
+`launchOptions()` lets puppeteer find it. **No system Chrome is used or needed.**
 
-1. `$CHROME_PATH` (if set and executable)
-2. `%PROGRAMFILES%\Google\Chrome\Application\chrome.exe`
-3. `%PROGRAMFILES(X86)%\Google\Chrome\Application\chrome.exe`
-4. `%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe`
-5. (Node only) fall back to Puppeteer `channel: 'chrome'`
-
-If Chrome is installed somewhere else, set `CHROME_PATH`.
+To force a specific browser anyway, set `CHROME_PATH` — `launchOptions()` honours it
+first, and `lib/platform.js`'s `chromePath()` still checks the usual Windows locations
+(`%PROGRAMFILES%` / `%PROGRAMFILES(X86)%` / `%LOCALAPPDATA%` `\Google\Chrome\Application\chrome.exe`)
+as a last-resort fallback for a `puppeteer-core`-only install.
 
 ## Gotcha 4 — CUDA on Windows
 
@@ -57,10 +52,11 @@ For GPU transcription, `transcribe.py`'s `enable_cuda_libs()` walks the pip pack
 otherwise. Install:
 
 ```
-pip install faster-whisper nvidia-cublas-cu12 nvidia-cudnn-cu12
+cd video-editor && uv sync --extra gpu
 ```
 
-`setup.sh` detects an NVIDIA GPU (`nvidia-smi`) and prints this hint if the CUDA libs are missing.
+`setup.sh --install` runs exactly this when it sees `nvidia-smi`. Report mode only checks
+whether `ctranslate2` is importable and prints the GPU status.
 
 ## Gotcha 5 — fonts for burned-in labels
 
@@ -72,7 +68,8 @@ includes `C:\Windows\Fonts\arialbd.ttf` and `segoeuib.ttf`. If PIL is unavailabl
 
 `master_audio.sh` uses process substitution (`read -r … < <(…)`) and `${IN%.mp4}` — it
 needs a real bash, not a minimal shell. Same for the heredoc Python blocks in
-`contact_sheet.sh` and `remotion/remotion.sh`.
+`contact_sheet.sh` and `remotion/remotion.sh`, and for the `VEVO_PY` **bash array** set in
+`lib/platform.sh` (`"${VEVO_PY[@]}"`).
 
 ## Gotcha 7 — the macOS-only effect
 

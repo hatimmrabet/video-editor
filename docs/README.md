@@ -23,6 +23,7 @@ Start here, in order:
 | [engines.md](engines.md) | Understand the light (canvas/Puppeteer) engine vs the Remotion engine, and where they have drifted. |
 | [invariants.md](invariants.md) | Know the rules you must not break — ten bugs found in real runs, distilled. |
 | [windows.md](windows.md) | Run or debug the pipeline on Windows. |
+| [design/execution.md](design/execution.md) | How dependencies are isolated — `uv`, bundled Chromium, `uv run scripts/…`. |
 | [glossary.md](glossary.md) | Decode a term (hook, safe zone, kashida, hot word, stage/rect mode, LUFS…). |
 | [scripts/](scripts/) | Read the reference page for one specific script. |
 | [design/](design/) | See the target architecture — where the project is going, not where it is. |
@@ -53,7 +54,9 @@ video-editor/                     ← repo root
   video-editor/                    ← the actual skill (installed to ~/.claude/skills/video-editor)
     SKILL.md                       the Claude skill spec — operational source of truth
     GUIDE.html / GUIDE.pdf         13-page end-user guide (Arabic)
-    package.json                   one dep: puppeteer-core
+    pyproject.toml / uv.lock       Python deps (uv-managed .venv/)
+    package.json / -lock.json      Node deps: puppeteer (bundles Chromium)
+    .python-version / .nvmrc       pinned runtimes
     scripts/                       the pipeline (see scripts/)
       lib/                         cross-platform helpers (platform.sh, platform.js)
       fx/                          macOS-only person-cutout effects

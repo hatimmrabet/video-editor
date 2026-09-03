@@ -112,10 +112,18 @@ The pipeline runs on macOS, Windows (Git-Bash/WSL) and Linux. Two helper modules
 the differences:
 
 - [`lib/platform.sh`](scripts/lib-platform.md) — sourced by every `.sh` script. OS
-  detection, `vevo_abspath` (`/c/...` → `C:/...` for native Python), Chrome discovery,
-  package-manager selection, forces UTF-8 for Python.
+  detection, `vevo_abspath` (`/c/...` → `C:/...` for native Python), `VEVO_SKILL_DIR` /
+  `VEVO_PY`, package-manager selection, forces UTF-8 for Python.
 - [`lib/platform.js`](scripts/lib-platform.md) — required by the Node scripts. `fileUrl`
-  (correct `file://` on Windows), Chrome discovery, Puppeteer launch options.
+  (correct `file://` on Windows), puppeteer resolution, launch options.
+
+## Dependency isolation
+
+`setup.sh` installs only **ffmpeg**, **Node** and **uv** at the system level. Python
+packages live in a `uv`-managed `video-editor/.venv/` (`uv run scripts/X.py …`); the
+browser that renders scenes is a `puppeteer`-bundled Chromium under
+`node_modules/`. Nothing touches the system Python or needs a separate Chrome install.
+See [design/execution.md](design/execution.md).
 
 The one hard macOS dependency is the person-cutout effect
 ([`fx/personmask.swift`](scripts/fx-personmask.md), Apple Vision). Everything that needs

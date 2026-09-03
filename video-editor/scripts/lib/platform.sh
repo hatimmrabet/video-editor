@@ -7,6 +7,24 @@
 export PYTHONUTF8=1
 export PYTHONIOENCODING=utf-8
 
+# Racine de la skill (indépendant du script qui source ce fichier — via BASH_SOURCE).
+VEVO_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"          # .../scripts/lib
+VEVO_SKILL_DIR="$(cd "$VEVO_LIB_DIR/../.." && pwd)"                   # racine de la skill
+export VEVO_SKILL_DIR
+
+# Interpréteur Python isolé : uv > .venv de la skill > python3 système (dernier recours).
+# Tableau bash — s'utilise "${VEVO_PY[@]}" -c "..."  /  "${VEVO_PY[@]}" script.py
+if command -v uv >/dev/null 2>&1; then
+  VEVO_PY=(uv run --project "$VEVO_SKILL_DIR" python)
+elif [ -x "$VEVO_SKILL_DIR/.venv/bin/python" ]; then
+  VEVO_PY=("$VEVO_SKILL_DIR/.venv/bin/python")
+elif [ -x "$VEVO_SKILL_DIR/.venv/Scripts/python.exe" ]; then          # disposition venv Windows
+  VEVO_PY=("$VEVO_SKILL_DIR/.venv/Scripts/python.exe")
+else
+  VEVO_PY=(python3)
+fi
+# (VEVO_PY est un tableau bash — pas exportable ; les scripts qui sourcent ce fichier l'ont directement.)
+
 # OS courant : mac | windows | linux
 case "$(uname -s 2>/dev/null)" in
   Darwin*)               VEVO_OS=mac ;;

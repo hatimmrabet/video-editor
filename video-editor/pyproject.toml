@@ -1,0 +1,26 @@
+# Python dependencies for the video-editor skill.
+# Managed by `uv` — `uv run scripts/<name>.py <work>` auto-creates/syncs .venv/.
+# `scripts/setup.sh` runs `uv sync` up front (with `--extra gpu` when an NVIDIA GPU is present).
+#
+# Surface is deliberately tiny: numpy (sound_fx.py), pillow (montage_mode.py + contact_sheet.sh,
+# both have an ffmpeg fallback), and a Whisper engine (transcribe.py). Everything else is
+# stdlib + subprocess to ffmpeg.
+
+[project]
+name = "video-editor"
+version = "0"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pillow",
+    "faster-whisper",
+]
+
+[project.optional-dependencies]
+# GPU transcription (NVIDIA). transcribe.py adds these DLL dirs at runtime.
+gpu = ["nvidia-cublas-cu12", "nvidia-cudnn-cu12"]
+# The slower fallback engine, if faster-whisper can't run on a machine.
+whisper-fallback = ["openai-whisper"]
+
+[tool.uv]
+package = false

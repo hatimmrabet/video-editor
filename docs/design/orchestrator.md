@@ -53,7 +53,7 @@ skill: video-editor  (the entry point — unchanged trigger phrases)
 Each subagent has a narrow job and a narrow tool set. The main skill stays the
 conversation and the judgment; `run.py` is the muscle.
 
-## Toward a web UI (roadmap item 6)
+## Toward a web UI (roadmap Pass 7)
 
 Once `run.py` + `project.config.json` exist, a web UI is: a drop zone for the video, a form
 that writes `project.config.json`, a "generate" button that calls `run.py`, and a preview.

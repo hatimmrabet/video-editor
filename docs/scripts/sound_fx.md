@@ -9,7 +9,7 @@
 ## CLI
 
 ```
-python3 sound_fx.py <work>
+uv run scripts/sound_fx.py <work>
 ```
 
 ## Inputs

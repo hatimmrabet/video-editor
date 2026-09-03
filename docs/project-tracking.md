@@ -2,10 +2,15 @@
 
 Work is tracked with **GitHub Issues + Projects** on `github.com/hatimmrabet/video-editor`.
 
-**Applied.** The labels, the 7 milestones (Pass 0–6), and the seed issues below are
-created. Board: **[video-editor roadmap](https://github.com/users/hatimmrabet/projects/4)**
-(columns Backlog · Design · In progress · Review · Done; all seed issues start in Backlog).
+**Applied.** The labels, the milestones (Pass 0–7 after the renumber), and the seed issues
+below are created. Board:
+**[video-editor roadmap](https://github.com/users/hatimmrabet/projects/4)** (columns
+Backlog · Design · In progress · Review · Done; all seed issues start in Backlog).
 The `gh` snippets are kept as a record and for adding more.
+
+> Renumbering note: `Pass 1 — Execution & dependencies` was inserted before Config; the
+> milestone objects Config…Web were renamed to Pass 2…7 (issues follow the object, so
+> assignments were preserved).
 
 The old `HANDOFF.md` was removed — its "what's next" list is the backlog below, and its
 architecture / bug-history content is in [`docs/`](README.md).
@@ -39,12 +44,13 @@ Mirror [design/roadmap.md](design/roadmap.md):
 
 ```bash
 gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 0 — Documentation"
-gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 1 — Config"
-gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 2 — Transitions"
-gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 3 — Scenes"
-gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 4 — Orchestrator"
-gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 5 — Long-form"
-gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 6 — Web"
+gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 1 — Execution & dependencies"
+gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 2 — Config"
+gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 3 — Transitions"
+gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 4 — Scenes"
+gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 5 — Orchestrator"
+gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 6 — Long-form"
+gh api repos/hatimmrabet/video-editor/milestones -f title="Pass 7 — Web"
 ```
 
 ## Project board
@@ -69,7 +75,24 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 | docs: verify each script page against `--help` / code | `area:docs` | #3 |
 | docs: verify `docs/invariants.md` wording against the code fixes | `area:docs` | #4 |
 
-### Pass 1 — Config
+### Pass 1 — Execution & dependencies
+
+Most of these are implemented by the Pass 1 PR — close on merge. See
+[design/execution.md](design/execution.md).
+
+| Title | Labels |
+|---|---|
+| execution: `pyproject.toml` + `uv.lock` + `.python-version` | `area:pipeline` `type:chore` `prio:high` |
+| execution: rewrite `setup.sh` (uv bootstrap + `uv sync` + `npm ci`; drop `--break-system-packages`) | `area:pipeline` `area:windows` `type:chore` `prio:high` |
+| execution: `VEVO_PY` / `VEVO_SKILL_DIR` in `lib/platform.sh`; `.sh` inline `python3` → `VEVO_PY` | `area:pipeline` `type:chore` |
+| execution: switch to full `puppeteer` (bundled Chromium) + `launchOptions()` | `area:engine-light` `type:chore` `prio:high` |
+| execution: `.nvmrc` (Node ≥ 22.12) | `area:pipeline` `type:chore` |
+| execution: `SKILL.md` + docs — `python3` → `uv run` | `area:pipeline` `area:docs` |
+| execution: `VEVO_FFMPEG` / `VEVO_FFPROBE` + optional static-binary fallback (deferred) | `area:pipeline` `type:chore` |
+| execution: commit a lockfile for the Remotion template (deferred) | `area:engine-remotion` `type:chore` |
+| execution: optional CPU-only `Dockerfile` (deferred) | `area:pipeline` `type:chore` |
+
+### Pass 2 — Config
 
 | Title | Labels |
 |---|---|
@@ -80,7 +103,7 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 | config: migrate the Remotion `project.json` generator | `area:config` `area:engine-remotion` |
 | config: `SKILL.md` step 1 writes `project.config.json` | `area:config` `area:docs` |
 
-### Pass 2 — Transitions
+### Pass 3 — Transitions
 
 | Title | Labels |
 |---|---|
@@ -89,7 +112,7 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 | transitions: Remotion parity (`@remotion/transitions`) | `area:transitions` `area:engine-remotion` |
 | transitions: `montage_mode.py build --transition` → ffmpeg `xfade` | `area:transitions` `area:montage` |
 
-### Pass 3 — Scenes
+### Pass 4 — Scenes
 
 | Title | Labels |
 |---|---|
@@ -100,14 +123,14 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 | scenes: port reference functions → motifs (one issue per motif) | `area:scenes` |
 | scenes: `studio.html` renders the scene list, drop its drawing copy | `area:scenes` `type:chore` |
 
-### Pass 4 / 5 / 6
+### Pass 5 / 6 / 7
 
-| Title | Labels |
-|---|---|
-| orchestrator: `scripts/run.py` design | `area:orchestrator` `type:design` |
-| orchestrator: subagent split (transcript-fixer / scene-designer / reviewer) | `area:orchestrator` `type:design` |
-| long-form: world design doc → plan | `type:design` |
-| web: UI design doc → plan | `type:design` |
+| Title | Labels | Milestone |
+|---|---|---|
+| orchestrator: `scripts/run.py` design | `area:orchestrator` `type:design` | Pass 5 |
+| orchestrator: subagent split (transcript-fixer / scene-designer / reviewer) | `area:orchestrator` `type:design` | Pass 5 |
+| long-form: world design doc → plan | `type:design` | Pass 6 |
+| web: UI design doc → plan | `type:design` | Pass 7 |
 
 ### Bugs — engine drift
 
@@ -142,6 +165,6 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 gh issue create \
   --title "config: define project.config.json schema" \
   --label "area:config,type:design,prio:high" \
-  --milestone "Pass 1 — Config" \
+  --milestone "Pass 2 — Config" \
   --body "See docs/design/project-config.md. Deliverable: the finalized schema + open questions resolved."
 ```

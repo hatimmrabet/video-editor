@@ -10,7 +10,7 @@
 ## CLI
 
 ```
-python3 plan_cuts.py <work>
+uv run scripts/plan_cuts.py <work>
 ```
 
 Single positional argument. Prints a per-segment table and how much was removed.

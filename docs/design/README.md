@@ -2,7 +2,8 @@
 
 Where the project is going — **not** where it is. These documents are design, not
 implementation plans; each numbered pass in [roadmap.md](roadmap.md) gets its own plan and
-its own GitHub milestone before any code is written.
+its own GitHub milestone before any code is written. The exception is
+[execution.md](execution.md) (Pass 1), which is already built.
 
 ## North star
 
@@ -45,6 +46,7 @@ This is `FORK.md`'s roadmap, made concrete.
 
 | Doc | What it specifies |
 |---|---|
+| [execution.md](execution.md) | **built** — how dependencies are isolated (uv, bundled Chromium, the `VEVO_*` contract) |
 | [project-config.md](project-config.md) | the `project.config.json` schema + the legacy-emitting adapter |
 | [scenes-as-data.md](scenes-as-data.md) | declarative scene schema + the shared motif registry (the biggest lift) |
 | [transitions.md](transitions.md) | a named/parameterized transition set for both engines + montage |

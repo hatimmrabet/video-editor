@@ -10,7 +10,7 @@
 ## CLI
 
 ```
-python3 reframe.py <work>
+uv run scripts/reframe.py <work>
 ```
 
 ## Inputs

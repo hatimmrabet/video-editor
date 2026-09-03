@@ -47,7 +47,7 @@ Temp files `<work>/.master-mix.wav` and `.master-norm.wav` are created then `rm 
 
 ## External tools
 
-`ffmpeg` (two-pass loudnorm, sidechaincompress, amix), `ffprobe`, `python3` (inline JSON
+`ffmpeg` (two-pass loudnorm, sidechaincompress, amix), `ffprobe`, `"${VEVO_PY[@]}"` (inline JSON
 parsing of the loudnorm stats), `grep`.
 
 ## Cross-platform

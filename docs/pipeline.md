@@ -4,6 +4,10 @@ Scripts are **not** numbered. The order lives here and in `video-editor/SKILL.md
 Every script takes `<work>` (the video's work directory) as its first argument and
 reads/writes its files there.
 
+Python scripts are invoked as **`uv run scripts/<name>.py <work>`** (uv resolves the
+skill's `.venv/`, syncing it on demand). Node scripts as `node scripts/<name>.js`, shell
+steps as `bash scripts/<name>.sh`. See [design/execution.md](design/execution.md).
+
 `scripts/PIPELINE.md` is a thin pointer to this document.
 
 ## Speech-ad mode (default)
@@ -49,7 +53,7 @@ flowchart TD
 
 | # | Script | Input → Output | Notes |
 |---|--------|----------------|-------|
-| 0 | [`setup.sh`](scripts/setup.md) | — | checks / installs ffmpeg, node, numpy, a Whisper engine, Chrome, puppeteer-core |
+| 0 | [`setup.sh`](scripts/setup.md) | — | installs ffmpeg / node / uv (system), then `uv sync` + `npm ci` (isolated; `npm` brings its own Chromium) |
 | — | *work-dir setup* | copy `src.mov`; write `theme.json`; copy `compose.reference.html` → `compose.html`, `studio.html` | manual |
 | 1 | [`plan_cuts.py`](scripts/plan_cuts.md) | `src.mov` → `cut.json` | ffmpeg `silencedetect` |
 | 2 | *extract audio* | `src.mov` → `a.wav` | `ffmpeg -vn -ac 1 -ar 16000 -y a.wav` |
@@ -79,7 +83,7 @@ flowchart TD
 - [`contact_sheet.sh`](scripts/contact_sheet.md) — one horizontal contact sheet from
   several timestamps (token economy — Claude reads one image, not N).
 - [`studio.html`](scripts/studio_html.md) — standalone browser scrubber for the light
-  engine (`python3 -m http.server 8791 --directory <work>` then `/studio.html`).
+  engine (`uv run python -m http.server 8791 --directory <work>` then `/studio.html`).
 
 ## Montage mode (independent — no speech)
 
