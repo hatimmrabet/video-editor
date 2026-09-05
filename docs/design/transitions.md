@@ -34,6 +34,10 @@ The shorthand expands against the type's defaults: `push` → `{type:"push", dur
 easing:"eio", params:{dir:"up"}}`. The object form is canonical; the shorthand is sugar and
 always round-trips to it.
 
+`duration` is **seconds**. `0` (or a negative value) renders as `cut` — an instant swap
+with no interpolation, whatever the `type`. There is no upper clamp; a duration longer than
+the shorter of the two shots it joins is the author's problem to notice.
+
 One vocabulary, applied by all three renderers:
 
 - **the light engine** — between `SCENES` entries (rect transition) and as scene enter/exit
@@ -78,8 +82,10 @@ for free. The ~15 reference scenes still hand-roll their own entrances; they mov
 ## Easing names
 
 `linear`, `ease` (out-cubic), `eio` (in-out-cubic), `back` (out-back, overshoot 1.9) — the
-four already in `util.tsx` / `compose.html`, now with a shared name and a cubic-bezier (or
-overshoot constant) in `transitions.json` so Remotion and canvas produce the same curve.
+four already in `util.tsx` / `compose.html`, now with a shared name in `transitions.json`.
+`linear` / `ease` / `eio` carry a cubic-bezier; `back` carries an `overshoot` constant
+(it maps to Remotion's `Easing.back(overshoot)` and canvas's existing out-back formula —
+a single cubic-bezier can't match that curve exactly). Same name → same curve on both sides.
 
 ## Where a transition is declared
 
@@ -114,7 +120,9 @@ for #12/#14.
 `build/montage-plan.json`'s `plan[]` entries gain an optional `transition` (shorthand
 string or object). `montage_mode.py build` reads, in priority order: the entry's
 `transition` → `--transition` on the command line → `cut`. The old `--xfade <float>` flag
-becomes `--transition dissolve:<float>` (kept as a hidden alias for one release).
+is **removed** — `--transition dissolve:<float>` replaces it exactly, and there is no
+installed base of scripts calling the old flag to keep an alias for (same reasoning as the
+Pass 2 no-back-compat rule).
 
 ```jsonc
 "plan": [
@@ -152,5 +160,5 @@ total shortens by `Σ duration`, same arithmetic as the current `--xfade` path.
   hand-roll `zoom-blur` / `glitch`; `rect-morph` stays the existing `stage.ts` lerp. While
   in `remotion/template/src/`, finish the #59 path-migration leftovers there (some comments
   still say `theme.json` / old numbered script names).
-- **#14 (montage):** the `--transition` flag, the `plan[]` field, the `--xfade` alias, and
-  the eight-name → xfade-name map from `transitions.json`.
+- **#14 (montage):** the `--transition` flag, the `plan[]` field, drop `--xfade`, and the
+  eight-name → xfade-name map from `transitions.json`.

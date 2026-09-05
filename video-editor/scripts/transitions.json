@@ -1,5 +1,5 @@
 {
-  "_doc": "Canonical transition + easing vocabulary. Read by both engines and montage_mode.py. See docs/design/transitions.md. Do not add a type here without a mapping for every side that can render it (reel-canvas, Remotion, ffmpeg xfade) or an explicit null.",
+  "_doc": "Canonical transition + easing vocabulary. Read by both engines and montage_mode.py. See docs/design/transitions.md. Durations are in seconds; 0 or negative renders as `cut`. Do not add a type without a mapping for every side that can render it (reel-canvas, Remotion, ffmpeg xfade) or an explicit null.",
 
   "easings": {
     "linear": { "note": "identity",                    "bezier": [0.0,   0.0,   1.0,   1.0] },
