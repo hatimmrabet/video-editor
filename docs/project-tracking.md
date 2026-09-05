@@ -111,8 +111,9 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | config: migrate `safe_check.js` to `config.load()` | `area:config` | ✅ #56 (not originally tracked) |
 | config: `SKILL.md` step 1 writes `project.config.json` | `area:config` `area:docs` | ✅ #10 |
 | chore: apply the `rush`/`config`/`build` physical path migration | `area:config` `type:chore` | ✅ #59 |
-| chore: remove emojis from `SKILL.md` markdown | `type:chore` `area:docs` | #58 — not blocking, pick up whenever |
-| chore: translate Arabic logs/printf/comments to English across scripts | `type:chore` | #61 — not blocking, pick up whenever |
+| chore: remove emojis from `SKILL.md` markdown | `type:chore` `area:docs` | ✅ #58 (PR #65) |
+| chore: translate Arabic logs/printf/comments to English across scripts | `type:chore` | ✅ #61 (PR #64) |
+| chore: `fx/behind_text.js` uses `execSync` with string-concatenated commands | `type:chore` | #63 — open, deferred |
 
 ### Pass 3 — Transitions
 
