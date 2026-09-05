@@ -7,7 +7,7 @@ Legend: **W** = written by, **R** = read by, **M** = mutated in place by.
 
 ---
 
-## `config/project.config.json` — the per-project config (in progress)
+## `config/project.config.json` — the per-project config
 
 **W** hand-authored, via the mandatory config-confirmation phase (see
 [orchestrator.md](design/orchestrator.md)) · **R**/**W** `lib/config.py` /
@@ -27,62 +27,32 @@ Legend: **W** = written by, **R** = read by, **M** = mutated in place by.
 ```
 
 Full rationale (why it's this lean, what deliberately isn't in it) in
-[design/project-config.md](design/project-config.md). **Fully consumed on the read side**
-— `reframe.py` (#8), `render_frames.js` (#55), `safe_check.js` (#56), and the Remotion
-generator's theme/logo (#9) all read via `config.load()` as of 2026-09-05. Only `SKILL.md`
-step 1 still writes `theme.json` directly (issue #10) — nothing reads it anymore, so what
-it writes is presently inert (see below). **No back-compat bridge exists or is planned** —
-one user, no installed base to protect; each script migrates to `config.load()` directly
-and drops its old file-reading code in the same change (see
+[design/project-config.md](design/project-config.md). **Fully wired in as of 2026-09-05**
+— `SKILL.md` step 1 writes it (issue #10); `reframe.py` (#8), `render_frames.js` (#55),
+`safe_check.js` (#56), and the Remotion generator (#9) all read it via `config.load()`.
+`theme.json` is retired (see below). **No back-compat bridge exists or was built** — one
+user, no installed base to protect; each script migrated to `config.load()` directly,
+dropping its old file-reading code in the same change (see
 [project-config.md](design/project-config.md#migration--direct-no-bridge)).
+
+`logo` is a filename resolved relative to the work-dir root (where `compose.html` already
+looks for it), not relative to `config/` — that only changes once
+[file-layout.md](design/file-layout.md)'s physical path migration actually happens.
 
 ---
 
-## `theme.json` — visual identity (hand-authored today; retired once #10 lands)
+## `theme.json` — retired (2026-09-05, issue #10)
 
-**W** hand-authored (SKILL.md step 1) · **R** nothing — `reframe.py` (#8),
-`render_frames.js` (#55), `safe_check.js` (#56), and the Remotion generator (#9) have all
-migrated to `config.load()`. `SKILL.md` step 1 keeps writing this file until #10, but
-nothing in the pipeline reads it anymore.
+Superseded by `project.config.json` above. Nothing writes or reads it anymore. Kept here
+only as a pointer for anyone who finds a reference to it in an old project or an
+unmigrated doc page:
 
-```jsonc
-// ⚠️ This whole file is orphaned as of 2026-09-05 — SKILL.md step 1 still writes it
-// (until issue #10), but every consumer now reads the equivalent value from
-// project.config.json instead (see the field-by-field mapping in the paragraph below).
-{
-  "bg":    "#101828",   // background hex — every card/panel/shadow color derives from this. Dark or light both work.
-  "ink":   "#F5F7FA",   // primary text / strokes / shadows
-  "acc":   "#F2B33D",   // accent — highlight pills, active words, CTAs
-  "clay":  "#C98B18",   // secondary accent (defaults to acc if absent)
-  "mut":   "#98A2B3",   // muted / secondary text
-  "font":  "Tajawal",   // Google Fonts family; non-Cairo is injected at runtime (weights 400/600/700/800/900)
-  "handle":"@his_handle",// account handle (drawn LTR)
-  "logo":  "logo.png",  // logo filename inside <work>
-
-  "grade":      false,  // OFF by default — invariant #4
-  "faceAnchor": 0.30,   // vertical face position inside the video card (0 top .. 1 bottom)
-  "xAnchor":    0.5,    // horizontal crop anchor for a landscape source (0 left .. 1 right)
-  "yAnchor":    0.30,   // vertical crop anchor for a landscape source
-  "grid":       true,   // faint 60px background grid (false disables)
-  "badgeUntil": 0,      // seconds the account badge stays on screen. 0 = never, -1 = whole video
-  "badge":      false   // legacy boolean — true→badgeUntil 3, false→0 (kept for back-compat)
-}
-```
-
-**Mapping to `project.config.json`** (see [project-config.md](design/project-config.md)):
-`bg/ink/acc/clay/mut/font/handle/logo/grid` → `theme.*`; `grade` → top-level `grade`;
-`xAnchor/yAnchor/faceAnchor` → `crop.*`. **No equivalent exists for `badgeUntil`/`badge`**
-— badge is a rare, scene-design-time exception now (see
-[project-config.md](design/project-config.md)'s "What this file is — and isn't"), not a
-base config field; `compose.reference.html`'s own hardcoded default (`0`, off) governs
-unless a specific project's `compose.html` is hand-edited to change it.
-
-Every field in the example above stays in `theme.json` only because `SKILL.md` step 1
-still writes the whole file (until issue #10) — writing any of it has no effect until then.
-
-Consumers use hardcoded **fallbacks** if `project.config.json` or a key is missing —
-`compose.html`:
-cream/clay Claude theme; `theme.ts`: `#101828 / #F5F7FA / #F2B33D / #C98B18 / #98A2B3 / Cairo`.
+| Old `theme.json` field | Now |
+|---|---|
+| `bg / ink / acc / clay / mut / font / handle / logo / grid` | `project.config.json`'s `theme.*` |
+| `grade` | `project.config.json`'s top-level `grade` |
+| `xAnchor / yAnchor / faceAnchor` | `project.config.json`'s `crop.*` |
+| `badgeUntil` / `badge` | **no equivalent** — a rare, scene-design-time exception now (see [project-config.md](design/project-config.md)'s "What this file is — and isn't"), set directly in that project's `compose.html`, not a base config field. `compose.reference.html`'s own hardcoded default (`0`, off) governs otherwise. |
 
 ---
 
