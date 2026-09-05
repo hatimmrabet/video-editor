@@ -152,6 +152,19 @@ head; person redrawn on top; `personStage`; `headOut`) lives in `compose.referen
 
 ---
 
+## Keeping both engines — and making Remotion's setup cheap
+
+Reaffirmed in the 2026-09-05 design session (see
+[design/file-layout.md](design/file-layout.md#engine-decision-reaffirmed)): both engines
+stay. Dropping Remotion would remove the only interactive-editing surface in the codebase;
+dropping the light engine would force every automated render to pay Remotion's setup cost
+and licensing exposure for no benefit. `remotion.sh render` is already fully headless (no
+human needed), so Remotion is not "the interactive one" by necessity — it's just the only
+one *capable* of interactivity. The plan is to make its `node_modules` a shared, skill-level
+install (mirroring how Puppeteer's Chromium is installed once, not per project) instead of
+today's per-project `<work>/remotion/node_modules` — see the linked doc for the one real
+trap that needs handling (`Scenes.tsx` must stay per-project, not shared).
+
 ## Drift
 
 The two engines were hand-ported from each other and have diverged. **Fixing this is the

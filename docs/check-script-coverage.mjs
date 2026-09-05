@@ -37,6 +37,7 @@ const COVERAGE = [
   ['contact_sheet',       ['contact_sheet.sh']],
   ['setup',               ['setup.sh']],
   ['lib-platform',        ['lib/platform.sh', 'lib/platform.js']],
+  ['lib-config',          ['lib/config.py', 'lib/config.js']],
   ['compose_html',        ['compose.reference.html']],
   ['studio_html',         ['studio.html']],
   ['fx-behind_text',      ['fx/behind_text.js']],

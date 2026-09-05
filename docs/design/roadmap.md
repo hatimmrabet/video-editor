@@ -34,13 +34,28 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 
 ## Pass 2 — Config
 
-- `scripts/lib/config.py` + `config.js`: `load()` (merge defaults ← creator-profile ←
-  project) and `emit_legacy()` (write `theme.json` / `stage.json` / `outro.json` /
-  `safe.json` / sfx cues).
-- Reverse compat: synthesize a config from legacy files when `project.config.json` is absent.
-- Migrate `reframe.py` and the Remotion generator to `config.load()` first (lowest risk).
-- `SKILL.md` step 1 writes `project.config.json` instead of `theme.json`.
-- **Done when:** an old-style project and a config-style project both render identically.
+**Scope grew in a 2026-09-05 design session** — see
+[design/file-layout.md](file-layout.md) for the `rush`/`config`/`build` directory split +
+full rename, the reaffirmed two-engine decision, and the safe-zone research; see
+[project-config.md](project-config.md#decisions-design-session-with-hatimmrabet-2026-09-05)
+for the resolved open questions (no `creator-profile` file; B-roll is a folder).
+
+**No back-compat, decided the same session:** single user, no installed base of old-style
+projects — there is no adapter and no reverse-compat synthesis. Each script migrates to
+`config.load()` directly and deletes its old file-reading code in the same change (see
+[project-config.md#migration--direct-no-bridge](project-config.md#migration--direct-no-bridge)).
+
+- ✅ `scripts/lib/config.py` + `config.js`: `load()` (merge `defaults.config.json` ←
+  `project.config.json`). One function, nothing else.
+- ✅ Migrate `reframe.py` to `config.load()` — delete its `theme.json` reads (issue #8).
+  Leaves `grade`/`xAnchor`/`yAnchor` orphaned in `theme.json` (still written by `SKILL.md`
+  step 1, read by nothing) until issue #10 migrates the writing side too — see
+  [data-contracts.md](../data-contracts.md).
+- Migrate `render_frames.js` and the Remotion generator to `config.load()` — delete their
+  `theme.json` reads (issue #9).
+- `SKILL.md` step 1 writes `project.config.json` instead of `theme.json` (issue #10).
+- **Done when:** nothing in the pipeline reads `theme.json` anymore — every consumer reads
+  `project.config.json` via `config.load()`.
 
 ## Pass 3 — Transitions
 

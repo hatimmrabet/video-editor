@@ -6,6 +6,7 @@ One page per script. Each follows [`_template.md`](_template.md).
 |---|---|---|
 | [`setup.sh`](setup.md) | shared | check / install tools |
 | [`lib/platform.sh` + `.js`](lib-platform.md) | shared | cross-platform helpers (paths, Chrome, OS) |
+| [`lib/config.py` + `.js`](lib-config.md) | shared | `project.config.json` load/merge + legacy `theme.json` bridge |
 | [`transcribe.py`](transcribe.md) | shared | speech → `a.json` (faster-whisper GPU/CPU ← whisper) |
 | [`plan_cuts.py`](plan_cuts.md) | shared | detect silences → `cut.json` |
 | [`captions.py`](captions.md) | shared | per-word caption timing → `caps.json` |

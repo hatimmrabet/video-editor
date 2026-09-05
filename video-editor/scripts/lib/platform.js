@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const { execFileSync } = require('child_process');
 
 /* URL file:// correcte sur tous les OS (gère la lettre de lecteur Windows, les espaces…). */
 function fileUrl(p) {
@@ -64,6 +65,33 @@ function launchOptions(extra) {
   return Object.assign(base, extra || {});
 }
 
+/* Racine de la skill — même arithmétique que VEVO_SKILL_DIR dans platform.sh :
+   scripts/lib/platform.js -> scripts/lib -> scripts -> racine. */
+function skillDir() {
+  return path.join(__dirname, '..', '..');
+}
+
+function commandExists(cmd) {
+  try {
+    execFileSync(process.platform === 'win32' ? 'where' : 'which', [cmd], { stdio: 'ignore' });
+    return true;
+  } catch (_) { return false; }
+}
+
+/* Interpréteur Python isolé — même logique que VEVO_PY dans platform.sh :
+   uv (projet de la skill) > .venv de la skill > python3 système en dernier recours.
+   Renvoie [cmd, ...argsAvant] à préfixer aux arguments réels :
+     const c = pythonCmd(); execFileSync(c[0], [...c.slice(1), 'script.py', arg]) */
+function pythonCmd() {
+  const skill = skillDir();
+  if (commandExists('uv')) return ['uv', 'run', '--project', skill, 'python'];
+  const venvPy = process.platform === 'win32'
+    ? path.join(skill, '.venv', 'Scripts', 'python.exe')
+    : path.join(skill, '.venv', 'bin', 'python');
+  if (fs.existsSync(venvPy)) return [venvPy];
+  return ['python3'];
+}
+
 /* Trouve puppeteer (complet, préféré) ou puppeteer-core, où qu'il soit installé. */
 function resolvePuppeteer() {
   const tries = [process.env.PUPPETEER_PATH,
@@ -79,4 +107,4 @@ function resolvePuppeteer() {
   throw new Error('puppeteer introuvable — lance : bash scripts/setup.sh --install  (ou : npm ci)');
 }
 
-module.exports = { fileUrl, chromePath, launchOptions, resolvePuppeteer, hasFullPuppeteer };
+module.exports = { fileUrl, chromePath, launchOptions, resolvePuppeteer, hasFullPuppeteer, pythonCmd, skillDir };

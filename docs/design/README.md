@@ -48,6 +48,7 @@ This is `FORK.md`'s roadmap, made concrete.
 |---|---|
 | [execution.md](execution.md) | **built** — how dependencies are isolated (uv, bundled Chromium, the `VEVO_*` contract) |
 | [project-config.md](project-config.md) | the `project.config.json` schema + the legacy-emitting adapter |
+| [file-layout.md](file-layout.md) | `rush`/`config`/`build` directory split, the full file rename, the engine and safe-zone decisions (2026-09-05 session) |
 | [scenes-as-data.md](scenes-as-data.md) | declarative scene schema + the shared motif registry (the biggest lift) |
 | [transitions.md](transitions.md) | a named/parameterized transition set for both engines + montage |
 | [worlds.md](worlds.md) | editing families — `reel-speech`, `broll-montage`, `long-form` |

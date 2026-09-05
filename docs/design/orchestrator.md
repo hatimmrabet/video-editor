@@ -43,7 +43,7 @@ report what it needs". The agent (or a web form) fills the gap and resumes.
 ```
 skill: video-editor  (the entry point — unchanged trigger phrases)
   │
-  ├─ reads/creates project.config.json with the user
+  ├─ mandatory config phase (see below) — reads/creates project.config.json with the user
   ├─ subagent: transcript-fixer   (reads a.json, proposes fixes.json)
   ├─ subagent: scene-designer     (reads caps.json, proposes the scenes array)
   ├─ subagent: reviewer           (runs safe_check.js + contact sheet, reports)
@@ -52,6 +52,22 @@ skill: video-editor  (the entry point — unchanged trigger phrases)
 
 Each subagent has a narrow job and a narrow tool set. The main skill stays the
 conversation and the judgment; `run.py` is the muscle.
+
+### The config phase — never skipped, never silent
+
+Decided in the 2026-09-05 design session: reading or building `project.config.json` is
+always the first thing that happens, and it always ends in an explicit confirmation before
+any pipeline stage runs — never an implicit "I picked X, moving on."
+
+- **`config/project.config.json` already exists** → read it, print a short human-readable
+  recap (number of input videos, language, theme colors, `world`, whether B-roll is
+  present), and ask "still good, or does something change?" before doing anything else.
+- **It doesn't exist yet** → build it progressively, one question at a time (per
+  `SKILL.md`'s existing "ask for one thing at a time" style rule), then — **before writing
+  the file** — give one final complete recap and get an explicit confirmation. Only then
+  is `project.config.json` saved. There is no per-creator memory file to fall back on
+  (`creator-profile` is dropped, see [project-config.md](project-config.md)); starting a
+  new project from a previous one's config is a manual copy-then-adjust, not automatic.
 
 ## Toward a web UI (roadmap Pass 7)
 

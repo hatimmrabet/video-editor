@@ -19,7 +19,7 @@ uv run scripts/reframe.py <work>
 |---|---|---|
 | `<work>/src.mov` | source video | yes |
 | `<work>/cut.json` | `.keep` | yes |
-| `<work>/theme.json` | `grade` (bool, default false), `xAnchor` (0–1, default 0.5), `yAnchor` (0–1, default 0.30) | optional |
+| `<work>/config/project.config.json` (via [`lib/config.py`](lib-config.md)'s `load()`) | `grade` (bool, default false), `crop.xAnchor` (0–1, default 0.5), `crop.yAnchor` (0–1, default 0.30) | optional |
 
 ## Outputs
 
@@ -70,3 +70,7 @@ Stage 6, after `edit_script.py`. Re-run it (and re-extract frames) after any
   honour. Do not remove it.
 - For a landscape source, preview one frame before committing (`xAnchor` may need tuning
   if the speaker is off-centre).
+- **Migrated to `config.load()` (issue #8, 2026-09-05)** — no longer reads `theme.json`
+  directly. No `project.config.json` yet? `config.load()` falls back to the skill's
+  `defaults.config.json` (`grade:false`, `xAnchor:0.5`, `yAnchor:0.30`) — same numbers as
+  before, just sourced differently. No back-compat read of the old `theme.json` is kept.
