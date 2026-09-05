@@ -1,7 +1,9 @@
 # `project.config.json` — the per-project config
 
-**Status: finalized and confirmed by @hatimmrabet, 2026-09-05** (issue #5, closed). Next:
-#6 (`config.py`/`config.js` `load()`/`emit_legacy()`).
+**Status: shipped.** Schema finalized and confirmed by @hatimmrabet (issue #5); fully wired
+in across the pipeline (Pass 2, issues #6/#8/#9/#10/#55/#56/#59). `theme.json` is retired,
+no legacy bridge was built (issue #7 closed not-planned). See
+[data-contracts.md](../data-contracts.md#configprojectconfigjson--the-per-project-config).
 
 ## Problem
 
@@ -75,18 +77,16 @@ stays an explicit field.
   "theme": {
     "bg": "#101828", "ink": "#F5F7FA", "acc": "#F2B33D",
     "clay": "#C98B18", "mut": "#98A2B3",
-    "font": "Tajawal", "logo": "logo.png", "handle": "@his_handle",
+    "font": "Tajawal", "logo": "config/logo.png", "handle": "@his_handle",
     "grid": true               // background grid — a static visual preference, same bucket as colors
   }
 }
 ```
 
-That's the whole file. **`logo` is a filename resolved relative to the work-dir root**
-today — the same place `compose.html` and `remotion.sh` already look for it — not
-relative to `config/`, even though `project.config.json` itself lives there. It moves to
-be relative to `config/` only once the `rush`/`config`/`build` physical path migration in
-[file-layout.md](file-layout.md) is actually implemented (not yet — that's deliberately a
-separate, atomic pass, since it touches every script's paths at once).
+That's the whole file. **`logo` is a path relative to the work-dir root** — `"config/logo.png"`
+since the `rush`/`config`/`build` physical migration ([file-layout.md](file-layout.md),
+issue #59), now that `config/` physically holds it. `compose.html` and `remotion.sh`
+resolve it from that root.
 
 ## Migration — direct, no bridge
 
@@ -103,10 +103,10 @@ in the same change — not kept alongside as a fallback.
   `<work>/config/project.config.json`). No `project.config.json` yet? Just the skill
   defaults — that's a project where the config phase hasn't run, not a case to paper over.
 
-Migration order, lowest-risk first: `reframe.py` (`grade`/`crop` — issue #8), then
-`render_frames.js`'s theme (issue #9's sibling work), then the Remotion generator (issue
-#9), then `SKILL.md` step 1 (issue #10). Each migration **removes** that script's
-`theme.json`-reading code — it doesn't add a second way to get the same values.
+Done in this order, lowest-risk first: `reframe.py` (#8), `render_frames.js` (#55),
+`safe_check.js` (#56), the Remotion generator (#9), `SKILL.md` step 1 (#10), then the
+physical `rush`/`config`/`build` layout (#59). Each migration **removed** that script's
+`theme.json`-reading code — no second path was left alongside.
 
 ## Decisions (design session with @hatimmrabet, 2026-09-05)
 
