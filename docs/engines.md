@@ -138,8 +138,8 @@ head; person redrawn on top; `personStage`; `headOut`) lives in `compose.referen
 | `Root.tsx` | `<Composition id="Ad" component={Ad} durationInFrames={DUR_F} fps={30} width={1080} height={1920} />` |
 | `theme.ts` | imports `project.json`; exports `T` (colors/font/handle/badgeUntil), `FPS=30`, `VEND=P.total`, `OUTRO=P.outro`, `DUR_F`, `HAS_SFX`, `OUTRO_COPY`, `STAGE`, `GUIDES` |
 | `util.tsx` | Remotion `interpolate`/`Easing` wrappers: `p, ease, eio, back, sec, lerp, hx, rgba, lum, onACC` — same math as `compose.html`'s helpers |
-| `stage.ts` | rect presets + `vrect(t)` interpolating per `project.json.stage`. `TR = 0.42` |
-| `Ad.tsx` | `<AbsoluteFill background={T.bg}>`; if `t < VEND` an absolutely-positioned `div` at `vrect(t)` with `<OffthreadVideo src={staticFile('video.mp4')} objectFit:cover objectPosition:'50% 26%'>` + `<VideoOverlay t>`; then `<Audio>`, `<Badge>`, `<Bar>`, `<Scenes>`, `<Captions>`, `<Outro>`, `<Guides>` |
+| `stage.ts` | rect presets + `vrect(t)` interpolating per `project.json.stage`; `TR` / easing from `TX.sceneToScene`; a `stage[i].transition` overrides one boundary; `videoLayers(t)` returns one rect (or two cross-fading, mid-`dissolve`) |
+| `Ad.tsx` | `<AbsoluteFill background={T.bg}>`; if `t < VEND`, `videoLayers(t).map(...)` → absolutely-positioned `div`(s) with `<OffthreadVideo src={staticFile('video.mp4')} objectFit:cover objectPosition:'50% 26%'>` (+ `<VideoOverlay t>` on the top layer); then `<Audio>`, `<Badge>`, `<Bar>`, `<Scenes>`, `<Captions>`, `<Outro>`, `<Guides>` |
 | `Captions.tsx` | active card from `caps.cards`, RTL flex-centered card at `bottom: 1920-1460`, per-word `<span>` with `color: hot ? '#FFF' : active ? T.acc : T.ink` and an animated `scaleX` accent pill behind hot words |
 | `Chrome.tsx` | `Badge` (handle + logo pill at `top:190`, hidden when `badgeUntil==0`), `Bar` (progress bar at `top:1492`), generic `Card` |
 | `Outro.tsx` | wipe-up reveal; logo, `C.line`, `RECAP` 2-col grid with SVG check, `C.cta_top` + `C.cta_word` accent chip, `C.tail`, handle+logo footer. **All copy from `project.json` — nothing hardcoded** |
@@ -193,11 +193,17 @@ Also:
 
 The vocabulary is data — [`scripts/transitions.json`](../video-editor/scripts/transitions.json),
 read via [`lib/transitions`](scripts/lib-transitions.md), explained in
-[design/transitions.md](design/transitions.md). The **light engine** is wired to it
-(issue #12): `render_frames.js` injects `load().defaults` into `window.init`, and
-`compose.html` / `studio.html` read `TX.sceneToScene` in `vrect` and
-`TX.sceneEnter` / `TX.sceneExit` (the `rise` type) in `caption`. The defaults equal the
-values below exactly, so nothing changed. Remotion parity is issue #13; montage is #14.
+[design/transitions.md](design/transitions.md). **Both engines are wired to it**:
+
+- **light** (#12): `render_frames.js` injects `load().defaults` into `window.init`;
+  `compose.html` / `studio.html` read `TX.sceneToScene` in `vrect` and
+  `TX.sceneEnter` / `TX.sceneExit` (the `rise` type) in `caption`.
+- **Remotion** (#13): `remotion.sh` writes `load()["defaults"]` into `project.json`;
+  `theme.ts` exposes `TX`, `stage.ts` `vrect` / `videoLayers` use `sceneToScene`,
+  `Captions.tsx` uses the `rise` defaults. Easings resolve by name through `util.tsx`'s
+  `ez()`.
+
+The defaults equal the values below exactly, so nothing changed. Montage is #14.
 
 - **Video-rectangle transition:** `vrect(t)` lerps x/y/w/h/r between consecutive `SCENES`
   rects over `TR = 0.42 s` (`sceneToScene.duration`) with cubic-in-out easing — the

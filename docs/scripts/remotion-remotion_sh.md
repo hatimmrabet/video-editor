@@ -27,6 +27,7 @@ remotion.sh <work> render [out.mp4] # npx remotion render Ad <out> --codec h264 
 | `config/stage.json` | → `project.json.stage` (default one `FULL` span) |
 | `config/outro.json` | → `project.json.outro_copy` |
 | `config/safe.json` | `.guides` → `project.json.guides` |
+| `scripts/transitions.json` (via [`lib/transitions.py`](lib-transitions.md)'s `load()`) | `["defaults"]` → `project.json.transitions` (issue #13) |
 
 **Migrated to `config.load()` (issue #9, 2026-09-05)** — the inline Python in `sync_all`
 no longer reads `theme.json` directly for the theme subset or the logo filename; both come

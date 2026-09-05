@@ -5,5 +5,10 @@
   "outro": 5.2,
   "sfx": true,
   "stage": [ {"s":0,"e":99,"m":"FULL"} ],
-  "outro_copy": { "line":"", "recap":[], "cta_top":"علّق بكلمة", "cta_word":"فيديو", "tail":"" }
+  "outro_copy": { "line":"", "recap":[], "cta_top":"علّق بكلمة", "cta_word":"فيديو", "tail":"" },
+  "transitions": {
+    "sceneToScene": { "type":"rect-morph", "duration":0.42, "easing":"eio" },
+    "sceneEnter":   { "type":"rise", "duration":0.20, "easing":"ease",   "params":{"y":28,"scale":true} },
+    "sceneExit":    { "type":"rise", "duration":0.13, "easing":"linear", "params":{"y":-10,"scale":false} }
+  }
 }

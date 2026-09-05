@@ -45,10 +45,11 @@ dropping its old file-reading code in the same change (see
 
 ## `scripts/transitions.json` — transition + easing vocabulary (static skill file)
 
-**W** hand-edited, versioned with the skill (not per work-dir) · **R** `render_frames.js`
-→ `compose.html`, and `studio.html`, via [`lib/transitions`](scripts/lib-transitions.md)
-(light engine wired in issue #12; Remotion is #13, `montage_mode.py` is #14). See
-[design/transitions.md](design/transitions.md) for the full explanation.
+**W** hand-edited, versioned with the skill (not per work-dir) · **R** via
+[`lib/transitions`](scripts/lib-transitions.md): `render_frames.js` → `compose.html` and
+`studio.html` (#12); `remotion.sh` → `project.json` → Remotion `theme.ts` (#13);
+`montage_mode.py` (#14). See [design/transitions.md](design/transitions.md) for the full
+explanation.
 
 ```jsonc
 {
@@ -287,11 +288,14 @@ is a rare per-project exception, not something set routinely. Defaults:
 ```jsonc
 [
   { "s": 0.0, "e": 9.0,  "m": "FULL" },
-  { "s": 9.0, "e": 14.0, "m": "DOWN" }
+  { "s": 9.0, "e": 14.0, "m": "DOWN", "transition": "dissolve:0.3" }
 ]
 ```
 
-`m` ∈ `"FULL" | "DOWN" | "LOWER" | "STAGE" | "SIDE"` (STAGE/SIDE are legacy).
+`m` ∈ `"FULL" | "DOWN" | "LOWER" | "STAGE" | "SIDE"` (STAGE/SIDE are legacy). Optional
+`transition` (issue #13; shorthand or object, see `transitions.json`) overrides
+type/duration/easing for the cut **into** that entry — `rect-morph` / `cut` / `dissolve` on
+the reel video. Entry 0's is ignored.
 **The light engine ignores `stage.json`** — its equivalent `SCENES` array is inline in
 `compose.html`. See [engines.md](engines.md#drift).
 
@@ -330,7 +334,8 @@ in `compose.html`.
   "sfx":   true,                                  // does <work>/build/sound-effects.wav exist
   "stage": [ { "s": 0, "e": 9999, "m": "FULL" } ],// from config/stage.json
   "outro_copy": { "line": "", "recap": [], "cta_top": "", "cta_word": "", "tail": "" },
-  "guides": false                                 // from config/safe.json's guides
+  "guides": false,                                // from config/safe.json's guides
+  "transitions": { "sceneToScene": {…}, "sceneEnter": {…}, "sceneExit": {…}, … }  // lib/transitions.load()["defaults"] (issue #13)
 }
 ```
 
