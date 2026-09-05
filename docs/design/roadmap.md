@@ -18,7 +18,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 | 0 | **Documentation** (this `docs/` tree) | `Pass 0 — Documentation` | — | ✅ done |
 | 1 | **Isolated execution & dependencies** | `Pass 1 — Execution & dependencies` | 0 | ✅ done (PR #37) |
 | 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | ✅ done (PRs #54, #57, issues #10, #59) |
-| 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | 🟡 #11 schema locked; #12–#14 pending |
+| 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | 🟡 #11 schema + #12 light engine done; #13–#14 pending |
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | — |
 | 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | — |
 | 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | — |
@@ -104,14 +104,20 @@ to English — both cosmetic cleanup, pick up whenever.)*
   enter/exit, and defaults that each equal today's hand-tuned value. Shorthand
   `type:dur:param` ↔ object. `whip-pan` dropped; raw ffmpeg xfade names reachable only via
   a montage-only escape hatch.
-- Light engine (#12): a `lib/transitions.py` resolver (`.js` shells out to it); wire
-  `vrect` + caption/scene enter/exit onto it.
+- ✅ **Light engine** (#12) — `lib/transitions.py` resolver (`.js` shells out to it),
+  `render_frames.js` injects `load().defaults`, `compose.html` / `studio.html` read it in
+  `vrect` (`sceneToScene`) and `caption` (`rise`), with today's literals as the fallback so
+  nothing changed. `SCENES[i].transition` overrides one boundary; `rect-morph` / `cut` /
+  `dissolve` render on the reel video (`wipe`/`push` are montage + graphic-layer — see
+  [transitions.md](transitions.md)). Byte-identical default render verified. Scene-graphic
+  enter/exit still hand-rolled per scene until Pass 4.
 - Remotion (#13): `@remotion/transitions` where native, hand-rolled otherwise; also mop up
   the #59 path-migration leftovers in `remotion/template/src/`.
 - `montage_mode.py build` (#14): `--transition <name>:<dur>:<param>`, an optional
-  `transition` per `plan[]` entry, `--xfade` kept as a hidden alias.
+  `transition` per `plan[]` entry, drop `--xfade`.
 - Defaults reproduce today's behavior exactly.
-- **Done when:** `build --transition push:0.3:up` works and a reel scene can specify `wipe`.
+- **Done when:** `build --transition push:0.3:up` works and a reel scene can specify a
+  non-default transition.
 
 ## Pass 4 — Scenes
 

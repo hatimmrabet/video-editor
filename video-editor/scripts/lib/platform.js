@@ -1,20 +1,20 @@
-/* Helpers multiplateforme (macOS · Windows · Linux) partagés par les scripts Node.
-   Aucun comportement macOS n'est modifié : les chemins et le lancement de Chrome
-   restent identiques sur mac, on ajoute juste les branches Windows/Linux. */
+/* Cross-platform helpers (macOS · Windows · Linux) shared by the Node scripts.
+   No macOS behaviour changes: the paths and the Chrome launch stay identical on mac,
+   the Windows/Linux branches are just added alongside. */
 'use strict';
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { execFileSync } = require('child_process');
 
-/* URL file:// correcte sur tous les OS (gère la lettre de lecteur Windows, les espaces…). */
+/* A correct file:// URL on every OS (handles the Windows drive letter, spaces, ...). */
 function fileUrl(p) {
   return pathToFileURL(path.resolve(p)).href;
 }
 
-/* Chemin de l'exécutable Chrome/Chromium **du système** (repli seulement).
-   Le chemin normal : `puppeteer` (complet) télécharge son propre Chromium via .puppeteerrc.cjs.
-   1) $CHROME_PATH  2) candidats par OS  3) null → l'appelant tente { channel: 'chrome' }. */
+/* Path to the **system** Chrome/Chromium executable (fallback only).
+   The normal path: full `puppeteer` downloads its own Chromium via .puppeteerrc.cjs.
+   1) $CHROME_PATH  2) per-OS candidates  3) null → the caller tries { channel: 'chrome' }. */
 function chromeCandidates() {
   if (process.platform === 'darwin') return [
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -32,10 +32,10 @@ function chromeCandidates() {
 function chromePath() {
   if (process.env.CHROME_PATH && fs.existsSync(process.env.CHROME_PATH)) return process.env.CHROME_PATH;
   for (const c of chromeCandidates()) { try { if (fs.existsSync(c)) return c; } catch (_) {} }
-  return null;   // null => l'appelant passe { channel: 'chrome' } à puppeteer
+  return null;   // null => the caller passes { channel: 'chrome' } to puppeteer
 }
 
-/* Le paquet `puppeteer` complet est-il installé ? (il embarque un Chromium apparié) */
+/* Is the full `puppeteer` package installed? (it bundles a matched Chromium) */
 function hasFullPuppeteer() {
   for (const p of ['puppeteer',
                    path.join(process.cwd(), 'node_modules', 'puppeteer'),
@@ -45,10 +45,10 @@ function hasFullPuppeteer() {
   return false;
 }
 
-/* Options de lancement puppeteer prêtes à l'emploi.
-   - $CHROME_PATH fixé            → on l'utilise (override explicite)
-   - `puppeteer` complet présent  → on ne fixe rien : il trouve son Chromium embarqué
-   - `puppeteer-core` seul        → Chrome système (chemin) ou { channel: 'chrome' } */
+/* Ready-to-use puppeteer launch options.
+   - $CHROME_PATH set            → use it (explicit override)
+   - full `puppeteer` present    → set nothing: it finds its bundled Chromium
+   - `puppeteer-core` only        → system Chrome (path) or { channel: 'chrome' } */
 function launchOptions(extra) {
   const base = {
     headless: true,
@@ -65,8 +65,8 @@ function launchOptions(extra) {
   return Object.assign(base, extra || {});
 }
 
-/* Racine de la skill — même arithmétique que VEVO_SKILL_DIR dans platform.sh :
-   scripts/lib/platform.js -> scripts/lib -> scripts -> racine. */
+/* The skill root — same arithmetic as VEVO_SKILL_DIR in platform.sh:
+   scripts/lib/platform.js -> scripts/lib -> scripts -> root. */
 function skillDir() {
   return path.join(__dirname, '..', '..');
 }
@@ -78,9 +78,9 @@ function commandExists(cmd) {
   } catch (_) { return false; }
 }
 
-/* Interpréteur Python isolé — même logique que VEVO_PY dans platform.sh :
-   uv (projet de la skill) > .venv de la skill > python3 système en dernier recours.
-   Renvoie [cmd, ...argsAvant] à préfixer aux arguments réels :
+/* Isolated Python interpreter — same logic as VEVO_PY in platform.sh:
+   uv (skill project) > skill .venv > system python3 as a last resort.
+   Returns [cmd, ...leadingArgs] to prefix to the real arguments:
      const c = pythonCmd(); execFileSync(c[0], [...c.slice(1), 'script.py', arg]) */
 function pythonCmd() {
   const skill = skillDir();
@@ -92,7 +92,7 @@ function pythonCmd() {
   return ['python3'];
 }
 
-/* Trouve puppeteer (complet, préféré) ou puppeteer-core, où qu'il soit installé. */
+/* Finds puppeteer (full, preferred) or puppeteer-core, wherever it's installed. */
 function resolvePuppeteer() {
   const tries = [process.env.PUPPETEER_PATH,
                  'puppeteer', 'puppeteer-core',
@@ -104,7 +104,7 @@ function resolvePuppeteer() {
     if (!p) continue;
     try { return require(p); } catch (_) {}
   }
-  throw new Error('puppeteer introuvable — lance : bash scripts/setup.sh --install  (ou : npm ci)');
+  throw new Error('puppeteer not found — run: bash scripts/setup.sh --install  (or: npm ci)');
 }
 
 module.exports = { fileUrl, chromePath, launchOptions, resolvePuppeteer, hasFullPuppeteer, pythonCmd, skillDir };
