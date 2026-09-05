@@ -331,8 +331,11 @@ that file is present** (issue #15) — the schedule is then derived from the sce
 
 ## `config/scenes.json` — declarative scene list (optional, hand-authored)
 
-**W** hand-authored (the per-video design work) · **R** both engines' scene interpreters
-(issues #17 / #18). Schema + rationale: [design/scenes-as-data.md](design/scenes-as-data.md).
+**W** hand-authored (the per-video design work) · **R** via
+[`lib/scenes`](scripts/lib-scenes.md): `render_frames.js` → `window.init` (resolved
+`scenes` + `schedule` + motif sources, issue #17); `safe_check.js` → `window.init`
+(`schedule` only); Remotion is #18. Schema + rationale:
+[design/scenes-as-data.md](design/scenes-as-data.md).
 
 ```jsonc
 [
@@ -347,8 +350,11 @@ that file is present** (issue #15) — the schedule is then derived from the sce
 ```
 
 `ref` resolves against `build/captions.json`, so an `edit_script.py` sentence drop shifts
-the scene with it. Absent → today's behaviour (inline `SCENES` / `stage.json`). This is the
-Pass 4 core; **the schema is locked (#15), the engines are not wired yet** (#17–#20).
+the scene with it. Absent → today's behaviour (inline `SCENES` / `stage.json`). **Schema
+locked (#15); the light engine reads it (#17)** — `lib/scenes.load()` returns `{ scenes,
+schedule }`, each resolved scene `{ s, e, mode, transition, gb, motif, params, timing,
+words, bottom }` (a `ref` to a missing sentence is dropped; a `planned` motif is nulled and
+only its layout applies). Remotion is #18, `studio.html` is #20.
 
 ---
 

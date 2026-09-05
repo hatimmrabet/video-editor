@@ -24,6 +24,7 @@ node safe_check.js <work> --shot   # also write build/safe-zone-check.jpg IF the
 | `build/sound-cues.json` | `.outro` | yes |
 | `build/captions.json` | cards + hook time | yes |
 | `config/project.config.json` (via [`lib/config.js`](lib-config.md)'s `load()`) | `theme.bg` (flat-fill background reference), `theme.font`, `crop.faceAnchor` | optional |
+| `config/scenes.json` (via [`lib/scenes.js`](lib-scenes.md)'s `load()`) | its `schedule` → `window.init({schedule})` so `vrect` matches a scenes-driven project (issue #17); the graphics aren't drawn here | optional |
 | `config/safe.json` | zone / `hook_max` / `guides` overrides, merged over `DEF` — rare, same rects reused for every short-form platform by default | optional |
 | `compose.html` | the drawing surface — **if absent, only the hook check runs** | for the pixel check |
 | `build/frames-source/*.jpg` | for the `--shot` output | for `--shot` |

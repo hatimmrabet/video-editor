@@ -2,10 +2,9 @@
 
 **The biggest lift in the roadmap.** Everything else is tidying; this is the structural change.
 
-Status: **schema locked (#15); registry scaffolded (#16).** This page is the spec for
-`config/scenes.json` and the motif registry. Implementation: #16 (`scripts/motifs/` +
-`index.json` + `stamp` as the reference motif), #17 (light interpreter), #18 (Remotion
-dispatcher), #19 (port the reference functions), #20 (`studio.html`).
+Status: **schema (#15) + registry (#16) + light interpreter (#17) done.** This page is the
+spec for `config/scenes.json` and the motif registry. Remaining: #18 (Remotion dispatcher),
+#19 (port the reference functions), #20 (`studio.html`).
 
 ## Problem
 
@@ -169,9 +168,11 @@ must change incompatibly gets a new name.
 
 1. ✅ #16 — `scripts/motifs/` (`index.json` with the full 11-name manifest + `README.md` +
    `canvas/` + `remotion/`), with **`stamp`** implemented on both engines as the reference.
-2. #17 / #18 build the light interpreter and the Remotion `<Scene>` dispatcher — both gated
-   on `config/scenes.json` existing, so a project opts in by adding the file while every
-   other project keeps its inline code unchanged.
+2. ✅ #17 — the light interpreter: `lib/scenes.py` (`.js` shells out) resolves
+   `config/scenes.json`; `render_frames.js` injects `{scenes, schedule}` + the used motif
+   sources; `compose.html` rebuilds `SCENES` from `schedule` and `drawScenes(t)` dispatches.
+   Gated on the file existing — verified byte-identical (raw canvas) without it. #18 does the
+   same for Remotion.
 3. #19 ports the reference scene functions to motifs one at a time, each with a 3-way visual
    diff (canvas render vs Remotion render vs the original reference).
 4. #20 points `studio.html` at the interpreter and drops its private drawing copy.

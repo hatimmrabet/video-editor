@@ -10,7 +10,7 @@
 
 | Function | Purpose |
 |---|---|
-| `init(d)` | `d = { cards, total, outro, theme, behind, transitions }`. Sets theme vars, injects a non-Cairo font `<link>`, updates the logo, applies `transitions` (→ `TX`, `TR`), calls `preloadBroll()`. Returns a Promise |
+| `init(d)` | `d = { cards, total, outro, theme, behind, transitions, scenes, schedule, motifs }`. Sets theme vars, injects a non-Cairo font `<link>`, updates the logo, applies `transitions` (→ `TX`, `TR`). If `d.schedule` — rebuilds `SCENES`; if `d.scenes` — sets `SCENELIST`; if `d.motifs` — evals each canvas motif source into `MOTIFS`. Calls `preloadBroll()`. Returns a Promise |
 | `setFrame(url)` | `VF.src = url; VF.decode()` — set the source video frame |
 | `setPerson(url, face)` | set the person-cutout PNG + face box (`{x,y,w,h}`) for this frame; `PRS_OK` gates the effect |
 | `draw(t)` | render one frame at time `t`. **Resets all canvas state first** |
@@ -63,11 +63,22 @@ The bottom section (`/* ===== SCENE GRAPHICS ===== */`) holds ~15 functions hard
 one reference video (`stamp`, `chips`, `fileToCloud`, `transcript`, `cardStack`,
 `suspense`, `syncViz`, `price`, `glitch`, `rtlBug`, `rtlFix`, `solved`, `oneFile`,
 `commentBox`, `outro`). Each: `function name(t){ if(t<X||t>Y) return; … }`. `draw(t)`
-dispatches them all through `safe(fn, t, name)`.
+dispatches them all through `safe(fn, t, name)` — **but only when `SCENELIST` is null**
+(no `config/scenes.json`).
 
-**Per video:** copy the file, rewrite `SCENES`, delete the reference scene functions and
-write new ones (one per sentence, timed to `wordsOf(i)` from `build/captions.json`),
-update the `draw(t)` dispatch list and the `RECAP` array + outro copy.
+**Scenes-as-data (issue #17):** when `render_frames.js` injects a resolved
+`config/scenes.json`, `SCENES` is rebuilt from `d.schedule`, `SCENELIST` / `MOTIFS` are
+set, and `draw(t)` calls **`drawScenes(t)`** instead of the hardcoded list. `drawScenes`
+resolves each scene's `timing` (enter/exit = the `rise` type; `hold: "words"` → a
+`wordIndex`), applies the container alpha + `translateY` inside `safe()`, and calls
+`MOTIFS[scene.motif](ctx)` — `ctx = { X, t, enter, exit, hold, words, wordIndex, rect,
+theme, params, fx }` (`fx` = the helper bag). See
+[`scripts/motifs/README.md`](../../video-editor/scripts/motifs/README.md).
+
+**Per video, the old way (no `config/scenes.json`):** copy the file, rewrite `SCENES`,
+delete the reference scene functions and write new ones (one per sentence, timed to
+`wordsOf(i)` from `build/captions.json`), update the `draw(t)` dispatch list and the
+`RECAP` array + outro copy.
 
 ## macOS effects (compositing side)
 

@@ -25,6 +25,7 @@ node render_frames.js <work> preview <t1> <t2> ...  # write build/prev/tNN.NN.jp
 | `build/sound-cues.json` | `.outro` → frame count | yes |
 | `config/project.config.json` (via [`lib/config.js`](lib-config.md)'s `load()`) | `theme` (font, colors), `crop.faceAnchor` | optional |
 | `scripts/transitions.json` (via [`lib/transitions.js`](lib-transitions.md)'s `load()`) | `.defaults`, injected into `window.init` (issue #12) | static skill file |
+| `config/scenes.json` (via [`lib/scenes.js`](lib-scenes.md)'s `load()`) | resolved `scenes` + `schedule` + the used `motifs/canvas/*.js` sources, injected into `window.init` (issue #17) | optional |
 | `build/person-cutout.json` | person-cutout ranges/faces | optional |
 | `build/frames-source/*.jpg` | source frames | yes |
 | `build/person-cutout/person/*.png` | per-frame cutout PNGs | optional |
@@ -41,9 +42,11 @@ node render_frames.js <work> preview <t1> <t2> ...  # write build/prev/tNN.NN.jp
 1. `resolvePuppeteer()` + `launchOptions()` from `lib/platform.js`; page at 1080×1920;
    `setCacheEnabled(false)`.
 2. `goto(fileUrl(compose.html))`, wait for the logo image.
-3. `window.init({ cards, total, outro, theme, behind, transitions })` — `transitions` is
-   `lib/transitions.load().defaults` (issue #12); the engine falls back to today's literal
-   values if it's absent.
+3. `window.init({ cards, total, outro, theme, behind, transitions, scenes, schedule, motifs })`
+   — `transitions` is `lib/transitions.load().defaults` (#12). `scenes` / `schedule` /
+   `motifs` (#17) are `null` / `{}` unless `config/scenes.json` exists, in which case the
+   engine rebuilds `SCENES` from `schedule` and `drawScenes(t)` dispatches to the injected
+   motifs instead of the hardcoded scene functions.
 4. **After `init`**, wait for the theme font (weights 400/600/700/800/900) — the non-Cairo
    font `<link>` is injected inside `init`.
 5. Per frame: pick `build/frames-source/` index `round(t*30)+1`; `setFrame` (with

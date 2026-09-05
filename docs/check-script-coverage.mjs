@@ -39,6 +39,7 @@ const COVERAGE = [
   ['lib-platform',        ['lib/platform.sh', 'lib/platform.js']],
   ['lib-config',          ['lib/config.py', 'lib/config.js']],
   ['lib-transitions',     ['lib/transitions.py', 'lib/transitions.js']],
+  ['lib-scenes',          ['lib/scenes.py', 'lib/scenes.js']],
   ['lib-rush',            ['lib/rush.py']],
   ['motifs',              ['motifs/']],
   ['compose_html',        ['compose.reference.html']],

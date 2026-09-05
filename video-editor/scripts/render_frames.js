@@ -7,11 +7,23 @@ const path=require('path'), fs=require('fs');
 const {fileUrl,launchOptions,resolvePuppeteer}=require('./lib/platform');
 const {load:loadConfig}=require('./lib/config');
 const {load:loadTransitions}=require('./lib/transitions');   // scripts/transitions.json
+const {load:loadScenes}=require('./lib/scenes');             // config/scenes.json (issue #17)
 const W=path.resolve(process.argv[2])+path.sep;
 const CFG=JSON.parse(fs.readFileSync(W+'build/sound-cues.json','utf8'));       // has outro
 const PCFG=loadConfig(W);   // project.config.json — see docs/design/project-config.md
 const THEME=Object.assign({},PCFG.theme||{},{faceAnchor:(PCFG.crop||{}).faceAnchor});
 const TRANS=loadTransitions().defaults;   // resolved transition defaults, injected into the engine
+
+const SCN=loadScenes(W);   // {scenes, schedule} — both null when config/scenes.json is absent
+const MOTIF_SRC={};        // name -> canvas motif source, read from scripts/motifs/canvas/
+if(SCN.scenes){
+  for(const name of new Set(SCN.scenes.map(s=>s.motif).filter(Boolean))){
+    const f=path.join(__dirname,'motifs','canvas',name+'.js');
+    if(fs.existsSync(f)) MOTIF_SRC[name]=fs.readFileSync(f,'utf8');
+    else console.log('WARN motif not found:',name,'— its scene will draw no graphic');
+  }
+  console.log('scenes: '+SCN.scenes.length+' from config/scenes.json · motifs: '+Object.keys(MOTIF_SRC).join(', '));
+}
 
 const BEHIND=fs.existsSync(W+'build/person-cutout.json')?JSON.parse(fs.readFileSync(W+'build/person-cutout.json','utf8')):null;  // speech behind the person
 const OUT_D=CFG.outro, FPS=30;
@@ -29,7 +41,8 @@ const OUT_D=CFG.outro, FPS=30;
   await p.goto(fileUrl(W+'compose.html'),{waitUntil:'networkidle0'});
   const FF=THEME.font||'Cairo';
   await p.evaluate(()=>new Promise(r=>{const l=document.getElementById('LOGO');l.complete?r():l.onload=r;}));
-  await p.evaluate((c,o,t,b,tr)=>window.init({cards:c.cards,total:c.total,outro:o,theme:t,behind:b,transitions:tr}),caps,OUT_D,THEME,BEHIND,TRANS);
+  await p.evaluate((c,o,t,b,tr,sc,mo)=>window.init({cards:c.cards,total:c.total,outro:o,theme:t,behind:b,transitions:tr,
+    scenes:sc.scenes,schedule:sc.schedule,motifs:mo}),caps,OUT_D,THEME,BEHIND,TRANS,SCN,MOTIF_SRC);
   /* ⚠️ the font wait must come **after** init: the non-Cairo font is injected inside init
      itself, so waiting before it waits for nothing, and the result is the video starting
      in a fallback font that then flips mid-text. And every weight gets loaded — weight
