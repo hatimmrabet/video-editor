@@ -55,7 +55,11 @@ mode actually produced captions/a transcript (`reel-speech`) — montage has nei
 | `src.mov` | `rush/<original name>` | source video, untouched |
 | `bg-audio.mp3` | `rush/bg-audio.mp3` | user-supplied background audio — an **input**, not generated |
 | — | `rush/broll/*` | cutaway clips, a folder (may hold several) |
-| `theme.json` / `stage.json` / `outro.json` / `safe.json` | *(absorbed into `config/project.config.json`, Pass 2)* | no more separate hand-edited files |
+| `theme.json` | *(absorbed into `config/project.config.json`, Pass 2 #10)* | colours / font / crop anchors are config fields now |
+| `stage.json` | `config/stage.json` | video-rect schedule (Remotion) — **subsumed by `config/scenes.json`** once Pass 4 lands |
+| `outro.json` | `config/outro.json` | end-card copy (Remotion) |
+| `safe.json` | `config/safe.json` | rare safe-zone override (the zone itself is a fixed shared value now) |
+| — | `config/scenes.json` | Pass 4 — the declarative scene list ([scenes-as-data.md](scenes-as-data.md)) |
 | `logo.png` | `config/logo.png` | |
 | `cut.json` | `build/cut-plan.json` | silence-removal plan |
 | `a.wav` | `build/transcribe-input.wav` | mono 16kHz audio extracted for Whisper |

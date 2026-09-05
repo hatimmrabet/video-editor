@@ -126,14 +126,14 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 
 ### Pass 4 — Scenes
 
-| Title | Labels |
-|---|---|
-| scenes: declarative scene schema | `area:scenes` `type:design` `prio:high` |
-| scenes: `motifs/` registry layout + `index.json` | `area:scenes` `type:design` |
-| scenes: light-engine interpreter (inside `safe()`) | `area:scenes` `area:engine-light` |
-| scenes: Remotion `<Scene>` dispatcher | `area:scenes` `area:engine-remotion` |
-| scenes: port reference functions → motifs (one issue per motif) | `area:scenes` |
-| scenes: `studio.html` renders the scene list, drop its drawing copy | `area:scenes` `type:chore` |
+| Title | Labels | Status |
+|---|---|---|
+| scenes: declarative scene schema | `area:scenes` `type:design` `prio:high` | ✅ #15 — `config/scenes.json` locked in `design/scenes-as-data.md` |
+| scenes: `motifs/` registry layout + `index.json` | `area:scenes` `type:design` | #16 |
+| scenes: light-engine interpreter (inside `safe()`) | `area:scenes` `area:engine-light` | #17 |
+| scenes: Remotion `<Scene>` dispatcher | `area:scenes` `area:engine-remotion` | #18 |
+| scenes: port reference functions → motifs (one issue per motif) | `area:scenes` | #19 |
+| scenes: `studio.html` renders the scene list, drop its drawing copy | `area:scenes` `type:chore` | #20 |
 
 ### Pass 5 / 6 / 7
 
