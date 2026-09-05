@@ -18,17 +18,17 @@ one publish-ready MP4.
 | Input | one video of a person talking | a folder with many speechless clips |
 | Example | selfie · teleprompter · explainer | café · trip · product · place · event |
 | Selection driven by | the speech (you remove silences and repeated sentences) | the shot itself (sharpness · motion · lighting) |
-| Captions? | yes, word-synced | ⛔ no — no transcription at all |
+| Captions? | yes, word-synced | **no** — no transcription at all |
 | Steps | 0–11 below | the "Montage mode" section, on its own |
 
 **How do you know the mode without asking?** They gave you a **folder** or more than one
 clip = montage. They gave you **a single file with speech** = speech ad. If a folder turns
 out to have audible speech and they want captions, run the speech-ad flow on the main clip.
 
-⛔ **Do not ask "which mode do you want?"** — read the input, go, and tell them in one
+**Do not ask "which mode do you want?"** — read the input, go, and tell them in one
 sentence what you understood.
 
-## Two engines — but ⛔ don't ask the user anything about them
+## Two engines — but don't ask the user anything about them
 
 The skill is one thing; the engine that draws the scenes is two. **The choice is yours,
 not theirs.**
@@ -58,7 +58,7 @@ are all shared; the work carries over as-is.
 
 ---
 
-## ⛔ Your style with the user — read this before anything
+## Your style with the user — read this before anything
 
 **You do the preparing, not them.** The person in front of you may not know what ffmpeg is
 and doesn't want to. Never hand them a list of commands to run.
@@ -107,7 +107,7 @@ Prepare a work directory: create its `rush/`, `config/` and `build/` subfolders,
 
 ## Step 1 — configuration (mandatory, never silent)
 
-⛔ **Never assume the cream-and-clay theme.** That's Claude's theme, not everyone's.
+**Never assume the cream-and-clay theme.** That's Claude's theme, not everyone's.
 
 This step is never skipped and never silent — it always ends in an explicit confirmation
 before anything downstream runs.
@@ -206,7 +206,7 @@ uv run scripts/transcribe.py <work> --language <LANG> --model large-v3
 - On GPU it finishes in seconds; on CPU it takes minutes — run it in the background.
 - Produces `<work>/build/transcript-raw.json` in the openai-whisper shape (segments · words · timings).
 
-**⛔ Ask about the language before this step** — if the video is in a dialect and the
+**Ask about the language before this step** — if the video is in a dialect and the
 transcription comes out in another language or empty, the language is probably wrong.
 Moroccan / Algerian darija: Whisper makes a lot of mistakes even with the best model —
 warn the user up front, and show them the full text to correct (step 5).
@@ -231,7 +231,7 @@ uv run scripts/edit_script.py <work> show
 Prints their speech, numbered and timecoded, and writes `build/transcript-editable.txt`.
 **Show them the list in the chat and say: "What do you want me to remove?"**
 
-**🔁 And the important one — the repeated sentence:** the script warns you automatically
+**And the important one — the repeated sentence:** the script warns you automatically
 about any two similar sentences within two sentences of each other. When the speaker
 rephrases a sentence, **the first is the mistake and the second is the correction** — show
 them the pair and suggest dropping the first:
@@ -248,7 +248,7 @@ uv run scripts/edit_script.py <work> undo           # undo
 The sentence is removed from the video and the audio, everything after it shifts back, and
 `build/cut-plan.json`, `build/captions.json` and `build/sound-cues.json` all update.
 
-**⚠️ Do this here — before designing the scenes.** If you drop a sentence after designing
+**Do this here — before designing the scenes.** If you drop a sentence after designing
 the scenes, all their times shift and you have to redo them. And after any deletion: re-run
 `reframe.py`, re-extract the frames, and re-render with `--force`.
 
@@ -287,13 +287,13 @@ the theme.
 Each scene function takes `t` and draws based on the word timing from `build/captions.json` — the
 scene sticks to the word, not to an approximate time.
 
-**⛔ No account badge over the video** (`BADGE_UNTIL=0` in `compose.html` — the default):
+**No account badge over the video** (`BADGE_UNTIL=0` in `compose.html` — the default):
 the name is on the platform itself and on the end card, and the top of the screen is
 space for the graphics. If someone asks for it, set `BADGE_UNTIL=3` directly in that
 project's `compose.html` — it puts it in the first 3 seconds only. Not a config field
 (see step 1) — it's a rare, per-project exception, not a base setting.
 
-**⛔ Layout rule (user-approved — do not break it):**
+**Layout rule (user-approved — do not break it):**
 
 | Moment | Rectangle | Shape |
 |---|---|---|
@@ -313,7 +313,7 @@ caption below) creates three separated focus points and the viewer gets lost.
 3. **A faint background grid** every 60px at 7.5% opacity — gives depth without pulling the
    eye (`theme.grid:false` in `project.config.json` turns it off).
 
-**⛔ Don't overuse `R_DOWN`.** It's the default for graphic moments, not for the whole video:
+**Don't overuse `R_DOWN`.** It's the default for graphic moments, not for the whole video:
 - **The hook (first 3–4 seconds) is always full-screen** — their whole face, no panel
   pulling the eye.
 - Any sentence with a **peak, an emotion, or a question to the viewer** → full-screen, let
@@ -323,7 +323,7 @@ caption below) creates three separated focus points and the viewer gets lost.
   becomes a static panel with a small face under it.
 - No graphic at this moment? Then full-screen. **The panel comes for the idea, not to fill.**
 
-⚠️ **"Full screen" is defined by area, not by corners** (`isFull()`): `R_DOWN` now has no
+**"Full screen" is defined by area, not by corners** (`isFull()`): `R_DOWN` now has no
 rounded corners, like `R_FULL`, so any old check that relies on `r` is fooled and triggers
 "speech behind the person" at a moment that isn't full-screen. With `R_DOWN` the eye
 travels in one line top to bottom. **And the card is flexible:** it shrinks in proportion
@@ -347,7 +347,7 @@ allowed, because what's covered is image, not text. Use it when the panel is lar
 (lists, comparisons, tables) and the top half isn't enough. The caption moves above the
 video card automatically in this mode.
 
-**⛔ Safe zone — Instagram covers the screen edges with its buttons:**
+**Safe zone — Instagram covers the screen edges with its buttons:**
 
 | Zone | Don't put text there |
 |---|---|
@@ -396,7 +396,7 @@ node scripts/render_frames.js <work> all --force
 node scripts/fx/behind_text.js <work> off         # cancel
 ```
 
-**⛔ When to use it — the rule:**
+**When to use it — the rule:**
 1. **Once or twice in the whole video.** Repeated every sentence, it flips from "wow" to noise.
 2. **Best on the hook** (the first sentence) or the idea's peak — the sentence you want
    them to remember.
@@ -492,7 +492,7 @@ Produces `<work>/video-final.srt` (YouTube and LinkedIn read it) and
 # Montage mode — speechless clips
 
 A folder with many clips (café · trip · product · place · event) and the ask is one video
-with rhythm. ⛔ **No transcription, no captions, no drawn scenes.** The selection is
+with rhythm. **No transcription, no captions, no drawn scenes.** The selection is
 entirely about the shot itself. You need one thing from them: **the clip folder.** Copy
 its clips into `<work>/rush/`, keeping their names — don't ask about colors or a logo or
 an account — there's no text at all.
@@ -565,7 +565,7 @@ Put their audio file at `<work>/rush/bg-audio.mp3` first. The montage comes
 out with a silent track if you don't ask for ambience, so the background audio file here
 isn't decoration — without it the video is silent.
 
-### ⛔ Mode rules
+### Mode rules
 1. **Don't transcribe and don't caption.** If the clips turn out to have important speech,
    that's the speech mode, not montage.
 2. **Show them the sheet before building** — they remove what they don't like, not you.
@@ -576,7 +576,7 @@ isn't decoration — without it the video is silent.
 
 ---
 
-## ⛔ Fixed rules
+## Fixed rules
 
 1. **A sound effect is tied to a meaningful moment** — a number dropping, something
    breaking, a scene transition. The problem isn't the kind of sound, it's spraying it on
@@ -600,7 +600,7 @@ isn't decoration — without it the video is silent.
 
 ---
 
-## ✅ Verification before delivery (mandatory)
+## Verification before delivery (mandatory)
 
 0. **Safe zone and hook** — an automated check, doesn't need your eyes:
 ```bash
@@ -628,7 +628,7 @@ Compare the sentence starts of `build/fa.json` to `build/captions.json`.
 3. **The eye** — a 6-shot contact sheet, actually looked at.
 4. **Size** — under 30 MB.
 
-## 💰 Token economy — images are the enemy
+## Token economy — images are the enemy
 
 **By actual measurement: images eat 80–85% of the conversation context.** A 1080-wide
 image ≈ 150k characters; the same at 300 wide ≈ 20k.
@@ -644,9 +644,9 @@ image ≈ 150k characters; the same at 300 wide ≈ 20k.
 5. **ffmpeg output** is always trimmed: `2>&1 | tail -2`.
 6. **Don't read `compose.html` whole** — `grep -n` for the function you need.
 
-⛔ **Don't show an image except for a visual question that nothing else answers.**
+**Don't show an image except for a visual question that nothing else answers.**
 
-## 💰 Token economy (general)
+## Token economy (general)
 
 The expensive thing isn't the rendering, it's **the number of turns** — every turn resends
 the whole conversation.
@@ -690,5 +690,5 @@ for the post caption). And mention that you didn't publish anything.
 | `fx/behind_text.js` + `personmask.swift` | the three cutout styles (behind the person · in front of the panel · head outside the card) | light |
 | `montage_mode.py` | **montage mode**: scans a clip folder, picks the best moment of each, and assembles them | independent |
 
-📖 Full contributor documentation (data flow, the two engines, the ten real-run bugs, the
+Full contributor documentation (data flow, the two engines, the ten real-run bugs, the
 target architecture): **`../docs/`** at the repo root.
