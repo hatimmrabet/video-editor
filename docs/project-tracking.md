@@ -95,14 +95,23 @@ Milestone #8. Implemented by **PR #37**. See [design/execution.md](design/execut
 
 ### Pass 2 — Config
 
-| Title | Labels |
-|---|---|
-| config: define `project.config.json` schema | `area:config` `type:design` `prio:high` |
-| config: `scripts/lib/config.{py,js}` — `load()` + `emit_legacy()` | `area:config` |
-| config: reverse compat — synthesize config from legacy files | `area:config` |
-| config: migrate `reframe.py` to `config.load()` | `area:config` |
-| config: migrate the Remotion `project.json` generator | `area:config` `area:engine-remotion` |
-| config: `SKILL.md` step 1 writes `project.config.json` | `area:config` `area:docs` |
+**Done** (2026-09-05) — content side complete via PRs #54 and #57; physical file layout
+is a separate, explicitly scheduled follow-up (#59, below). No back-compat was built (see
+[design/project-config.md](design/project-config.md#migration--direct-no-bridge)) — the
+originally-planned reverse-compat issue was closed as not-planned instead of implemented.
+
+| Title | Labels | Status |
+|---|---|---|
+| config: define `project.config.json` schema | `area:config` `type:design` `prio:high` | ✅ #5 |
+| config: `scripts/lib/config.{py,js}` — `load()` | `area:config` | ✅ #6 |
+| ~~config: reverse compat — synthesize config from legacy files~~ | `area:config` | ❌ not planned — #7 |
+| config: migrate `reframe.py` to `config.load()` | `area:config` | ✅ #8 |
+| config: migrate the Remotion `project.json` generator | `area:config` `area:engine-remotion` | ✅ #9 |
+| config: migrate `render_frames.js` to `config.load()` | `area:config` | ✅ #55 (not originally tracked) |
+| config: migrate `safe_check.js` to `config.load()` | `area:config` | ✅ #56 (not originally tracked) |
+| config: `SKILL.md` step 1 writes `project.config.json` | `area:config` `area:docs` | ✅ #10 |
+| chore: apply the `rush`/`config`/`build` physical path migration | `area:config` `type:chore` | #59 — lands before Pass 3 |
+| chore: remove emojis from `SKILL.md` markdown | `type:chore` `area:docs` | #58 — not blocking, pick up whenever |
 
 ### Pass 3 — Transitions
 

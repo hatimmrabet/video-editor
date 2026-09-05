@@ -104,32 +104,62 @@ Prepare a work directory and copy `scripts/compose.reference.html` into it as
 
 ---
 
-## Step 1 — their visual identity (there is no default color)
+## Step 1 — configuration (mandatory, never silent)
 
 ⛔ **Never assume the cream-and-clay theme.** That's Claude's theme, not everyone's.
 
-1. Look for `.auto-memory/creator-profile.md` — if it exists, take the colors, font and
-   handle from it, and say: "I'll go with your colors: X and Y — okay?"
-2. No file? Ask **one question**: "What are your account's colors? Give me the background
-   color, the accent color, and your logo (or your account link and I'll pull them)."
-3. Write `<work>/theme.json`:
+This step is never skipped and never silent — it always ends in an explicit confirmation
+before anything downstream runs.
+
+**`<work>/config/project.config.json` already exists?** Read it, show a short recap
+(language, theme colors, handle), and ask: "Still good, or does anything change?" Don't
+move on until they confirm.
+
+**No config yet?** Build it one question at a time, then reconfirm before saving:
+1. Ask **one question** about their account colors: "What are your account's colors? Give
+   me the background color, the accent color, and your logo (or your account link and
+   I'll pull them)."
+2. Ask the video's language (see step 4 for why it matters): `ar` · `fr` · `en` · or a hard
+   dialect (`ar-MA` / `ar-DZ` / `darija`).
+3. Copy their logo into `<work>/logo.png`. (`theme.logo` is a filename resolved relative
+   to the work-dir root — same place `compose.html` and `remotion.sh` already look for it
+   — not relative to `config/`, until the `rush`/`config`/`build` path migration in
+   [`docs/design/file-layout.md`](../docs/design/file-layout.md) is actually implemented.)
+4. **Before writing anything**, give one final complete recap and get an explicit
+   confirmation — only then save the file. It becomes the single source everything
+   downstream reads; there's no second place any of this lives.
+
+Write `<work>/config/project.config.json`:
 ```json
-{ "bg":"#101828", "ink":"#F5F7FA", "acc":"#F2B33D", "clay":"#C98B18", "mut":"#98A2B3",
-  "font":"Tajawal", "handle":"@his_handle", "logo":"logo.png", "grade": false, "badge": false,
-  "faceAnchor": 0.30, "badgeUntil": 0 }
+{
+  "format": "short",
+  "engine": "light",
+  "language": "ar",
+  "grade": false,
+  "crop": { "xAnchor": 0.5, "yAnchor": 0.30, "faceAnchor": 0.30 },
+  "theme": { "bg":"#101828", "ink":"#F5F7FA", "acc":"#F2B33D", "clay":"#C98B18", "mut":"#98A2B3",
+             "font":"Tajawal", "handle":"@his_handle", "logo":"logo.png", "grid": true }
+}
 ```
-**The account badge is off by default** (`badgeUntil: 0`) — the name is already on the
-platform itself and on the end card. `badgeUntil: 3` brings it back for the first 3
-seconds; `badge:false` is still supported for back-compat. Every scene derives its colors
-from these values automatically — the cards, the shadows, and the text color over the
-accent pills (computed from the color's luminance). A dark or a light background both
-work.
+`format` is always `"short"` today — `"long"` is reserved for a future long-form pipeline
+that doesn't exist yet; it's not a real choice to offer. `engine` is always `"light"` —
+never ask, never write `"auto"` (see "Two engines" above: the choice is yours, not
+theirs). Every scene derives its colors from `theme` automatically — the cards, the
+shadows, and the text color over the accent pills (computed from the color's luminance).
+A dark or a light background both work.
 
 **The color grade (`grade`) is off by default** — the video keeps its original colors.
 Don't turn it on unless they explicitly ask, or complain the image looks cold / washed
 out. If you turn it on, tell them you did.
 
-Copy their logo into the work directory as `logo.png`.
+`crop`'s defaults (0.5 / 0.30 / 0.30) are right for almost every video — only revisit
+`xAnchor` / `faceAnchor` after previewing a frame, if the speaker turns out off-center
+(step 6). **There is no account badge field** — it's off by default, and if someone asks
+for it as a one-off, set `BADGE_UNTIL` directly in that project's `<work>/compose.html`
+(step 7) rather than through the config.
+
+Every script downstream reads this file via `config.load()` (see
+[`docs/scripts/lib-config.md`](../docs/scripts/lib-config.md)) — nothing needs asking twice.
 
 ---
 
@@ -223,7 +253,7 @@ mkdir -p <work>/vfr && ffmpeg -v error -i <work>/cutz.mp4 -vf fps=30 -q:v 3 -y <
 ```
 - Vertical source (selfie) → passes through as-is.
 - **Landscape** source (16:9) → a vertical 9:16 frame is cropped from it; if the speaker
-  isn't centered, set `xAnchor` in `theme.json` (0 = left · 0.5 = center · 1 = right).
+  isn't centered, set `crop.xAnchor` in `project.config.json` (0 = left · 0.5 = center · 1 = right).
   Preview one frame before continuing.
 
 ### 7) Design the scenes ← the most important step
@@ -251,9 +281,11 @@ the theme.
 Each scene function takes `t` and draws based on the word timing from `caps.json` — the
 scene sticks to the word, not to an approximate time.
 
-**⛔ No account badge over the video** (`badgeUntil: 0` — the default): the name is on the
-platform itself and on the end card, and the top of the screen is space for the graphics.
-If someone asks for it: `badgeUntil: 3` puts it in the first 3 seconds only.
+**⛔ No account badge over the video** (`BADGE_UNTIL=0` in `compose.html` — the default):
+the name is on the platform itself and on the end card, and the top of the screen is
+space for the graphics. If someone asks for it, set `BADGE_UNTIL=3` directly in that
+project's `compose.html` — it puts it in the first 3 seconds only. Not a config field
+(see step 1) — it's a rare, per-project exception, not a base setting.
 
 **⛔ Layout rule (user-approved — do not break it):**
 
@@ -273,7 +305,7 @@ caption below) creates three separated focus points and the viewer gets lost.
 2. **The caption rides the video's edge** (42% of its height above the edge, 58% below) —
    it ties the two halves of the screen together so they don't look like two stuck-on pieces.
 3. **A faint background grid** every 60px at 7.5% opacity — gives depth without pulling the
-   eye (`grid:false` in `theme.json` turns it off).
+   eye (`theme.grid:false` in `project.config.json` turns it off).
 
 **⛔ Don't overuse `R_DOWN`.** It's the default for graphic moments, not for the whole video:
 - **The hook (first 3–4 seconds) is always full-screen** — their whole face, no panel
@@ -540,7 +572,7 @@ isn't decoration — without it the video is silent.
    every word (we tried it and it came out as noise). Don't exceed 15 events per minute,
    keep the peak below −18 dBFS, and show the user where you placed them before export.
 2. **Western digits always** (0–9).
-3. **Colors from `theme.json` only** — no hardcoded color in the code.
+3. **Colors from `project.config.json`'s `theme` only** — no hardcoded color in the code.
 4. **No color or filter over their image** — no grade, no tint, no LUT, no colored layer
    over the video. The image always comes out in its original colors, unless they
    explicitly ask. (Colors are for cards and text only.)
@@ -626,6 +658,7 @@ for the post caption). And mention that you didn't publish anything.
 |---|---|---|
 | `setup.sh` | installs ffmpeg/Node/uv (system), then `uv sync` + `npm ci` (isolated) | shared |
 | `lib/platform.sh` · `lib/platform.js` | cross-platform helpers (paths · `VEVO_PY` · browser · OS) | shared |
+| `lib/config.py` · `lib/config.js` | reads/merges `project.config.json` | shared |
 | `transcribe.py` | transcription → `a.json` (faster-whisper GPU/CPU ← whisper) | shared |
 | `plan_cuts.py` | measures the silences and produces the speech segments | shared |
 | `captions.py` | per-word timing on the new timeline | shared |

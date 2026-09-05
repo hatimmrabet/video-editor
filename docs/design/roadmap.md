@@ -1,7 +1,13 @@
 # Roadmap
 
 Each pass is one GitHub **milestone**, gets its own implementation plan before code, and
-must keep every [invariant](../invariants.md) and stay backward compatible.
+must keep every [invariant](../invariants.md). **"Stay backward compatible" no longer
+applies as a blanket rule** — decided during Pass 2 (2026-09-05): there is one user and no
+installed base of old-style projects, so a legacy-emitting adapter or reverse-compat shim
+solves a problem that doesn't exist here. When a pass replaces a file format or a script's
+inputs, migrate every consumer directly and delete the old reading code in the same
+change — see [project-config.md](project-config.md#migration--direct-no-bridge) for the
+concrete example.
 
 This turns `FORK.md`'s vision (config per project, style library, orchestrator agent,
 long-form YouTube, web UI) into concrete work, with execution isolation, transitions and
@@ -11,7 +17,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 |---|---|---|---|---|
 | 0 | **Documentation** (this `docs/` tree) | `Pass 0 — Documentation` | — | ✅ done |
 | 1 | **Isolated execution & dependencies** | `Pass 1 — Execution & dependencies` | 0 | ✅ done (PR #37) |
-| 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | — |
+| 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | ✅ content done (PRs #54, #57, issue #10) — physical layout still pending, issue #59, lands before Pass 3 |
 | 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | — |
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | — |
 | 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | — |
@@ -58,10 +64,26 @@ projects — there is no adapter and no reverse-compat synthesis. Each script mi
   ever covered the Remotion generator.
 - ✅ Migrate `safe_check.js` to `config.load()` — same pattern, found while doing #9/#55.
   **Also not originally in this list** — split out as issue #56.
-- `SKILL.md` step 1 writes `project.config.json` instead of `theme.json` (issue #10) — the
-  last remaining consumer of `theme.json`, and once it lands the file is retired entirely.
+- ✅ `SKILL.md` step 1 writes `project.config.json` instead of `theme.json` (issue #10) —
+  the mandatory config-confirmation phase from `orchestrator.md`, made concrete. No
+  `creator-profile` step, no `badge` field (a scene-design-time exception now), `format`/
+  `engine` always literal (`"short"`/`"light"`), never asked as an open question.
 - **Done when:** nothing in the pipeline reads `theme.json` anymore — every consumer reads
-  `project.config.json` via `config.load()`.
+  `project.config.json` via `config.load()`. **Done** (2026-09-05) — `theme.json` is
+  retired (see [data-contracts.md](../data-contracts.md)).
+
+**Config content is done; the physical file layout is not — this is a known, explicitly
+scheduled gap, not an oversight.** Every script still reads/writes the flat `<work>/`
+layout from before this pass (`src.mov`, `cut.json`, `cutz.mp4`, `ad-final.mp4`, `logo.png`,
+etc. all at the work-dir root) — only `project.config.json`'s own location and content
+have moved. Applying the rest of [file-layout.md](file-layout.md)'s rename table is
+tracked as **issue #59**, and is scheduled to land **before Pass 3 begins** — it has to be
+one atomic change across every script (they chain on each other's file locations), and
+letting it drag into later passes only grows the list of call sites to fix. This is the
+actual next thing to do, not Pass 3 itself.
+
+*(Also tracked, not blocking anything: issue #58, removing the emoji markers from
+`SKILL.md`'s markdown — a cosmetic cleanup, pick up whenever.)*
 
 ## Pass 3 — Transitions
 

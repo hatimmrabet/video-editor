@@ -77,8 +77,12 @@ stays an explicit field.
 }
 ```
 
-That's the whole file. `logo` is a path relative to `config/`, next to
-`project.config.json` itself (see [file-layout.md](file-layout.md)).
+That's the whole file. **`logo` is a filename resolved relative to the work-dir root**
+today — the same place `compose.html` and `remotion.sh` already look for it — not
+relative to `config/`, even though `project.config.json` itself lives there. It moves to
+be relative to `config/` only once the `rush`/`config`/`build` physical path migration in
+[file-layout.md](file-layout.md) is actually implemented (not yet — that's deliberately a
+separate, atomic pass, since it touches every script's paths at once).
 
 ## Migration — direct, no bridge
 
