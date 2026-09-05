@@ -68,12 +68,14 @@ Columns: **Backlog · Design · In progress · Review · Done**. Views: by miles
 
 ### Pass 0 — Documentation
 
+Milestone #1 — **complete** (closed 2026-09-03).
+
 | Title | Labels | Notes |
 |---|---|---|
 | ~~docs: land the `docs/` tree~~ | — | ✅ done — PR #2 |
 | ~~chore: merge cross-platform branch into `main`~~ | — | ✅ done — PR #1 |
-| docs: verify each script page against `--help` / code | `area:docs` | #3 |
-| docs: verify `docs/invariants.md` wording against the code fixes | `area:docs` | #4 |
+| ~~docs: verify each script page against `--help` / code~~ | `area:docs` | ✅ #3 — PR #50 |
+| ~~docs: verify `docs/invariants.md` wording against the code fixes~~ | `area:docs` | ✅ #4 — PR #50 |
 
 ### Pass 1 — Execution & dependencies
 
