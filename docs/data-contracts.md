@@ -43,6 +43,43 @@ dropping its old file-reading code in the same change (see
 
 ---
 
+## `scripts/transitions.json` — transition + easing vocabulary (static skill file)
+
+**W** hand-edited, versioned with the skill (not per work-dir) · **R** both engines and
+`montage_mode.py` via `lib/transitions` (added with issue #12). See
+[design/transitions.md](design/transitions.md) for the full explanation.
+
+```jsonc
+{
+  "easings": {                         // name -> cubic-bezier (or {overshoot} for back)
+    "linear": { "bezier": [0,0,1,1] }, "ease": { "bezier": [0.215,0.61,0.355,1] },
+    "eio":    { "bezier": [0.645,0.045,0.355,1] }, "back": { "overshoot": 1.9 }
+  },
+  "types": {                           // the 8-name curated vocabulary
+    "cut": { "reel": "instant", "xfade": null, "params": [] },
+    "push": { "reel": "translate-both", "xfade": "slide${dir}", "params": ["dir"] }
+    // ... dissolve, rect-morph (reelOnly), wipe, zoom-blur, iris, glitch
+  },
+  "elementAnim": { "rise": { "params": { "y": 28, "scale": true } } },
+  "params":   { "dir": { "values": ["up","down","left","right"], "default": "up" } },
+  "defaults": {                        // each one == today's hand-tuned value
+    "sceneToScene": { "type": "rect-morph", "duration": 0.42, "easing": "eio" },
+    "sceneEnter":   { "type": "rise", "duration": 0.20, "easing": "ease",   "params": { "y": 28,  "scale": true } },
+    "sceneExit":    { "type": "rise", "duration": 0.13, "easing": "linear", "params": { "y": -10, "scale": false } },
+    "outro":        { "type": "wipe", "duration": 0.45, "easing": "ease",   "params": { "dir": "up" } },
+    "montage":      { "type": "cut" }
+  }
+}
+```
+
+A transition **value** (on a schedule entry, a scene's `timing`, or a montage `plan[]`
+entry) is either the object `{ type, duration?, easing?, params?, sfx? }` or the shorthand
+string `"type"` / `"type:duration"` / `"type:duration:param"`, which expands against the
+type's defaults. `sfx` ∈ `whoosh_up | whoosh_down | thud | tap` couples a sound cue to the
+move. Unset `transition` = today's behaviour exactly.
+
+---
+
 ## `theme.json` — retired (2026-09-05, issue #10)
 
 Superseded by `project.config.json` above. Nothing writes or reads it anymore. Kept here
@@ -322,7 +359,9 @@ uses `outro_copy` while the generator also emits `outro_copy` — the key name m
   ],
   "plan": [                           // added by `plan`
     { "i": 1, "file": "...", "name": "...", "in": 2.10, "dur": 1.50,
-      "audio": true, "w": 3840, "h": 2160 }
+      "audio": true, "w": 3840, "h": 2160,
+      "transition": "push:0.3:left" }  // optional (issue #14) — the cut INTO this entry;
+                                       // shorthand or object, see transitions.json. Entry 0's is ignored.
   ]
 }
 ```
