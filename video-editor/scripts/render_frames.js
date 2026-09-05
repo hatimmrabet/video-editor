@@ -5,9 +5,11 @@
    node render_frames.js <workdir> preview 4.6 12.3 31.0     */
 const path=require('path'), fs=require('fs');
 const {fileUrl,launchOptions,resolvePuppeteer}=require('./lib/platform');
+const {load:loadConfig}=require('./lib/config');
 const W=path.resolve(process.argv[2])+path.sep;
 const CFG=JSON.parse(fs.readFileSync(W+'sfx.json','utf8'));       // فيه outro
-const THEME=fs.existsSync(W+'theme.json')?JSON.parse(fs.readFileSync(W+'theme.json','utf8')):{};
+const PCFG=loadConfig(W);   // project.config.json — راجع docs/design/project-config.md
+const THEME=Object.assign({},PCFG.theme||{},{faceAnchor:(PCFG.crop||{}).faceAnchor});
 const BEHIND=fs.existsSync(W+'behind.json')?JSON.parse(fs.readFileSync(W+'behind.json','utf8')):null;  // الكلام ورا الشخص
 const OUT_D=CFG.outro, FPS=30;
 (async()=>{

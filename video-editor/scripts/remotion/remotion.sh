@@ -24,12 +24,14 @@ sync_all(){
   cp "$W/caps.json" "$R/src/caps.json"
   "${VEVO_PY[@]}" - "$W" "$R" <<'PY'
 import json, os, sys
+sys.path.insert(0, os.path.join(os.environ["VEVO_SKILL_DIR"], "scripts"))
+from lib import config as cfg   # project.config.json — راجع docs/design/project-config.md
 W, R = sys.argv[1], sys.argv[2]
 def rd(name, dflt):
     p = os.path.join(W, name)
-    return json.load(open(p)) if os.path.exists(p) else dflt
-caps  = json.load(open(os.path.join(W, "caps.json")))
-theme = rd("theme.json", {})
+    return json.load(open(p, encoding="utf-8-sig")) if os.path.exists(p) else dflt
+caps  = json.load(open(os.path.join(W, "caps.json"), encoding="utf-8-sig"))
+theme = cfg.load(W).get("theme", {})   # ما عاد من theme.json — نفس هجرة reframe.py (#8)
 sfx   = rd("sfx.json", {})
 proj = {
   "theme": {k: theme.get(k) for k in ("bg","ink","acc","clay","mut","font","handle") if theme.get(k)},
@@ -45,7 +47,10 @@ print("project.json → المدة", proj["total"], "+ ختام", proj["outro"],
 PY
   [ -f "$W/cutz.mp4" ] && cp "$W/cutz.mp4" "$R/public/video.mp4"
   [ -f "$W/sfx.wav" ]  && cp "$W/sfx.wav"  "$R/public/sfx.wav"
-  LOGO="$("${VEVO_PY[@]}" -c "import json,os,sys;p=os.path.join('$W','theme.json');print(json.load(open(p)).get('logo','logo.png') if os.path.exists(p) else 'logo.png')")"
+  LOGO="$("${VEVO_PY[@]}" -c "import os,sys
+sys.path.insert(0, os.path.join(os.environ['VEVO_SKILL_DIR'],'scripts'))
+from lib import config as cfg
+print(cfg.load('$W').get('theme',{}).get('logo','logo.png'))")"
   [ -f "$W/$LOGO" ] && cp "$W/$LOGO" "$R/public/logo.png"
   [ -f "$R/public/logo.png" ] || echo "⚠️  ما فيه شعار بـ$W — حط logo.png"
   echo "✅ البيانات والأصول محدّثة بـ$R"

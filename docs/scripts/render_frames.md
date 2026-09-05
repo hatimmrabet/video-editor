@@ -23,7 +23,7 @@ node render_frames.js <work> preview <t1> <t2> ...  # write prev/tNN.NN.jpg stil
 | `compose.html` | the drawing surface | yes |
 | `caps.json` | caption cards, passed into `window.init` | yes |
 | `sfx.json` | `.outro` → frame count | yes |
-| `theme.json` | theme (font, colors) | optional |
+| `config/project.config.json` (via [`lib/config.js`](lib-config.md)'s `load()`) | `theme` (font, colors), `crop.faceAnchor` | optional |
 | `behind.json` | person-cutout ranges/faces | optional |
 | `vfr/*.jpg` | source frames | yes |
 | `bt/person/*.png` | per-frame cutout PNGs | optional |
@@ -67,6 +67,9 @@ The Remotion engine (`remotion.sh render`) replaces this stage entirely.
 
 - Full 48 s render ≈ 12 min / 1461 frames. Editing one scene? Re-render its window
   (`range a b`), don't re-render everything.
+- **Migrated to `config.load()` (issue #55, 2026-09-05)** — no longer reads `theme.json`
+  directly; same treatment as `reframe.py` (#8) and `safe_check.js` (#56). No
+  `project.config.json` yet? Falls back to `defaults.config.json`, same numbers as before.
 - A missing frame = a broken mux — the script's "⚠️ ناقص N فريماً" warning must be zero
   before `encode.sh`.
 - Bugs #1–#4 in [../invariants.md](../invariants.md) all live at this boundary
