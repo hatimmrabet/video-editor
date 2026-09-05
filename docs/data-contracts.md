@@ -1,7 +1,10 @@
 # Data contracts
 
 Every JSON file that flows between pipeline stages, with field-by-field schemas and the
-scripts that read/write each. All files live in the work directory `<work>/`.
+scripts that read/write each. Paths are relative to the work directory `<work>/`, split
+across `rush/` (raw input), `config/` (hand-authored), `build/` (generated) and the root
+(the deliverable) — see [design/file-layout.md](design/file-layout.md) for the full layout
+(implemented 2026-09-05, issue #59).
 
 Legend: **W** = written by, **R** = read by, **M** = mutated in place by.
 
@@ -21,7 +24,7 @@ Legend: **W** = written by, **R** = read by, **M** = mutated in place by.
   "grade": false,
   "crop": { "xAnchor": 0.5, "yAnchor": 0.30, "faceAnchor": 0.30 },
   "theme": { "bg": "#101828", "ink": "#F5F7FA", "acc": "#F2B33D", "clay": "#C98B18",
-             "mut": "#98A2B3", "font": "Tajawal", "logo": "logo.png", "handle": "@his_handle",
+             "mut": "#98A2B3", "font": "Tajawal", "logo": "config/logo.png", "handle": "@his_handle",
              "grid": true }
 }
 ```
@@ -35,9 +38,8 @@ user, no installed base to protect; each script migrated to `config.load()` dire
 dropping its old file-reading code in the same change (see
 [project-config.md](design/project-config.md#migration--direct-no-bridge)).
 
-`logo` is a filename resolved relative to the work-dir root (where `compose.html` already
-looks for it), not relative to `config/` — that only changes once
-[file-layout.md](design/file-layout.md)'s physical path migration actually happens.
+`logo` is a path relative to the work-dir root (where `compose.html` resolves it from) —
+`"config/logo.png"` since issue #59, now that `config/` physically holds it.
 
 ---
 
@@ -56,7 +58,20 @@ unmigrated doc page:
 
 ---
 
-## `cut.json` — silence-cut plan
+## `rush/` — raw input (hand-supplied, never renamed)
+
+Not a data contract in the JSON sense, but the actual source of truth every script
+resolves through [`lib/rush.py`](scripts/lib-rush.md) rather than a hardcoded filename:
+
+| Path | Role |
+|---|---|
+| `rush/<original name>` | **reel-speech**: the one talking-head video (`find_source`) · **broll-montage**: one of many clips (`find_clips`) |
+| `rush/bg-audio.mp3` | optional background audio, excluded from both of the above |
+| `rush/broll/*` | optional cutaway clips, a folder (may hold several) — `find_broll` |
+
+---
+
+## `build/cut-plan.json` — silence-cut plan
 
 **W** `plan_cuts.py` · **M** `edit_script.py` · **R** `captions.py`, `reframe.py`
 
@@ -72,7 +87,7 @@ Segments are padded by `PAD=0.13 s`, gaps `< MERGE=0.20 s` merged, fragments `< 
 
 ---
 
-## `a.json` — transcript (openai-whisper shape)
+## `build/transcript-raw.json` — transcript (openai-whisper shape)
 
 **W** `transcribe.py` · **R** `captions.py`
 
@@ -92,12 +107,12 @@ Segments are padded by `PAD=0.13 s`, gaps `< MERGE=0.20 s` merged, fragments `< 
 }
 ```
 
-`transcribe.py` also emits this shape to `fa.json` in the pre-delivery sync check
-(`--wav fa.wav --out fa.json`).
+`transcribe.py` also emits this shape to `build/fa.json` in the pre-delivery sync check
+(`--wav build/fa.wav --out build/fa.json`).
 
 ---
 
-## `fixes.json` — corrected transcript + hot words (hand-authored)
+## `build/transcript-fixes.json` — corrected transcript + hot words (hand-authored)
 
 **W** hand-authored (SKILL.md step 5) · **R** `captions.py`
 
@@ -116,11 +131,11 @@ or `captions.py` aborts — the per-word timings come from Whisper positionally.
 
 ---
 
-## `caps.json` — caption card timings (the central contract)
+## `build/captions.json` — caption card timings (the central contract)
 
 **W** `captions.py` · **M** `edit_script.py` · **R** `sound_fx.py`, `render_frames.js`,
 `safe_check.js`, `subtitles.py`, `fx/behind_text.js`, `remotion.sh` (copied verbatim into
-`remotion/src/caps.json`)
+`remotion/src/caps.json` — that internal filename is fixed, unrelated to this rename)
 
 ```jsonc
 {
@@ -143,7 +158,7 @@ Whisper gave a zero-length word.
 
 ---
 
-## `sfx.json` — sound-effect cues (hand-authored)
+## `build/sound-cues.json` — sound-effect cues (hand-authored)
 
 **W** hand-authored (SKILL.md step 8) · **M** `edit_script.py` · **R** `sound_fx.py`,
 `render_frames.js`, `encode.sh`, `safe_check.js`
@@ -164,15 +179,15 @@ every timestamp in every list-valued key and drops cues that fall inside a delet
 
 ---
 
-## `sfx.wav` — rendered sound bed
+## `build/sound-effects.wav` — rendered sound bed
 
-**W** `sound_fx.py` · **R** `encode.sh` (mixed with `cutz.mp4` audio)
+**W** `sound_fx.py` · **R** `encode.sh` (mixed with `build/video-reframed.mp4` audio)
 
 48 kHz, 16-bit, stereo. Length = `caps.total + outro + 1 s`. Peak clipped to ±0.95.
 
 ---
 
-## `behind.json` — person-cutout data (macOS effect)
+## `build/person-cutout.json` — person-cutout data (macOS effect)
 
 **W** `fx/behind_text.js` · **R** `render_frames.js`
 
@@ -182,7 +197,7 @@ every timestamp in every list-valued key and drops cues that fall inside a delet
     { "card": 7, "s": 23.6, "e": 26.8,
       "words": [ { "t": "كلمة", "s": 23.7, "e": 24.1 } ] }
   ],
-  "ranges": [ [708, 792], ... ],           // inclusive vfr frame-number ranges the cutout covers
+  "ranges": [ [708, 792], ... ],           // inclusive build/frames-source/ frame-number ranges the cutout covers
   "faces":  { "708": { "x": 402, "y": 210, "w": 300, "h": 360 } },  // per-frame face box in pixels
   "cutouts":  [ [23.8, 26.6] ],             // added by the `cutout` subcommand
   "headouts": [ [23.8, 26.6] ]              // added by the `headout` subcommand
@@ -190,15 +205,15 @@ every timestamp in every list-valued key and drops cues that fall inside a delet
 ```
 
 `build` writes `lines` + `ranges` + `faces`. `cutout` / `headout` **append** to an
-existing `behind.json` (adding `cutouts` / `headouts` and more `ranges`/`faces`).
+existing `build/person-cutout.json` (adding `cutouts` / `headouts` and more `ranges`/`faces`).
 
-`bt/mask/meta.json` (written by `personmask.swift`, consumed by `behind_text.js`):
-`[ { "f": "00708.jpg", "face": { "x", "y", "w", "h" } }, ... ]` — face box in top-left
-pixel coords.
+`build/person-cutout/mask/meta.json` (written by `personmask.swift`, consumed by
+`behind_text.js`): `[ { "f": "00708.jpg", "face": { "x", "y", "w", "h" } }, ... ]` — face
+box in top-left pixel coords.
 
 ---
 
-## `safe.json` — safe-zone overrides (optional, hand-authored)
+## `config/safe.json` — safe-zone overrides (optional, hand-authored, rare)
 
 **W** hand-authored (optional) · **R** `safe_check.js`; `.guides` also read by `remotion.sh`
 
@@ -212,7 +227,10 @@ pixel coords.
 }
 ```
 
-Merged shallowly over the built-in `DEF` in `safe_check.js`. Defaults:
+Merged shallowly over the built-in `DEF` in `safe_check.js`. As of the 2026-09-05 design
+session, the same `DEF` rects are reused for every short-form platform (Instagram, TikTok,
+YouTube Shorts alike) — see [design/file-layout.md](design/file-layout.md) — so this file
+is a rare per-project exception, not something set routinely. Defaults:
 
 | Zone | x, y, w, h | hard | max ink |
 |---|---|---|---|
@@ -223,7 +241,7 @@ Merged shallowly over the built-in `DEF` in `safe_check.js`. Defaults:
 
 ---
 
-## `stage.json` — video-rectangle schedule (Remotion only, optional)
+## `config/stage.json` — video-rectangle schedule (Remotion only, optional)
 
 **W** hand-authored (optional) · **R** `remotion.sh` → `project.json`. Default
 `[{"s":0,"e":9999,"m":"FULL"}]`.
@@ -241,7 +259,7 @@ Merged shallowly over the built-in `DEF` in `safe_check.js`. Defaults:
 
 ---
 
-## `outro.json` — end-card copy (Remotion only, optional)
+## `config/outro.json` — end-card copy (Remotion only, optional)
 
 **W** hand-authored (optional) · **R** `remotion.sh` → `project.json.outro_copy`.
 
@@ -268,13 +286,13 @@ in `compose.html`.
 ```jsonc
 {
   "theme": { "bg": "...", "ink": "...", "acc": "...", "clay": "...", "mut": "...",
-             "font": "...", "handle": "..." },   // only the truthy keys from theme.json
+             "font": "...", "handle": "..." },   // only the truthy keys from project.config.json's theme
   "total": 46.078,                                // round(caps.total, 3)
-  "outro": 5.2,                                   // float(sfx.outro), default 5.0
-  "sfx":   true,                                  // does <work>/sfx.wav exist
-  "stage": [ { "s": 0, "e": 9999, "m": "FULL" } ],// from stage.json
+  "outro": 5.2,                                   // float(sound-cues.outro), default 5.0
+  "sfx":   true,                                  // does <work>/build/sound-effects.wav exist
+  "stage": [ { "s": 0, "e": 9999, "m": "FULL" } ],// from config/stage.json
   "outro_copy": { "line": "", "recap": [], "cta_top": "", "cta_word": "", "tail": "" },
-  "guides": false                                 // from safe.json.guides
+  "guides": false                                 // from config/safe.json's guides
 }
 ```
 
@@ -284,17 +302,17 @@ uses `outro_copy` while the generator also emits `outro_copy` — the key name m
 
 ---
 
-## `montage.json` — montage-mode state
+## `build/montage-plan.json` — montage-mode state
 
 **W** / **M** `montage_mode.py` (`.bak` kept before `drop`/`keep`)
 
 ```jsonc
 {
-  "src":  "/path/to/clipdir",
+  "src":  "/path/to/work/rush",
   "shot": 1.5,                        // base shot length (seconds)
   "clips": [
     {
-      "i": 1, "file": "/abs/clip1.mov", "name": "clip1.mov",
+      "i": 1, "file": "/abs/rush/clip1.mov", "name": "clip1.mov",
       "dur": 10.2, "w": 3840, "h": 2160, "fps": 30, "audio": true,
       "skip": false,
       "win": [ { "a": 0.30, "b": 1.80, "score": 0.73, "mot": 6.1 } ],  // candidate windows
@@ -309,6 +327,19 @@ uses `outro_copy` while the generator also emits `outro_copy` — the key name m
 }
 ```
 
-Scoring: sharpness (relative — percentile vs the batch), motion (absolute), exposure
-(absolute), color (relative). Sharpness × exposure × a frozen-clip penalty are
+`scan` defaults `src` to `<work>/rush` (pass a folder explicitly to scan somewhere else
+instead). Scoring: sharpness (relative — percentile vs the batch), motion (absolute),
+exposure (absolute), color (relative). Sharpness × exposure × a frozen-clip penalty are
 **multiplied**, not added — see [invariants.md](invariants.md).
+
+---
+
+## The deliverable — not JSON, listed here for completeness
+
+| Path | When | Note |
+|---|---|---|
+| `video-final.mp4` | always | root-level, same name regardless of mode — see [design/file-layout.md](design/file-layout.md) |
+| `video-final.srt` | reel-speech only | |
+| `post-caption.txt` | reel-speech only | the speech's full text, meant to be pasted as the post's caption |
+| `build/video-raw.mp4` | intermediate | before `master_audio.sh` — not the deliverable |
+| `build/safe-zone-check.jpg` | only if `safe_check.js --shot` finds a violation | |

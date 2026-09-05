@@ -1,18 +1,19 @@
 #!/bin/bash
 # ورقة تواصل: يجمع لقطات كثيرة بصورة وحدة — كلود يشوفها بقراءة وحدة بدل عشر قراءات (توفير توكنز كبير).
 # ./contact_sheet.sh <workdir> <sheet.jpg> <t1> <t2> ...
-#   المصدر: SRC=<ملف.mp4> إن أُعطي · وإلا ad-final.mp4 · وإلا مجلد prev/
+#   المصدر: SRC=<ملف.mp4> إن أُعطي · وإلا build/video-raw.mp4 · وإلا مجلد build/prev/
 # ⚠️ وسم التوقيت يُرسم ببايثون (PIL) لأن كثيراً من بناءات ffmpeg تجي بلا drawtext —
 #    وبلا وسم الورقة تصير ألغازاً: تشوف لقطات وما تدري أي لحظة كل وحدة.
 set -e
 . "$(dirname "$0")/lib/platform.sh"
 W="$(vevo_abspath "$1")"; OUT="$2"; shift 2
-TMP="$W/.sheet"; rm -rf "$TMP"; mkdir -p "$TMP"; i=0; IN=""
+mkdir -p "$W/build"
+TMP="$W/build/.sheet"; rm -rf "$TMP"; mkdir -p "$TMP"; i=0; IN=""
 for t in "$@"; do
   i=$((i+1)); f="$TMP/$(printf %02d $i).jpg"
-  V="${SRC:-$W/ad-final.mp4}"
+  V="${SRC:-$W/build/video-raw.mp4}"
   if [ -f "$V" ]; then ffmpeg -v error -ss "$t" -i "$V" -frames:v 1 -vf "scale=300:-1" -y "$f"
-  else ffmpeg -v error -i "$W/prev/t$(printf %.2f $t).jpg" -vf "scale=300:-1" -y "$f"; fi
+  else ffmpeg -v error -i "$W/build/prev/t$(printf %.2f $t).jpg" -vf "scale=300:-1" -y "$f"; fi
   IN="$IN -i $f"
 done
 

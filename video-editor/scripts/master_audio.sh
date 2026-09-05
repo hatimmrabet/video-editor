@@ -2,7 +2,7 @@
 # ═══ معايرة الصوت لمعيار المنصات + ملف صوتي بالخلفية (اختياري) بخفض تلقائي ═══
 #   ./master_audio.sh <work> <in.mp4> [out.mp4]
 # • المعايرة: ‎-14 LUFS (نفس علو الفيديوهات الثانية بالفيد — بدونها صوتك يطلع أخفض)
-# • الخلفية الصوتية: تشتغل بس إذا وُجد <work>/bg-audio.mp3|m4a|wav (أو BG=مسار)،
+# • الخلفية الصوتية: تشتغل بس إذا وُجد <work>/rush/bg-audio.mp3|m4a|wav (أو BG=مسار)،
 #   وتنخفض تلقائياً كل ما تتكلم (sidechain) فما تزاحم صوتك.
 #   ⛔ ما نستخدم موسيقى — المقصود ملف صوتي (أصوات بشرية، أجواء، همهمة مكان).
 # • الصورة تُنسخ كما هي — لا إعادة ترميز ولا خسارة جودة.
@@ -17,9 +17,10 @@ FO=$("${VEVO_PY[@]}" -c "print(max(0,round($DUR-1.4,3)))")
 
 MUS="${BG:-$MUSIC}"
 if [ -z "$MUS" ]; then for n in bg-audio bg sound music; do for e in mp3 m4a wav aac; do
-  [ -f "$W/$n.$e" ] && MUS="$W/$n.$e" && break 2; done; done; fi
+  [ -f "$W/rush/$n.$e" ] && MUS="$W/rush/$n.$e" && break 2; done; done; fi
 
-MIX="$W/.master-mix.wav"; NRM="$W/.master-norm.wav"
+mkdir -p "$W/build"
+MIX="$W/build/.master-mix.wav"; NRM="$W/build/.master-norm.wav"
 if [ -n "$MUS" ]; then
   echo "🔊 خلفية صوتية: $(basename "$MUS")  (مستوى $G · تنخفض وقت الكلام)"
   ffmpeg -v error -stats -i "$IN" -stream_loop -1 -i "$MUS" -filter_complex \
@@ -30,7 +31,7 @@ if [ -n "$MUS" ]; then
     [v0][md]amix=inputs=2:duration=first:normalize=0[a]" \
    -map "[a]" -ac 2 -ar 48000 -y "$MIX"
 else
-  echo "🔊 بلا خلفية صوتية (حط bg-audio.mp3 بمجلد الشغل إذا بغيتها)"
+  echo "🔊 بلا خلفية صوتية (حط rush/bg-audio.mp3 إذا بغيتها)"
   ffmpeg -v error -i "$IN" -vn -ac 2 -ar 48000 -y "$MIX"
 fi
 
@@ -46,7 +47,7 @@ else
 import json,sys;d=json.loads('''$M''');print(d['input_i'],d['input_tp'],d['input_lra'],d['input_thresh'])")
     # مسار صامت (مونتاج بلا خلفية صوتية) يقيس ‎-inf، وloudnorm يرفضها ويوقف الخط كله.
     if "${VEVO_PY[@]}" -c "import sys;v=float('$II');sys.exit(0 if v!=v or v<-70 else 1)" 2>/dev/null; then
-      echo "🔇 المسار الصوتي صامت — تخطّيت المعايرة (حط bg-audio.mp3 إذا تبي صوتاً)."
+      echo "🔇 المسار الصوتي صامت — تخطّيت المعايرة (حط rush/bg-audio.mp3 إذا تبي صوتاً)."
       cp "$MIX" "$NRM"
     else
       echo "   قبل: $II LUFS → بعد: $I LUFS"

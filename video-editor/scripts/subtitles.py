@@ -4,14 +4,13 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""ملف ترجمة SRT + نص كامل من الكابشن.  python3 subtitles.py <workdir> [اسم_الأساس]
-يطلّع: <base>.srt (يوتيوب يقراه، وانستقرام يقبله بالرفع) و<base>.txt (نص جاهز لكابشن البوست).
-يقرأ caps.json — نفس التوقيتات اللي انرسمت بالفيديو، فالمزامنة مضمونة."""
+"""ملف ترجمة SRT + نص كامل من الكابشن.  python3 subtitles.py <workdir>
+يطلّع: video-final.srt (يوتيوب يقراه، وانستقرام يقبله بالرفع) و post-caption.txt (نص جاهز لكابشن البوست).
+يقرأ build/captions.json — نفس التوقيتات اللي انرسمت بالفيديو، فالمزامنة مضمونة."""
 import json, sys, os
 
 W = os.path.abspath(sys.argv[1])
-base = sys.argv[2] if len(sys.argv) > 2 else "ad-final"
-caps = json.load(open(os.path.join(W, "caps.json")))
+caps = json.load(open(os.path.join(W, "build", "captions.json")))
 cards = caps["cards"]
 
 def ts(t):
@@ -42,7 +41,7 @@ for i, c in enumerate(cards, 1):
     srt.append(f"{i}\n{ts(c['s'])} --> {ts(end)}\n" + "\n".join(wrap(words)) + "\n")
     txt.append(" ".join(words))
 
-sp = os.path.join(W, base + ".srt"); tp = os.path.join(W, base + ".txt")
+sp = os.path.join(W, "video-final.srt"); tp = os.path.join(W, "post-caption.txt")
 open(sp, "w", encoding="utf-8").write("\n".join(srt))
 open(tp, "w", encoding="utf-8").write("\n".join(txt) + "\n")
 print(f"✅ {sp}  ({len(cards)} سطر ترجمة)")

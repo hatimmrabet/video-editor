@@ -44,9 +44,9 @@ Remotion engine if the user explicitly asks to edit visually.
 | Licensing | free | paid for companies with 4+ employees |
 | Full 48 s render | ≈ 12 min (1461 frames) | comparable, no intermediate frames |
 
-Both consume the same inputs (`caps.json`, `theme.json`, `sfx.json`/`sfx.wav`,
-`cutz.mp4`, `logo.png`). See [engines.md](engines.md) for how they draw and where they
-have diverged.
+Both consume the same inputs (`build/captions.json`, `config/project.config.json`,
+`build/sound-cues.json`/`sound-effects.wav`, `build/video-reframed.mp4`, `config/logo.png`).
+See [engines.md](engines.md) for how they draw and where they have diverged.
 
 ## The "work dir" model
 
@@ -54,43 +54,42 @@ Every run operates on one **work directory** (`<work>`), passed as the first arg
 every script. Each script reads its inputs from `<work>` and writes its outputs back
 there. There is no database and no global state — the work dir *is* the state.
 
-**This section describes today's flat layout.** A 2026-09-05 design session settled on
-splitting `<work>` into `rush/` (raw input) / `config/` (`project.config.json`) / `build/`
-(everything generated) plus a root-level deliverable — not yet implemented. See
-[design/file-layout.md](design/file-layout.md) for the target layout and the full
-file-by-file rename.
+**Split into `rush/` / `config/` / `build/` + a root deliverable** (issue #59, implemented
+2026-09-05) — see [design/file-layout.md](design/file-layout.md) for the rationale and the
+full file-by-file rename this replaced.
 
 A speech-ad work dir accumulates roughly this:
 
 ```
 <work>/
-  src.mov            the source video (copied in)
-  theme.json         colors, font, logo, handle, crop anchors     ← hand-authored
-  logo.png           the creator's logo
-  compose.html       copy of compose.reference.html, scenes rewritten  ← hand-authored
-  studio.html        copy of scripts/studio.html
-  cut.json           silence-cut plan               ← plan_cuts.py
-  a.wav / a.json     extracted audio / transcript   ← ffmpeg / transcribe.py
-  fixes.json         corrected transcript + hot words   ← hand-authored
-  caps.json          caption card timings           ← captions.py
-  script.txt         numbered transcript for editing   ← edit_script.py
-  cutz.mp4           cut + reframed video           ← reframe.py
-  vfr/*.jpg          source frames (fps=30)         ← ffmpeg
-  sfx.json / sfx.wav sound-effect cues / rendered bed   ← hand-authored / sound_fx.py
-  behind.json + bt/  person-cutout data (macOS)     ← fx/behind_text.js
-  stage.json         video-rectangle schedule (Remotion only)   ← hand-authored, optional
-  outro.json         end-card copy (Remotion only)  ← hand-authored, optional
-  safe.json          safe-zone overrides            ← hand-authored, optional
-  out/*.jpg          composited frames              ← render_frames.js
-  ad-final.mp4       muxed video                    ← encode.sh / remotion.sh
-  ad-master.mp4      loudness-normalized            ← master_audio.sh
-  ad-master.srt/.txt subtitles + caption text       ← subtitles.py
-  safe.jpg           worst safe-zone frame          ← safe_check.js
-  remotion/          scaffolded Remotion project (if used)   ← remotion.sh
+  rush/<name>              the source video, exactly as given
+  rush/bg-audio.mp3        optional background audio (an input, not generated)
+  rush/broll/*             optional cutaway clips (a folder — may hold several)
+  config/project.config.json   format · engine · language · grade · crop · theme  ← hand-authored
+  config/logo.png          the creator's logo
+  config/stage.json / outro.json / safe.json   Remotion-only / rare overrides  ← hand-authored, optional
+  compose.html             copy of compose.reference.html, scenes rewritten  ← hand-authored
+  studio.html              copy of scripts/studio.html
+  build/cut-plan.json                silence-cut plan               ← plan_cuts.py
+  build/transcribe-input.wav / transcript-raw.json   extracted audio / transcript   ← ffmpeg / transcribe.py
+  build/transcript-fixes.json        corrected transcript + hot words   ← hand-authored
+  build/captions.json                caption card timings           ← captions.py
+  build/transcript-editable.txt      numbered transcript for editing   ← edit_script.py
+  build/video-reframed.mp4           cut + reframed video           ← reframe.py
+  build/frames-source/*.jpg          source frames (fps=30)         ← ffmpeg
+  build/sound-cues.json / sound-effects.wav   sound-effect cues / rendered bed   ← hand-authored / sound_fx.py
+  build/person-cutout.json + person-cutout/   person-cutout data (macOS)     ← fx/behind_text.js
+  build/frames-composited/*.jpg      composited frames              ← render_frames.js
+  build/video-raw.mp4                muxed video, pre-mastering     ← encode.sh / remotion.sh
+  build/safe-zone-check.jpg          worst safe-zone frame, only if a violation  ← safe_check.js
+  remotion/                scaffolded Remotion project (if used)   ← remotion.sh
+  video-final.mp4          loudness-normalized — the deliverable   ← master_audio.sh
+  video-final.srt / post-caption.txt   subtitles + caption text    ← subtitles.py
 ```
 
-A montage work dir is much smaller: `montage.json` (state), `montage-sheet.jpg`,
-`montage.mp4`, optional `bg-audio.mp3`.
+A montage work dir is much smaller: `rush/*` (the clips), `build/montage-plan.json`
+(state), `build/montage-contact-sheet.jpg`, `build/montage-raw.mp4`, optional
+`rush/bg-audio.mp3`, and `video-final.mp4` — same deliverable name as speech-ad.
 
 ## Data contracts
 
@@ -98,17 +97,17 @@ Scripts communicate only through JSON files in the work dir. The important ones:
 
 | File | Written by | Read by |
 |---|---|---|
-| `cut.json` | `plan_cuts.py` (mutated by `edit_script.py`) | `captions.py`, `reframe.py` |
-| `a.json` | `transcribe.py` | `captions.py` |
-| `fixes.json` | hand-authored | `captions.py` |
-| `caps.json` | `captions.py` (mutated by `edit_script.py`) | `sound_fx.py`, `render_frames.js`, `safe_check.js`, `subtitles.py`, `fx/behind_text.js`, Remotion |
-| `theme.json` | hand-authored | `reframe.py`, `render_frames.js`, `safe_check.js`, `compose.html`, `remotion.sh` |
-| `sfx.json` | hand-authored (mutated by `edit_script.py`) | `sound_fx.py`, `render_frames.js`, `encode.sh`, `safe_check.js` |
-| `behind.json` | `fx/behind_text.js` | `render_frames.js` |
-| `safe.json` | hand-authored (optional) | `safe_check.js`, `remotion.sh` |
-| `stage.json`, `outro.json` | hand-authored (optional) | `remotion.sh` → `project.json` |
+| `config/project.config.json` | hand-authored | `reframe.py`, `render_frames.js`, `safe_check.js`, `remotion.sh` (all via `lib/config`) |
+| `build/cut-plan.json` | `plan_cuts.py` (mutated by `edit_script.py`) | `captions.py`, `reframe.py` |
+| `build/transcript-raw.json` | `transcribe.py` | `captions.py` |
+| `build/transcript-fixes.json` | hand-authored | `captions.py` |
+| `build/captions.json` | `captions.py` (mutated by `edit_script.py`) | `sound_fx.py`, `render_frames.js`, `safe_check.js`, `subtitles.py`, `fx/behind_text.js`, Remotion |
+| `build/sound-cues.json` | hand-authored (mutated by `edit_script.py`) | `sound_fx.py`, `render_frames.js`, `encode.sh`, `safe_check.js` |
+| `build/person-cutout.json` | `fx/behind_text.js` | `render_frames.js` |
+| `config/safe.json` | hand-authored (optional, rare) | `safe_check.js`, `remotion.sh` |
+| `config/stage.json`, `config/outro.json` | hand-authored (optional) | `remotion.sh` → `project.json` |
 | `project.json` | generated by `remotion.sh` | Remotion `theme.ts` |
-| `montage.json` | `montage_mode.py` | `montage_mode.py` |
+| `build/montage-plan.json` | `montage_mode.py` | `montage_mode.py` |
 
 Full field-by-field schemas: [data-contracts.md](data-contracts.md).
 
@@ -141,6 +140,7 @@ it skips itself on other platforms; the rest of the pipeline is unaffected. See
 - **No publishing, no scheduling.** The pipeline delivers a file; posting is the user's job.
 - **No color grade on the person's image** by default — captions and cards carry color,
   the video keeps its original colors (`reframe.py` only re-tags to bt709).
-- **No per-project config file yet.** `theme.json` is the closest thing; `stage.json` and
-  `outro.json` exist but only the Remotion engine reads them. Unifying this is the first
-  item in [design/](design/).
+- **`config/stage.json` and `config/outro.json` are still Remotion-only.** Pass 2 unified
+  colors/language/format/grade/crop into `project.config.json` (see
+  [design/project-config.md](design/project-config.md)); scene layout and outro copy stay
+  hand-authored per-engine until Pass 4 (scenes-as-data).

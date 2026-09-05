@@ -19,7 +19,7 @@ Start here, in order:
 |---|---|
 | [architecture.md](architecture.md) | Understand the big picture — two modes, two engines, the "work dir" model, "the whole edit is code". |
 | [pipeline.md](pipeline.md) | Follow the exact stage order and which file each stage reads/writes. |
-| [data-contracts.md](data-contracts.md) | Look up the schema of any JSON file (`theme.json`, `caps.json`, `cut.json`, …). |
+| [data-contracts.md](data-contracts.md) | Look up the schema of any JSON file (`project.config.json`, `build/captions.json`, `build/cut-plan.json`, …). |
 | [engines.md](engines.md) | Understand the light (canvas/Puppeteer) engine vs the Remotion engine, and where they have drifted. |
 | [invariants.md](invariants.md) | Know the rules you must not break — ten bugs found in real runs, distilled. |
 | [windows.md](windows.md) | Run or debug the pipeline on Windows. |

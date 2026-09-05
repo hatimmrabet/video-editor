@@ -2,10 +2,10 @@
 
 `video-editor/scripts/plan_cuts.py` · python · shared
 
-> Silence-cut planner. Runs ffmpeg `silencedetect` on `src.mov`, turns the detected
-> silences into speech segments, pads them, merges tiny gaps, and drops sub-0.30 s
-> fragments. Output is `cut.json` — the list of `[start, end]` ranges to keep on the
-> original timeline.
+> Silence-cut planner. Runs ffmpeg `silencedetect` on the source video (resolved via
+> [`lib/rush.py`](lib-rush.md)'s `find_source()`), turns the detected silences into speech
+> segments, pads them, merges tiny gaps, and drops sub-0.30 s fragments. Output is
+> `build/cut-plan.json` — the list of `[start, end]` ranges to keep on the original timeline.
 
 ## CLI
 
@@ -19,13 +19,13 @@ Single positional argument. Prints a per-segment table and how much was removed.
 
 | File | Shape | Required |
 |---|---|---|
-| `<work>/src.mov` | the source video (hardcoded name) | yes |
+| `<work>/rush/<name>` | the source video, resolved by `find_source()` — no fixed name | yes |
 
 ## Outputs
 
 | File | Shape |
 |---|---|
-| `<work>/cut.json` | `{ "keep": [[a,b],...], "total": float, "src_dur": float }` — see [data-contracts.md](../data-contracts.md#cutjson--silence-cut-plan) |
+| `<work>/build/cut-plan.json` | `{ "keep": [[a,b],...], "total": float, "src_dur": float }` — see [data-contracts.md](../data-contracts.md#buildcut-planjson--silence-cut-plan) |
 
 ## Constants (line 10)
 
@@ -50,12 +50,14 @@ Windows-style path (see [../windows.md](../windows.md#gotcha-1--path-translation
 
 ## Place in the flow
 
-Stage 1. Runs right after the work dir is set up (`src.mov` copied in). Its `cut.json` is
-consumed by `captions.py` (stage 5) and `reframe.py` (stage 6), and mutated by
-`edit_script.py` (stage 5.5).
+Stage 1. Runs right after the work dir is set up (the source video copied into `rush/`).
+Its `build/cut-plan.json` is consumed by `captions.py` (stage 5) and `reframe.py` (stage
+6), and mutated by `edit_script.py` (stage 5.5).
 
 ## Gotchas
 
 - If the source has music or constant background noise, `silencedetect` finds no silences
   and the whole video is one "keep" segment — that's fine, just no time is removed.
-- `edit_script.py` later rewrites `cut.json` in place (keeping `.orig` / `.bak`).
+- `edit_script.py` later rewrites `build/cut-plan.json` in place (keeping `.orig` / `.bak`).
+- **Migrated to `lib/rush.py` (issue #59, 2026-09-05)** — no longer hardcodes `src.mov`;
+  `rush/` must hold exactly one file (excluding `bg-audio.mp3`) or `find_source()` exits.

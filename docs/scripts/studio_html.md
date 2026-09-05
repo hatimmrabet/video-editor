@@ -32,3 +32,11 @@ its own copy of the drawing code.
 - If you change `compose.reference.html`'s drawing code, `studio.html` will not reflect it
   until you port the change by hand.
 - Treat `studio.html`'s rect values as **not authoritative** — `compose.reference.html` is.
+- `OUT_D=5.2` and `NVF=1379` (line ~488) are **hardcoded literals**, not read from any
+  file — edit them by hand per project. Unrelated to the layout migration below; a
+  pre-existing gap (see [project-tracking.md](../project-tracking.md)'s engine-drift bugs).
+- **Migrated to the `build`/`config` layout (issue #59, 2026-09-05)** — fetches
+  `build/captions.json` (was `caps.json`) and derives its theme from
+  `config/project.config.json`'s `.theme`/`.crop.faceAnchor` (was a direct `theme.json`
+  fetch); the logo `<img>` default is `config/logo.png`; frames come from
+  `build/frames-source/`.

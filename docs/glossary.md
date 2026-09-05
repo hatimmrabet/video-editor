@@ -19,19 +19,21 @@ caption appears. It must appear within 0.5 s (`hook_max`) — a late hook loses 
 viewers. Checked by [`safe_check.js`](scripts/safe_check.md).
 
 **safe zone** — the screen regions Instagram covers with its own UI (name + follow button
-on top, caption + audio on the bottom, like/comment/share on the right). No caption text
-may enter them. [`safe.json`](data-contracts.md#safejson--safe-zone-overrides-optional-hand-authored).
+on top, caption + audio on the bottom, like/comment/share on the right); the same rects
+are reused for TikTok and YouTube Shorts by default. No caption text may enter them.
+[`config/safe.json`](data-contracts.md#configsafejson--safe-zone-overrides-optional-hand-authored-rare).
 
-**hot word** — a word listed in `fixes.json`'s `hot` array; it gets an animated accent
-pill behind it when spoken. Stored per-word as `"hot": true` in `caps.json`.
+**hot word** — a word listed in `build/transcript-fixes.json`'s `hot` array; it gets an
+animated accent pill behind it when spoken. Stored per-word as `"hot": true` in
+`build/captions.json`.
 
-**caption card** — one on-screen caption unit (`caps.json` `cards[]`), with a show/hide
-time and a list of words each carrying its own start/end and `hot` flag.
+**caption card** — one on-screen caption unit (`build/captions.json` `cards[]`), with a
+show/hide time and a list of words each carrying its own start/end and `hot` flag.
 
 **stage / rect mode** — how big the video is and where it sits on screen at a given time.
 Modes: `FULL` (fills screen), `DOWN` (video below, graphic above), `LOWER` (small card),
 `STAGE` / `SIDE` (legacy). The schedule is `SCENES` (inline in `compose.html`) or
-`stage.json` (Remotion). [engines.md](engines.md).
+`config/stage.json` (Remotion). [engines.md](engines.md).
 
 **rect / `R_*`** — a rectangle `{x, y, w, h, r}` (r = corner radius) that a stage mode
 maps to. `vrect(t)` interpolates between consecutive rects over `TR = 0.42 s`.
@@ -59,7 +61,7 @@ small card and the speaker's head pokes above its top edge.
 [`reframe.py`](scripts/reframe.md). Vertical sources pass through; landscape sources are
 center-cropped first.
 
-**bt709 tag** — a color-primaries tag written onto `cutz.mp4`. iPhone HDR/HLG footage
+**bt709 tag** — a color-primaries tag written onto `build/video-reframed.mp4`. iPhone HDR/HLG footage
 arrives tagged bt2020/HLG and renders orange in a browser; re-tagging to bt709 fixes it.
 
 **contact sheet** — one wide image built from several timestamps so Claude reads one
@@ -75,10 +77,12 @@ talks, so it never competes with the voice.
 **dupe / repeated sentence** — when a speaker restates a sentence, the first version is
 assumed wrong and the second is the correction. `edit_script.py dupes` detects these.
 
-**`vfr/`** — the folder of source frames extracted from `cutz.mp4` at 30 fps
-(`vfr/%05d.jpg`), consumed by the light engine and the cutout effect.
+**`build/frames-source/`** (was `vfr/`) — the folder of source frames extracted from
+`build/video-reframed.mp4` at 30 fps (`%05d.jpg`), consumed by the light engine and the
+cutout effect.
 
-**`out/`** — the folder of composited frames the light engine writes, muxed by `encode.sh`.
+**`build/frames-composited/`** (was `out/`) — the folder of composited frames the light
+engine writes, muxed by `encode.sh`.
 
 **hard dialect** — Maghrebi Arabic (`ar-MA`, `ar-DZ`, `ar-TN`, `ar-LY`, "darija") where
 Whisper is unreliable even with `large-v3`. `transcribe.py` maps these to ISO `ar`,

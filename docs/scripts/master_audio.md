@@ -24,16 +24,16 @@ bash master_audio.sh <work> <in.mp4> [out.mp4]     # default out: ${in%.mp4}-mas
 
 | File | Role |
 |---|---|
-| `<in.mp4>` | the video to master |
-| background audio | auto-discovered as `<work>/{bg-audio,bg,sound,music}.{mp3,m4a,wav,aac}` |
+| `<in.mp4>` | the video to master (typically `<work>/build/video-raw.mp4` or `<work>/build/montage-raw.mp4`) |
+| background audio | auto-discovered as `<work>/rush/{bg-audio,bg,sound,music}.{mp3,m4a,wav,aac}` |
 
 ## Outputs
 
 | File | Encoding |
 |---|---|
-| `<out.mp4>` | video **copied**, audio `aac 192k 48kHz`, `+faststart`. Prints final loudness + `ffprobe` summary |
+| `<out.mp4>` | video **copied**, audio `aac 192k 48kHz`, `+faststart`. Prints final loudness + `ffprobe` summary. Typically `<work>/video-final.mp4` — the deliverable |
 
-Temp files `<work>/.master-mix.wav` and `.master-norm.wav` are created then `rm -f`'d.
+Temp files `<work>/build/.master-mix.wav` and `.master-norm.wav` are created then `rm -f`'d.
 
 ## Audio graph
 
@@ -66,3 +66,9 @@ Stage 10 (speech ad) and stage 6 (montage). `montage_mode.py build` prints it as
   detects `input_i` that is NaN or `< −70`, skips normalization, and prints
   `🔇 المسار الصوتي صامت`. This is invariant #10 — don't remove the guard.
 - Call it "background audio file", not "music" (invariant #9).
+- **Migrated to the `rush`/`build` layout (issue #59, 2026-09-05)** — background-audio
+  discovery now looks in `rush/`, not the work-dir root; the reviewed diff was small
+  (a path change + a `mkdir -p build`), but this script's `bash` wrapper could not be run
+  end-to-end in the sandbox this was built in (see the PR for the `bash`/toolchain
+  mismatch that also affected `encode.sh` and `remotion.sh` — `encode.sh`'s actual ffmpeg
+  command was separately verified correct by direct execution).

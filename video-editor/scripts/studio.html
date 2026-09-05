@@ -21,7 +21,7 @@ button.alt{background:rgba(243,239,234,.10)}
 #LOGO,#VF{display:none}
 </style></head><body>
 <div id="stage"><div id="panel"><h2>استوديو الإعلان — كل مشهد ورسمه</h2><div class="sub">اسحب الشريط أو اضغط أي مشهد. كل إطار يُرسم الحين بنفس الكود اللي طلّع الفيديو.</div><input id="tl" type="range" min="0" max="1537" value="0"><div class="row"><button id="pl">تشغيل</button><button class="alt" id="bk">-1 ث</button><button class="alt" id="fw">+1 ث</button><span id="tm"></span></div><div id="list"></div></div><div id="left"><canvas id="cv" width="1080" height="1920"></canvas></div></div>
-<img id="LOGO" src="logo.png"><img id="VF">
+<img id="LOGO" src="config/logo.png"><img id="VF">
 <script>
 const C=document.getElementById('cv'),X=C.getContext('2d');
 const LOGO=document.getElementById('LOGO'), VF=document.getElementById('VF');
@@ -503,7 +503,7 @@ async function go(f){
   cur=Math.max(0,Math.min(+tl.max,f)); tl.value=cur;
   const t=cur/FPS;
   const idx=Math.min(NVF,Math.max(1,Math.round(t*FPS)+1));
-  await window.setFrame('vfr/'+String(idx).padStart(5,'0')+'.jpg');
+  await window.setFrame('build/frames-source/'+String(idx).padStart(5,'0')+'.jpg');
   window.draw(t);
   tm.textContent=t.toFixed(2)+' / '+(caps.total+OUT_D).toFixed(2)+' s';
   mark(t);
@@ -516,8 +516,11 @@ async function loop(){const t0=performance.now(),f0=cur;
   while(playing){const f=f0+Math.round((performance.now()-t0)/1000*FPS);
     if(f>+tl.max){playing=false;document.getElementById('pl').textContent='تشغيل';break;}
     await go(f); await new Promise(r=>setTimeout(r,0));}}
-(async()=>{caps=await (await fetch('caps.json')).json();
-  let th={}; try{th=await (await fetch('theme.json')).json();}catch(e){}
+(async()=>{caps=await (await fetch('build/captions.json')).json();
+  let th={}; try{
+    const cfg=await (await fetch('config/project.config.json')).json();
+    th=Object.assign({},cfg.theme||{},{faceAnchor:(cfg.crop||{}).faceAnchor});
+  }catch(e){}
   window.init({cards:caps.cards,total:caps.total,outro:OUT_D,theme:th});
   tl.max=Math.round((caps.total+OUT_D)*FPS)-1;
   await document.fonts.ready; await new Promise(r=>{const l=document.getElementById('LOGO');l.complete?r():l.onload=r;});

@@ -6,10 +6,11 @@ except Exception:
 import wave,numpy as np
 import sys, os
 S=os.path.abspath(sys.argv[1])+"/"
+os.makedirs(S+"build",exist_ok=True)
 import json
 SR=48000
-_c=json.load(open(S+"caps.json"))
-_s=json.load(open(S+"sfx.json"))
+_c=json.load(open(S+"build/captions.json"))
+_s=json.load(open(S+"build/sound-cues.json"))
 VEND=_c["total"]; OUTRO=_s["outro"]; DUR=VEND+OUTRO
 n=int(DUR*SR)+SR
 buf=np.zeros(n)
@@ -49,6 +50,6 @@ for t0 in _s.get("tap",[]):         add(TP,t0,0.075)
 buf=np.clip(buf,-0.95,0.95)
 pcm=(buf*32767).astype('<i2')
 st=np.repeat(pcm[:,None],2,axis=1).ravel()
-w=wave.open(S+"sfx.wav","wb");w.setnchannels(2);w.setsampwidth(2);w.setframerate(SR)
+w=wave.open(S+"build/sound-effects.wav","wb");w.setnchannels(2);w.setsampwidth(2);w.setframerate(SR)
 w.writeframes(st.tobytes());w.close()
 print("sfx ok peak",round(float(np.max(np.abs(buf))),3),"dur",round(len(pcm)/SR,2))

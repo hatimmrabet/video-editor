@@ -15,11 +15,12 @@ bash contact_sheet.sh <work> <sheet.jpg> <t1> <t2> ...
 
 | Env var | Effect |
 |---|---|
-| `SRC=<file.mp4>` | source override; else `<work>/ad-final.mp4`; else `<work>/prev/tNN.NN.jpg` |
+| `SRC=<file.mp4>` | source override; else `<work>/build/video-raw.mp4`; else `<work>/build/prev/tNN.NN.jpg` |
 
 ## Inputs
 
-A video (`SRC` or `ad-final.mp4`) or the `prev/*.jpg` stills from `render_frames.js preview`.
+A video (`SRC` or `build/video-raw.mp4`) or the `build/prev/*.jpg` stills from
+`render_frames.js preview`.
 
 ## Outputs
 
@@ -27,7 +28,7 @@ A video (`SRC` or `ad-final.mp4`) or the `prev/*.jpg` stills from `render_frames
 |---|---|
 | `<sheet.jpg>` | frames at 300 px wide, side by side, each labeled with its timestamp |
 
-Temp dir `<work>/.sheet` is removed at the end.
+Temp dir `<work>/build/.sheet` is removed at the end.
 
 ## External tools
 
@@ -51,3 +52,5 @@ pre-delivery checks (a real 6-shot sheet, actually looked at).
   script prints the left-to-right order instead.
 - Images eat 80–85 % of conversation context; a 1080-wide image ≈ 150k chars, the same at
   300 wide ≈ 20k. Always use one sheet, never separate stills.
+- **Migrated to the `build/` layout (issue #59, 2026-09-05)** — same sandbox caveat as
+  `master_audio.sh`: reviewed but not run end-to-end through its `bash` wrapper here.

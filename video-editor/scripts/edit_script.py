@@ -15,7 +15,8 @@ except Exception:
     (أضف --dry لأي أمر: يوريك النتيجة بلا ما يغيّر شي)
 
 الفكرة: الجملة اللي تنحذف من النص ينحذف مقطعها من الفيديو والصوت، وكل اللي بعدها ينزاح لمكانه.
-يعدّل: cut.json (مقاطع الفيديو) · caps.json (الكابشن) · sfx.json (أوقات المؤثرات).
+يعدّل: build/cut-plan.json (مقاطع الفيديو) · build/captions.json (الكابشن) ·
+       build/sound-cues.json (أوقات المؤثرات).
 بعده: أعد بناء الفيديو ← reframe.py ثم استخراج الفريمات ثم الرسم.
 """
 import json, os, sys, shutil
@@ -24,7 +25,10 @@ W = os.path.abspath(sys.argv[1])
 CMD = sys.argv[2] if len(sys.argv) > 2 else "show"
 DRY = "--dry" in sys.argv
 ARGS = [a for a in sys.argv[3:] if not a.startswith("--")]
+os.makedirs(os.path.join(W, "build"), exist_ok=True)
 P = lambda n: os.path.join(W, n)
+CUT, CAPS, SFX, SCRIPT = (os.path.join("build", "cut-plan.json"), os.path.join("build", "captions.json"),
+                          os.path.join("build", "sound-cues.json"), os.path.join("build", "transcript-editable.txt"))
 PAD_L, PAD_R, MIN_SEG = 0.08, 0.12, 0.20
 
 def load(n): return json.load(open(P(n), encoding="utf-8"))
@@ -62,7 +66,7 @@ def find_dupes(cards, win=2, th=0.60):
             if r >= th: out.append((i, j, r)); break
     return out
 
-caps = load("caps.json"); cards = caps["cards"]
+caps = load(CAPS); cards = caps["cards"]
 def line(i, c):
     txt = " ".join(w["t"] for w in c["w"])
     return f"{i+1:>3}  [{int(c['s']//60):02d}:{c['s']%60:05.2f}]  {txt}"
@@ -72,7 +76,7 @@ if CMD == "show":
     body = ("# احذف أي سطر ما تبيه بالفيديو، واحفظ الملف، ثم:  python3 edit_script.py <work> apply\n"
             "# (لا تغيّر الأرقام — هي اللي تربط السطر بمقطعه)\n\n"
             + "\n".join(line(i, c) for i, c in enumerate(cards)) + "\n")
-    if not DRY: open(P("script.txt"), "w", encoding="utf-8").write(body)
+    if not DRY: open(P(SCRIPT), "w", encoding="utf-8").write(body)
     print(body)
     print(f"المدة الحالية: {caps['total']:.2f} ثانية · {len(cards)} جملة")
     d = find_dupes(cards)
@@ -97,7 +101,7 @@ if CMD == "dupes":
 
 if CMD == "undo":
     n = 0
-    for f in ("cut.json", "caps.json", "sfx.json"):
+    for f in (CUT, CAPS, SFX):
         if os.path.exists(P(f + ".bak")): shutil.copy(P(f + ".bak"), P(f)); n += 1
     print(f"↩️ رجّعت {n} ملفاً لآخر نسخة." if n else "ما فيه نسخة سابقة.")
     sys.exit(0)
@@ -109,9 +113,9 @@ elif CMD == "keep":
     keep_i = {int(a) - 1 for a in ARGS}
     drop = {i for i in range(len(cards)) if i not in keep_i}
 elif CMD == "apply":
-    if not os.path.exists(P("script.txt")): sys.exit("❌ ما فيه script.txt — شغّل show أول")
+    if not os.path.exists(P(SCRIPT)): sys.exit("❌ ما فيه transcript-editable.txt — شغّل show أول")
     alive = set()
-    for ln in open(P("script.txt"), encoding="utf-8"):
+    for ln in open(P(SCRIPT), encoding="utf-8"):
         ln = ln.strip()
         if not ln or ln.startswith("#"): continue
         head = ln.split(None, 1)[0]
@@ -149,8 +153,8 @@ for i in sorted(drop): print("  ✂️ " + line(i, cards[i]).strip())
 print(f"المدة: {caps['total']:.2f} → {caps['total']-gone:.2f} ثانية (‎-{gone:.2f})")
 if DRY: sys.exit(0)
 
-# ── 1) cut.json: نقل فترات الحذف لزمن الفيديو الأصلي ─────────────────────
-cut = load("cut.json"); keep = [list(x) for x in cut["keep"]]
+# ── 1) cut-plan.json: نقل فترات الحذف لزمن الفيديو الأصلي ─────────────────
+cut = load(CUT); keep = [list(x) for x in cut["keep"]]
 off, acc = [], 0.0
 for a, b in keep: off.append(acc); acc += b - a
 src_del = []
@@ -172,9 +176,9 @@ for a, b in keep:
     new_keep += [p for p in parts if p[1] - p[0] >= MIN_SEG]
 cut["keep"] = new_keep
 cut["total"] = round(sum(b - a for a, b in new_keep), 3)
-save("cut.json", cut)
+save(CUT, cut)
 
-# ── 2) caps.json: شيل الجُمل وازحف الباقي ────────────────────────────────
+# ── 2) captions.json: شيل الجُمل وازحف الباقي ────────────────────────────
 new_cards = []
 for i, c in enumerate(cards):
     if i in drop: continue
@@ -185,11 +189,11 @@ for i in range(len(new_cards) - 1):              # لا تتداخل الكرو�
         new_cards[i]["e"] = round(new_cards[i + 1]["s"] - 0.02, 3)
 # المدة النهائية = طول الفيديو الفعلي بعد القص (لا الحساب النظري) حتى ما يطلع فريم زايد
 new_total = round(min(caps["total"] - gone, cut["total"]), 3)
-save("caps.json", {"total": new_total, "cards": new_cards})
+save(CAPS, {"total": new_total, "cards": new_cards})
 
-# ── 3) sfx.json: أوقات المؤثرات ──────────────────────────────────────────
-if os.path.exists(P("sfx.json")):
-    sfx = load("sfx.json"); moved = 0; killed = 0
+# ── 3) sound-cues.json: أوقات المؤثرات ───────────────────────────────────
+if os.path.exists(P(SFX)):
+    sfx = load(SFX); moved = 0; killed = 0
     for k, v in list(sfx.items()):
         if not isinstance(v, list): continue
         out = []
@@ -197,13 +201,13 @@ if os.path.exists(P("sfx.json")):
             if inside(t): killed += 1
             else: out.append(round(shift(t), 3)); moved += 1
         sfx[k] = out
-    save("sfx.json", sfx)
+    save(SFX, sfx)
     print(f"المؤثرات: {moved} انزاحت · {killed} انشالت")
 
 print(f"""
 ✅ تم. الحين أعد بناء الفيديو:
    python3 scripts/reframe.py {W}
-   mkdir -p {W}/vfr && ffmpeg -v error -i {W}/cutz.mp4 -vf fps=30 -q:v 3 -y {W}/vfr/%05d.jpg
+   mkdir -p {W}/build/frames-source && ffmpeg -v error -i {W}/build/video-reframed.mp4 -vf fps=30 -q:v 3 -y {W}/build/frames-source/%05d.jpg
    node scripts/render_frames.js {W} all --force     (أو remotion/remotion.sh {W} render)
 ⚠️ لو كنت مصمّماً مشاهد بأوقات ثابتة — أوقاتها انزاحت، راجعها.
 ↩️ للتراجع: python3 scripts/edit_script.py {W} undo""")

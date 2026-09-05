@@ -17,7 +17,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 |---|---|---|---|---|
 | 0 | **Documentation** (this `docs/` tree) | `Pass 0 — Documentation` | — | ✅ done |
 | 1 | **Isolated execution & dependencies** | `Pass 1 — Execution & dependencies` | 0 | ✅ done (PR #37) |
-| 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | ✅ content done (PRs #54, #57, issue #10) — physical layout still pending, issue #59, lands before Pass 3 |
+| 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | ✅ done (PRs #54, #57, issues #10, #59) |
 | 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | — |
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | — |
 | 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | — |
@@ -72,18 +72,28 @@ projects — there is no adapter and no reverse-compat synthesis. Each script mi
   `project.config.json` via `config.load()`. **Done** (2026-09-05) — `theme.json` is
   retired (see [data-contracts.md](../data-contracts.md)).
 
-**Config content is done; the physical file layout is not — this is a known, explicitly
-scheduled gap, not an oversight.** Every script still reads/writes the flat `<work>/`
-layout from before this pass (`src.mov`, `cut.json`, `cutz.mp4`, `ad-final.mp4`, `logo.png`,
-etc. all at the work-dir root) — only `project.config.json`'s own location and content
-have moved. Applying the rest of [file-layout.md](file-layout.md)'s rename table is
-tracked as **issue #59**, and is scheduled to land **before Pass 3 begins** — it has to be
-one atomic change across every script (they chain on each other's file locations), and
-letting it drag into later passes only grows the list of call sites to fix. This is the
-actual next thing to do, not Pass 3 itself.
+- ✅ **Physical `rush`/`config`/`build` layout** (issue #59, 2026-09-05) — the full rename
+  table in [file-layout.md](file-layout.md) applied across every script in one atomic
+  change (`plan_cuts.py`, `transcribe.py`, `captions.py`, `edit_script.py`, `reframe.py`,
+  `sound_fx.py`, `subtitles.py`, `montage_mode.py`, `render_frames.js`, `safe_check.js`,
+  `encode.sh`, `master_audio.sh`, `contact_sheet.sh`, `remotion.sh`, `fx/behind_text.js`,
+  `compose.reference.html`, `studio.html`). New `lib/rush.py` resolves the source file(s)
+  in `rush/` without assuming a fixed name (`rush/` never renames the creator's file).
+  `montage_mode.py scan` defaults to `rush/` when no folder is given. `safe-zone-check.jpg`
+  now written only on a violation, per file-layout.md's decision.
+  **Done when:** nothing reads/writes the old flat paths anymore — verified end-to-end
+  (a real synthetic video through `plan_cuts.py → reframe.py → captions.py →
+  edit_script.py → sound_fx.py → render_frames.js → encode.sh → safe_check.js →
+  subtitles.py`, and separately `montage_mode.py scan → sheet → plan → build`; a real
+  flag-parsing bug in `montage_mode.py scan --shot` was caught and fixed by this testing,
+  not just read through). `master_audio.sh`/`contact_sheet.sh`/`remotion.sh` were reviewed
+  and their non-path-invoking logic spot-checked, but couldn't be run end-to-end through
+  their `bash` wrapper in the sandbox this was built in (a `bash`/toolchain mismatch
+  unrelated to the change — see the PR for detail).
 
 *(Also tracked, not blocking anything: issue #58, removing the emoji markers from
-`SKILL.md`'s markdown — a cosmetic cleanup, pick up whenever.)*
+`SKILL.md`'s markdown; issue #61, translating the scripts/ tree's Arabic logs and comments
+to English — both cosmetic cleanup, pick up whenever.)*
 
 ## Pass 3 — Transitions
 

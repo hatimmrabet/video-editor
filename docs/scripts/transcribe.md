@@ -2,7 +2,8 @@
 
 `video-editor/scripts/transcribe.py` · python · shared
 
-> Word-level speech transcription → `a.json` (openai-whisper JSON shape). Auto-selects the
+> Word-level speech transcription → `build/transcript-raw.json` (openai-whisper JSON
+> shape). Auto-selects the
 > engine: faster-whisper on CUDA (fastest) → faster-whisper CPU → openai-whisper CPU
 > fallback. Handles "hard dialects" (Maghrebi Arabic / darija) by mapping to ISO `ar` and
 > enabling VAD + repetition penalty + a higher no-speech threshold, and warning that the
@@ -25,20 +26,20 @@ uv run scripts/transcribe.py <work> [--language ar] [--model large-v3]
 | `--engine` | `auto` | `auto` picks faster-whisper if importable, else whisper |
 | `--device` | `auto` | `auto` picks `cuda` if faster-whisper + `ctranslate2.get_cuda_device_count() > 0` |
 | `--hard-dialect` | off | forced automatically for the hard-dialect language codes |
-| `--wav` | `<work>/a.wav` | alternate input |
-| `--out` | `<work>/a.json` | alternate output (used as `fa.json` in the sync check) |
+| `--wav` | `<work>/build/transcribe-input.wav` | alternate input |
+| `--out` | `<work>/build/transcript-raw.json` | alternate output (used as `build/fa.json` in the sync check) |
 
 ## Inputs
 
 | File | Shape | Required |
 |---|---|---|
-| `<work>/a.wav` (or `--wav`) | WAV, opened with `wave` for duration | yes — extract it first: `ffmpeg -i src.mov -vn -ac 1 -ar 16000 -y a.wav` |
+| `<work>/build/transcribe-input.wav` (or `--wav`) | WAV, opened with `wave` for duration | yes — extract it first: `ffmpeg -i <rush source> -vn -ac 1 -ar 16000 -y build/transcribe-input.wav` |
 
 ## Outputs
 
 | File | Shape |
 |---|---|
-| `<work>/a.json` (or `--out`) | `{ "text", "segments":[{id,start,end,text,words:[{word,start,end}]}], "language" }` — see [data-contracts.md](../data-contracts.md#ajson--transcript-openai-whisper-shape) |
+| `<work>/build/transcript-raw.json` (or `--out`) | `{ "text", "segments":[{id,start,end,text,words:[{word,start,end}]}], "language" }` — see [data-contracts.md](../data-contracts.md#buildtranscript-rawjson--transcript-openai-whisper-shape) |
 
 ## Hard-dialect mode
 
@@ -65,8 +66,8 @@ UTF-8 reconfigure at the top. Called directly by the skill — pass a Windows-st
 ## Place in the flow
 
 Stage 3. Also re-run in the mandatory pre-delivery sync check
-(`--model medium --wav fa.wav --out fa.json`, then compare `fa.json` sentence starts to
-`caps.json`). On CPU it takes minutes — run it in the background.
+(`--model medium --wav build/fa.wav --out build/fa.json`, then compare `build/fa.json`
+sentence starts to `build/captions.json`). On CPU it takes minutes — run it in the background.
 
 ## Gotchas
 

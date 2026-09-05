@@ -99,8 +99,9 @@ separate Chrome install**. `uv run scripts/…` re-syncs the venv on its own if 
 · 7.6 · "speech behind the person") skip themselves automatically elsewhere, and the rest
 of the pipeline runs normally.
 
-Prepare a work directory and copy `scripts/compose.reference.html` into it as
-`compose.html`, and `scripts/studio.html` too.
+Prepare a work directory: create its `rush/`, `config/` and `build/` subfolders, and copy
+`scripts/compose.reference.html` into it as `compose.html`, and `scripts/studio.html` too
+(both stay at the work-dir root — see [`docs/design/file-layout.md`](../docs/design/file-layout.md)).
 
 ---
 
@@ -121,10 +122,9 @@ move on until they confirm.
    I'll pull them)."
 2. Ask the video's language (see step 4 for why it matters): `ar` · `fr` · `en` · or a hard
    dialect (`ar-MA` / `ar-DZ` / `darija`).
-3. Copy their logo into `<work>/logo.png`. (`theme.logo` is a filename resolved relative
-   to the work-dir root — same place `compose.html` and `remotion.sh` already look for it
-   — not relative to `config/`, until the `rush`/`config`/`build` path migration in
-   [`docs/design/file-layout.md`](../docs/design/file-layout.md) is actually implemented.)
+3. Copy their logo into `<work>/config/logo.png`, and set `theme.logo` to `"config/logo.png"`
+   in the file you write below (a path relative to the work-dir root — where `compose.html`
+   and `remotion.sh` resolve it from — not relative to `config/` itself).
 4. **Before writing anything**, give one final complete recap and get an explicit
    confirmation — only then save the file. It becomes the single source everything
    downstream reads; there's no second place any of this lives.
@@ -138,7 +138,7 @@ Write `<work>/config/project.config.json`:
   "grade": false,
   "crop": { "xAnchor": 0.5, "yAnchor": 0.30, "faceAnchor": 0.30 },
   "theme": { "bg":"#101828", "ink":"#F5F7FA", "acc":"#F2B33D", "clay":"#C98B18", "mut":"#98A2B3",
-             "font":"Tajawal", "handle":"@his_handle", "logo":"logo.png", "grid": true }
+             "font":"Tajawal", "handle":"@his_handle", "logo":"config/logo.png", "grid": true }
 }
 ```
 `format` is always `"short"` today — `"long"` is reserved for a future long-form pipeline
@@ -169,15 +169,20 @@ Ask for it in one simple sentence, and accept any method:
 
 | Method | When | How |
 |---|---|---|
-| **A file on their machine** ← best | always if possible | they give you the path, you copy it to `<work>/src.mov` — no upload wait |
-| **A Google Drive link** | they shoot on their phone and Drive auto-uploads | have them set sharing to "anyone with the link", then:<br>`curl -sL "https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t" -o <work>/src.mov`<br>the ID is the part between `/d/` and `/view`. Tested on a 441 MB file |
+| **A file on their machine** ← best | always if possible | they give you the path, you copy it to `<work>/rush/` **keeping its original name** — no upload wait, no renaming |
+| **A Google Drive link** | they shoot on their phone and Drive auto-uploads | have them set sharing to "anyone with the link", then:<br>`curl -sL "https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t" -o <work>/rush/<name>.mov`<br>the ID is the part between `/d/` and `/view`. Tested on a 441 MB file |
 | **Google Drive connector** | the file is private and they don't want to change sharing | use the connector tools available in the session |
 
 **About resolution:** 4K is better because the zoom crops from the original so you lose no
 sharpness. But 1080p works fine — the difference is the zoom range gets tighter. **Do not
 reject a 1080p video and do not ask them to re-shoot.**
 
-Verify it arrived: `ffprobe -v error -show_entries format=duration -of csv=p=0 <work>/src.mov`
+`rush/` never renames the file — whatever name it arrives with, it keeps (see
+[`docs/design/file-layout.md`](../docs/design/file-layout.md)). `rush/` must hold **exactly
+one file** for the speech-ad flow (`lib/rush.py`'s `find_source()` enforces this) — put
+`bg-audio.mp3` there too later if they give you one, it's excluded from the count.
+
+Verify it arrived: `ffprobe -v error -show_entries format=duration -of csv=p=0 <work>/rush/<name>`
 
 ---
 
@@ -191,14 +196,15 @@ Tell them how much was removed: "Removed 52 seconds of dead air — the video is
 
 ### 4) Transcription with per-word timing
 ```bash
-ffmpeg -v error -i <work>/src.mov -vn -ac 1 -ar 16000 -y <work>/a.wav
+mkdir -p <work>/build
+ffmpeg -v error -i <work>/rush/<name> -vn -ac 1 -ar 16000 -y <work>/build/transcribe-input.wav
 uv run scripts/transcribe.py <work> --language <LANG> --model large-v3
 ```
 - `<LANG>` = the video's language: `ar` · `fr` · `en` · or a hard dialect `ar-MA` /
   `ar-DZ` / `darija` (which enables hard-dialect mode on its own).
 - The engine picks itself: faster-whisper on GPU (fastest) ← CPU ← openai-whisper fallback.
 - On GPU it finishes in seconds; on CPU it takes minutes — run it in the background.
-- Produces `<work>/a.json` in the openai-whisper shape (segments · words · timings).
+- Produces `<work>/build/transcript-raw.json` in the openai-whisper shape (segments · words · timings).
 
 **⛔ Ask about the language before this step** — if the video is in a dialect and the
 transcription comes out in another language or empty, the language is probably wrong.
@@ -206,8 +212,8 @@ Moroccan / Algerian darija: Whisper makes a lot of mistakes even with the best m
 warn the user up front, and show them the full text to correct (step 5).
 
 ### 5) Correction and captions
-Read `a.json`, correct every sentence (Whisper makes mistakes in colloquial Arabic — Gulf
-and Maghrebi especially), and write `<work>/fixes.json`:
+Read `build/transcript-raw.json`, correct every sentence (Whisper makes mistakes in
+colloquial Arabic — Gulf and Maghrebi especially), and write `<work>/build/transcript-fixes.json`:
 ```json
 { "fix": [["كل","شي","تشوفه"], ["الكابشن","الزوم"]], "hot": ["تشوفه","الزوم"] }
 ```
@@ -222,8 +228,8 @@ uv run scripts/captions.py <work>
 ```bash
 uv run scripts/edit_script.py <work> show
 ```
-Prints their speech, numbered and timecoded, and writes `script.txt`. **Show them the list
-in the chat and say: "What do you want me to remove?"**
+Prints their speech, numbered and timecoded, and writes `build/transcript-editable.txt`.
+**Show them the list in the chat and say: "What do you want me to remove?"**
 
 **🔁 And the important one — the repeated sentence:** the script warns you automatically
 about any two similar sentences within two sentences of each other. When the speaker
@@ -240,7 +246,7 @@ uv run scripts/edit_script.py <work> keep 1 2 5 9   # keeps only these (for a sh
 uv run scripts/edit_script.py <work> undo           # undo
 ```
 The sentence is removed from the video and the audio, everything after it shifts back, and
-`cut.json`, `caps.json` and `sfx.json` all update.
+`build/cut-plan.json`, `build/captions.json` and `build/sound-cues.json` all update.
 
 **⚠️ Do this here — before designing the scenes.** If you drop a sentence after designing
 the scenes, all their times shift and you have to redo them. And after any deletion: re-run
@@ -249,7 +255,7 @@ the scenes, all their times shift and you have to redo them. And after any delet
 ### 6) Cut and reframe
 ```bash
 uv run scripts/reframe.py <work>
-mkdir -p <work>/vfr && ffmpeg -v error -i <work>/cutz.mp4 -vf fps=30 -q:v 3 -y <work>/vfr/%05d.jpg
+mkdir -p <work>/build/frames-source && ffmpeg -v error -i <work>/build/video-reframed.mp4 -vf fps=30 -q:v 3 -y <work>/build/frames-source/%05d.jpg
 ```
 - Vertical source (selfie) → passes through as-is.
 - **Landscape** source (16:9) → a vertical 9:16 frame is cropped from it; if the speaker
@@ -278,7 +284,7 @@ the theme.
 | "one file" | a file card, and chips flying in and merging into it |
 | a call to comment | a comment box, and the word typing itself letter by letter |
 
-Each scene function takes `t` and draws based on the word timing from `caps.json` — the
+Each scene function takes `t` and draws based on the word timing from `build/captions.json` — the
 scene sticks to the word, not to an approximate time.
 
 **⛔ No account badge over the video** (`BADGE_UNTIL=0` in `compose.html` — the default):
@@ -327,10 +333,11 @@ each other. Panels are drawn at coordinates `130..950 × 278..458` inside `panel
 they scale to 1.2 on their own. `R_STAGE` and `R_SIDE` remain in the file for
 back-compat only — **do not use them in a new video.**
 
-**B-roll shots (optional):** if they give you a second video (company graphics footage,
-say), extract the useful segments to frames in `<work>/broll/<name>_%04d.jpg`, declare
-their range in `BR_NEED`, and show them with `brCard()` and `R_LOWER`. `BRCROP` trims
-burned-in subtitles from the bottom of a shot. 3–4 shots in a video is enough.
+**B-roll shots (optional):** put the cutaway clip(s) in `<work>/rush/broll/` (a folder —
+it may hold several, see [`docs/design/file-layout.md`](../docs/design/file-layout.md)),
+extract the useful segments to frames in `<work>/build/broll-frames/<name>_%04d.jpg`,
+declare their range in `BR_NEED`, and show them with `brCard()` and `R_LOWER`. `BRCROP`
+trims burned-in subtitles from the bottom of a shot. 3–4 shots in a video is enough.
 
 **"Explanation on top, video below" mode (`R_LOWER`)** — for B-roll and big panels: the
 video moves to the bottom and fills the lower screen (the speaker's head gets cropped a
@@ -355,7 +362,7 @@ first half second** — a late hook loses half the viewers before the speech eve
 Preview before rendering everything:
 ```bash
 node scripts/render_frames.js <work> preview 4.6 12.3 27.6 31.0 48.4
-bash scripts/contact_sheet.sh <work> <work>/sheet.jpg 4.6 12.3 27.6 31.0 48.4
+bash scripts/contact_sheet.sh <work> <work>/build/contact-sheet.jpg 4.6 12.3 27.6 31.0 48.4
 ```
 
 **Opened the editing screen for them (at their request)?** Scenes are written in
@@ -364,11 +371,11 @@ bash scripts/contact_sheet.sh <work> <work>/sheet.jpg 4.6 12.3 27.6 31.0 48.4
 bash scripts/remotion/remotion.sh <work> setup            # once — after their consent (~500 MB)
 bash scripts/remotion/remotion.sh <work> studio           # a live timeline in the browser
 ```
-The video display rectangles are written in `<work>/stage.json` and the end-card text in
-`<work>/outro.json` — and both are reflected in both engines.
-**Read `sheet.jpg` as one image — don't read the frames one by one.** One sheet = one
-read instead of five. **Don't render the whole video before previewing at least 6 shots**,
-and show the sheet to the user.
+The video display rectangles are written in `<work>/config/stage.json` and the end-card
+text in `<work>/config/outro.json` — and both are reflected in both engines.
+**Read `build/contact-sheet.jpg` as one image — don't read the frames one by one.** One
+sheet = one read instead of five. **Don't render the whole video before previewing at
+least 6 shots**, and show the sheet to the user.
 
 Interactive studio (scrub the timeline, draw live):
 ```bash
@@ -433,6 +440,7 @@ bar hides · the size and position are computed from the person's body bounds ev
 so it doesn't jitter.
 
 ### 8) Sound effects
+Write `<work>/build/sound-cues.json`:
 ```json
 { "outro": 5.2, "whoosh_up": [3.1,11.25], "whoosh_down": [7.85],
   "thud": [27.27,29.47], "tap": [23.08,24.06] }
@@ -446,7 +454,7 @@ uv run scripts/sound_fx.py <work>
 **Light:**
 ```bash
 node scripts/render_frames.js <work> all          # resumes where it stopped — doesn't redo a finished frame
-bash scripts/encode.sh <work> <work>/ad-final.mp4
+bash scripts/encode.sh <work> <work>/build/video-raw.mp4
 ```
 Edited one scene after rendering? Don't redo everything — re-render its window, then assemble:
 ```bash
@@ -457,16 +465,16 @@ before assembly.)
 
 **Remotion:** produces an MP4 directly, no frames:
 ```bash
-bash scripts/remotion/remotion.sh <work> render <work>/ad-final.mp4
+bash scripts/remotion/remotion.sh <work> render <work>/build/video-raw.mp4
 ```
 
 ### 10) Audio mastering (+ optional background audio)
 ```bash
-bash scripts/master_audio.sh <work> <work>/ad-final.mp4 <work>/ad-master.mp4
+bash scripts/master_audio.sh <work> <work>/build/video-raw.mp4 <work>/video-final.mp4
 ```
 Brings the audio to −14 LUFS — the same loudness as the other videos in the feed; without
 it their audio comes out quieter than what's before and after it. And if you put
-`<work>/bg-audio.mp3`, a **background audio file that ducks automatically whenever they
+`<work>/rush/bg-audio.mp3`, a **background audio file that ducks automatically whenever they
 speak** is mixed in, coming back in the pauses. The video is copied as-is, no re-encode.
 
 **Naming:** say "background audio file", not "music" — they decide the content, and you
@@ -474,10 +482,10 @@ handle the file as-is.
 
 ### 11) Subtitle file
 ```bash
-uv run scripts/subtitles.py <work> ad-master
+uv run scripts/subtitles.py <work>
 ```
-Produces `.srt` (YouTube and LinkedIn read it) and `.txt` = their full speech text, ready
-for the post caption.
+Produces `<work>/video-final.srt` (YouTube and LinkedIn read it) and
+`<work>/post-caption.txt` = their full speech text, ready for the post caption.
 
 ---
 
@@ -485,8 +493,9 @@ for the post caption.
 
 A folder with many clips (café · trip · product · place · event) and the ask is one video
 with rhythm. ⛔ **No transcription, no captions, no drawn scenes.** The selection is
-entirely about the shot itself. You need one thing from them: **the clip folder.** Don't
-ask about colors or a logo or an account — there's no text at all.
+entirely about the shot itself. You need one thing from them: **the clip folder.** Copy
+its clips into `<work>/rush/`, keeping their names — don't ask about colors or a logo or
+an account — there's no text at all.
 
 **How the engine chooses:** every moment of every clip is measured on four axes —
 sharpness · motion by amount · lighting · color. Sharpness is **relative** (it compares
@@ -496,11 +505,13 @@ first and last third-second of each clip are trimmed — the hand-on-device mome
 
 ### 1) Scan
 ```bash
-uv run scripts/montage_mode.py <work> scan <clip_folder> --shot 1.5
+uv run scripts/montage_mode.py <work> scan --shot 1.5
 ```
-Scans four clips at a time. Our measured rate: **30 s of video ≈ 15 s of scanning** — so 30
-clips of 10 s each ≈ two and a half minutes. Run it in the background and tell them what to
-expect. It prints each clip with its score and best moment, and writes `montage.json`.
+Scans `<work>/rush/` by default (pass an explicit folder only if the clips aren't copied
+in yet). Scans four clips at a time. Our measured rate: **30 s of video ≈ 15 s of
+scanning** — so 30 clips of 10 s each ≈ two and a half minutes. Run it in the background
+and tell them what to expect. It prints each clip with its score and best moment, and
+writes `build/montage-plan.json`.
 
 ### 2) Show them the shots — one numbered sheet
 ```bash
@@ -533,7 +544,7 @@ doesn't get monotonous.
 
 ### 5) Build
 ```bash
-uv run scripts/montage_mode.py <work> build <work>/montage.mp4
+uv run scripts/montage_mode.py <work> build
 ```
 | | |
 |---|---|
@@ -548,9 +559,9 @@ same size as the output makes the zoom look choppy.
 
 ### 6) Audio and delivery — same as the speech pipeline
 ```bash
-bash scripts/master_audio.sh <work> <work>/montage.mp4 <work>/montage-master.mp4
+bash scripts/master_audio.sh <work> <work>/build/montage-raw.mp4 <work>/video-final.mp4
 ```
-Put their audio file `<work>/bg-audio.mp3` in the work directory first. The montage comes
+Put their audio file at `<work>/rush/bg-audio.mp3` first. The montage comes
 out with a silent track if you don't ask for ambience, so the background audio file here
 isn't decoration — without it the video is silent.
 
@@ -583,7 +594,7 @@ isn't decoration — without it the video is silent.
 8. **"Behind the person" once or twice in the video** — no more, or it loses its effect.
 9. **Call it a "background audio file"** — not "music". The user decides its content (a
    human voice, ambience, or anything), and you name it by its neutral form and put it in
-   `bg-audio.mp3`.
+   `rush/bg-audio.mp3`.
 10. **Invent new scenes every time.** The reference file is a pattern library, not a
     template to copy.
 
@@ -598,17 +609,20 @@ node scripts/safe_check.js <work> --shot
 It draws each moment twice with two colors where the video is, and whatever doesn't change
 = your graphics — so it counts your text inside the Instagram button zones precisely, and
 confirms the first caption is before half a second. It exits with code 3 if there's a
-violation, and produces `safe.jpg` with the red shot showing where the problem is. The
-bounds are adjusted with `<work>/safe.json` if you need to (a TikTok video with tighter
-bounds, say).
+violation, and produces `build/safe-zone-check.jpg` (only when there's a violation to show)
+with the red shot showing where the problem is. The bounds are adjusted with
+`<work>/config/safe.json` if you need to (a TikTok video with tighter bounds, say) — the
+same rects are reused for every short-form platform by default (see
+[`docs/design/file-layout.md`](../docs/design/file-layout.md)), so this is a rare override,
+not something to set per project.
 
-1. **Sync** — transcribe the output audio again and compare sentence starts to `caps.json`;
-   the difference should be under 0.1 seconds:
+1. **Sync** — transcribe the output audio again and compare sentence starts to
+   `build/captions.json`; the difference should be under 0.1 seconds:
 ```bash
-ffmpeg -v error -i <work>/ad-final.mp4 -vn -ac 1 -ar 16000 -y <work>/fa.wav
-uv run scripts/transcribe.py <work> --language <LANG> --model medium --wav <work>/fa.wav --out <work>/fa.json
+ffmpeg -v error -i <work>/video-final.mp4 -vn -ac 1 -ar 16000 -y <work>/build/fa.wav
+uv run scripts/transcribe.py <work> --language <LANG> --model medium --wav <work>/build/fa.wav --out <work>/build/fa.json
 ```
-Compare the sentence starts of `fa.json` to `caps.json`.
+Compare the sentence starts of `build/fa.json` to `build/captions.json`.
 2. **Audio** — after `master_audio.sh` it prints the final loudness: it must be ≈ −14 LUFS
    with a peak of −1.5 dBTP or lower.
 3. **The eye** — a 6-shot contact sheet, actually looked at.
@@ -642,7 +656,7 @@ the whole conversation.
 3. **Batch independent commands into one turn.**
 4. **Run the long thing in the background** and wait for the completion notification once.
 5. **Don't change the architecture in prose** — build on the reference file.
-6. **Save `caps.json` and `cut.json`** — any later edit won't need re-transcription.
+6. **Save `build/captions.json` and `build/cut-plan.json`** — any later edit won't need re-transcription.
 
 ## Delivery
 
@@ -659,13 +673,14 @@ for the post caption). And mention that you didn't publish anything.
 | `setup.sh` | installs ffmpeg/Node/uv (system), then `uv sync` + `npm ci` (isolated) | shared |
 | `lib/platform.sh` · `lib/platform.js` | cross-platform helpers (paths · `VEVO_PY` · browser · OS) | shared |
 | `lib/config.py` · `lib/config.js` | reads/merges `project.config.json` | shared |
-| `transcribe.py` | transcription → `a.json` (faster-whisper GPU/CPU ← whisper) | shared |
+| `lib/rush.py` | finds the input file(s) in `rush/` without assuming a fixed name | shared |
+| `transcribe.py` | transcription → `build/transcript-raw.json` (faster-whisper GPU/CPU ← whisper) | shared |
 | `plan_cuts.py` | measures the silences and produces the speech segments | shared |
 | `captions.py` | per-word timing on the new timeline | shared |
 | `reframe.py` | cut + 9:16 reframe (accepts a landscape source) + zoom + bt709 tag | shared |
 | `render_frames.js` | draws the frames (resume + window) | light |
 | `remotion/remotion.sh` | prepares / opens / renders a Remotion project | Remotion |
-| `sound_fx.py` | the sound effects from `sfx.json` | shared |
+| `sound_fx.py` | the sound effects from `build/sound-cues.json` | shared |
 | `encode.sh` | assembles the frames + audio | light |
 | `master_audio.sh` | −14 LUFS + ducked background audio | shared |
 | `contact_sheet.sh` | one contact sheet (token economy) | shared |

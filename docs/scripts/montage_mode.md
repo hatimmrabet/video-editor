@@ -10,7 +10,7 @@
 ## CLI
 
 ```
-uv run scripts/montage_mode.py <work> scan <clipdir> [--shot 1.5] [--fps 4]
+uv run scripts/montage_mode.py <work> scan [clipdir] [--shot 1.5] [--fps 4]
 uv run scripts/montage_mode.py <work> show
 uv run scripts/montage_mode.py <work> sheet [out.jpg] [--cols 6]
 uv run scripts/montage_mode.py <work> drop 3 7   |  keep 1 2 5   |  undo
@@ -18,24 +18,27 @@ uv run scripts/montage_mode.py <work> plan [--dur 30] [--shot 1.5] [--bpm 0] [--
 uv run scripts/montage_mode.py <work> build [out.mp4] [--ar 9:16|1:1|16:9|4:5] [--xfade 0] [--amb 0] [--zoom 1]
 ```
 
+`scan`'s `clipdir` is optional since issue #59 — defaults to `<work>/rush` (put the clips
+there first); pass a folder explicitly to scan somewhere else instead.
+
 ## Inputs
 
 | Source | Role |
 |---|---|
-| clip folder | `.mov .mp4 .m4v .avi .mkv .webm .mts .m2ts`, non-dot files |
-| `<work>/montage.json` | state (see [data-contracts.md](../data-contracts.md#montagejson--montage-mode-state)) |
-| `<work>/bg-audio.mp3` | later, via `master_audio.sh` |
+| `<work>/rush/` (or an explicit folder) | `.mov .mp4 .m4v .avi .mkv .webm .mts .m2ts`, non-dot files, excluding `bg-audio.mp3` |
+| `<work>/build/montage-plan.json` | state (see [data-contracts.md](../data-contracts.md#buildmontage-planjson--montage-mode-state)) |
+| `<work>/rush/bg-audio.mp3` | later, via `master_audio.sh` |
 
 ## Outputs
 
 | File | Shape |
 |---|---|
-| `<work>/montage.json` | state + `plan` |
-| `<work>/montage.json.bak` | before `drop`/`keep` |
-| `<work>/montage-sheet.jpg` | numbered contact sheet |
-| `<work>/montage.mp4` | the built montage |
+| `<work>/build/montage-plan.json` | state + `plan` |
+| `<work>/build/montage-plan.json.bak` | before `drop`/`keep` |
+| `<work>/build/montage-contact-sheet.jpg` | numbered contact sheet |
+| `<work>/build/montage-raw.mp4` | the built montage, before mastering |
 
-Temp dirs `.mscan`, `.msheet` are removed.
+Temp dirs `build/.mscan`, `build/.msheet` are removed.
 
 ## Scoring
 
@@ -90,8 +93,10 @@ rotation side-data and the ffmpeg 7-vs-8 `crop:eval=frame` difference.
 ## Place in the flow
 
 The entire montage mode (`SKILL.md` "Montage mode"). Independent of the speech-ad flow —
-no theme, no colours, no logo. After `build`: `master_audio.sh <work> montage.mp4
-montage-master.mp4` with a `bg-audio.mp3` in place.
+no theme, no colours, no logo. After `build`: `master_audio.sh <work>
+build/montage-raw.mp4 video-final.mp4` with `rush/bg-audio.mp3` in place. Same deliverable
+name (`video-final.mp4`, at the work-dir root) as the speech-ad flow — see
+[design/file-layout.md](../design/file-layout.md).
 
 ## Gotchas
 
@@ -100,3 +105,8 @@ montage-master.mp4` with a `bg-audio.mp3` in place.
 - Reasonable duration is 20–40 s.
 - Never repeat a clip; if the clips can't fill `--dur`, the script warns and suggests a
   larger `--shot`.
+- **Migrated to the `rush`/`build` layout (issue #59, 2026-09-05)** — a real bug was
+  caught by testing this: `scan --shot 1.0` initially misread `1.0` (the flag's value) as
+  a folder argument, since the naive "skip tokens starting with `--`" filter didn't know
+  to also skip the value following a recognized flag. Fixed by tracking which token is a
+  flag's value, not just which token starts with `--`.

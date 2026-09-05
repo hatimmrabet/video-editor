@@ -5,13 +5,15 @@ try:
 except Exception:
     pass
 """يبني توقيتات الكابشن على التايم-لاين الجديد.  python3 captions.py <workdir>
-يقرأ: cut.json · a.json (وِسبر) · fixes.json  ← {"fix":[[كلمات الجملة 0],...], "hot":[كلمات تُظلَّل]}
+يقرأ: build/cut-plan.json · build/transcript-raw.json (وِسبر) · build/transcript-fixes.json
+  ← {"fix":[[كلمات الجملة 0],...], "hot":[كلمات تُظلَّل]}
 عدد كلمات كل جملة في fix لازم يساوي عدد كلمات وِسبر لنفس الجملة (عشان التوقيتات تبقى مضبوطة)."""
 import json, sys, os
 W=os.path.abspath(sys.argv[1])
-keep=json.load(open(os.path.join(W,"cut.json")))["keep"]
-tr=json.load(open(os.path.join(W,"a.json")))
-fx=json.load(open(os.path.join(W,"fixes.json")))
+os.makedirs(os.path.join(W,"build"),exist_ok=True)
+keep=json.load(open(os.path.join(W,"build","cut-plan.json")))["keep"]
+tr=json.load(open(os.path.join(W,"build","transcript-raw.json")))
+fx=json.load(open(os.path.join(W,"build","transcript-fixes.json")))
 FIX, HOT = fx["fix"], set(fx.get("hot",[]))
 
 def seg_of(t):
@@ -43,6 +45,6 @@ for i,seg in enumerate(tr["segments"]):
     cards.append({"s":round(cs,3),"e":round(ce,3),"w":o})
 for i in range(len(cards)-1):
     if cards[i]["e"]>cards[i+1]["s"]: cards[i]["e"]=round(cards[i+1]["s"]-0.02,3)
-json.dump({"total":round(acc,3),"cards":cards},open(os.path.join(W,"caps.json"),"w"),ensure_ascii=False,indent=1)
+json.dump({"total":round(acc,3),"cards":cards},open(os.path.join(W,"build","captions.json"),"w"),ensure_ascii=False,indent=1)
 print("كروت:",len(cards)," المدة:",round(acc,2))
 for c in cards: print(f"{c['s']:6.2f}-{c['e']:6.2f}  "+" ".join(x['t'] for x in c['w']))
