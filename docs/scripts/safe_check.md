@@ -23,7 +23,7 @@ node safe_check.js <work> --shot   # also write safe.jpg (worst frame with zones
 |---|---|---|
 | `sfx.json` | `.outro` | yes |
 | `caps.json` | cards + hook time | yes |
-| `theme.json` | `bg` (for the flat-fill background reference), `font` | optional |
+| `config/project.config.json` (via [`lib/config.js`](lib-config.md)'s `load()`) | `theme.bg` (flat-fill background reference), `theme.font`, `crop.faceAnchor` | optional |
 | `safe.json` | zone / `hook_max` / `guides` overrides, merged over `DEF` | optional |
 | `compose.html` | the drawing surface — **if absent, only the hook check runs** | for the pixel check |
 | `vfr/*.jpg` | for the `--shot` output | for `--shot` |
@@ -63,6 +63,12 @@ node safe_check.js <work> --shot   # also write safe.jpg (worst frame with zones
 ## Cross-platform
 
 Uses `lib/platform.js`. Windows-capable. `setCacheEnabled(false)`.
+
+## Gotchas
+
+- **Migrated to `config.load()` (issue #56, 2026-09-05)** — no longer reads `theme.json`
+  directly. Same pattern as `render_frames.js` (issue #55): no `project.config.json` yet?
+  Falls back to `defaults.config.json`, same numbers as before.
 
 ## Place in the flow
 

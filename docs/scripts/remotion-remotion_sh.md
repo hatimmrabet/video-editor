@@ -20,14 +20,19 @@ remotion.sh <work> render [out.mp4] # npx remotion render Ad <out> --codec h264 
 | File | Role |
 |---|---|
 | `caps.json` | copied verbatim to `remotion/src/caps.json` |
-| `theme.json` | theme subset → `project.json.theme` |
+| `config/project.config.json` (via [`lib/config.py`](lib-config.md)'s `load()`) | `.theme` subset → `project.json.theme`; `.theme.logo` (default `logo.png`) → `remotion/public/logo.png` |
 | `sfx.json` | `.outro` → `project.json.outro`; existence of `sfx.wav` → `project.json.sfx` |
 | `sfx.wav` | → `remotion/public/sfx.wav` |
 | `cutz.mp4` | → `remotion/public/video.mp4` |
 | `stage.json` | → `project.json.stage` (default one `FULL` span) |
 | `outro.json` | → `project.json.outro_copy` |
 | `safe.json` | `.guides` → `project.json.guides` |
-| `<logo>` (from `theme.json.logo`, default `logo.png`) | → `remotion/public/logo.png` |
+
+**Migrated to `config.load()` (issue #9, 2026-09-05)** — the inline Python in `sync_all`
+no longer reads `theme.json` directly for the theme subset or the logo filename; both come
+from `project.config.json` now. `stage.json`/`outro.json`/`safe.json` are untouched —
+they're not part of `project.config.json` (deferred to Pass 4, see
+[project-config.md](../design/project-config.md)).
 
 ## Outputs
 

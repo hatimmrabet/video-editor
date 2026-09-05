@@ -27,23 +27,28 @@ Legend: **W** = written by, **R** = read by, **M** = mutated in place by.
 ```
 
 Full rationale (why it's this lean, what deliberately isn't in it) in
-[design/project-config.md](design/project-config.md). **Partially consumed** —
-`reframe.py` reads its `grade`/`crop` via `config.load()` as of issue #8 (2026-09-05);
-`render_frames.js`, the Remotion generator, and `SKILL.md` step 1 still read/write the
-legacy files below directly (issues #9–#10). **No back-compat bridge exists or is
-planned** — one user, no installed base to protect; each script migrates to
-`config.load()` directly and drops its old file-reading code in the same change (see
+[design/project-config.md](design/project-config.md). **Fully consumed on the read side**
+— `reframe.py` (#8), `render_frames.js` (#55), `safe_check.js` (#56), and the Remotion
+generator's theme/logo (#9) all read via `config.load()` as of 2026-09-05. Only `SKILL.md`
+step 1 still writes `theme.json` directly (issue #10) — nothing reads it anymore, so what
+it writes is presently inert (see below). **No back-compat bridge exists or is planned** —
+one user, no installed base to protect; each script migrates to `config.load()` directly
+and drops its old file-reading code in the same change (see
 [project-config.md](design/project-config.md#migration--direct-no-bridge)).
 
 ---
 
-## `theme.json` — visual identity (hand-authored today; retired once #9–#10 land)
+## `theme.json` — visual identity (hand-authored today; retired once #10 lands)
 
-**W** hand-authored (SKILL.md step 1) · **R** `render_frames.js`, `safe_check.js`,
-`compose.html`, `remotion.sh` — no longer `reframe.py` (migrated to `project.config.json`
-via `config.load()`, issue #8)
+**W** hand-authored (SKILL.md step 1) · **R** nothing — `reframe.py` (#8),
+`render_frames.js` (#55), `safe_check.js` (#56), and the Remotion generator (#9) have all
+migrated to `config.load()`. `SKILL.md` step 1 keeps writing this file until #10, but
+nothing in the pipeline reads it anymore.
 
 ```jsonc
+// ⚠️ This whole file is orphaned as of 2026-09-05 — SKILL.md step 1 still writes it
+// (until issue #10), but every consumer now reads the equivalent value from
+// project.config.json instead (see the field-by-field mapping in the paragraph below).
 {
   "bg":    "#101828",   // background hex — every card/panel/shadow color derives from this. Dark or light both work.
   "ink":   "#F5F7FA",   // primary text / strokes / shadows
@@ -54,27 +59,29 @@ via `config.load()`, issue #8)
   "handle":"@his_handle",// account handle (drawn LTR)
   "logo":  "logo.png",  // logo filename inside <work>
 
-  "grade":      false,  // ⚠️ orphaned here since issue #8 — reframe.py now reads `grade` from
-                         // project.config.json instead. OFF by default — invariant #4
-  "faceAnchor": 0.30,   // compose.html: vertical face position inside the video card (0 top .. 1 bottom)
-  "xAnchor":    0.5,    // ⚠️ orphaned here since issue #8 — reframe.py now reads `crop.xAnchor`
-                         // from project.config.json instead (0 left .. 1 right)
-  "yAnchor":    0.30,   // ⚠️ orphaned here since issue #8 — reframe.py now reads `crop.yAnchor`
-                         // from project.config.json instead
-  "grid":       true,   // compose.html: faint 60px background grid (false disables)
+  "grade":      false,  // OFF by default — invariant #4
+  "faceAnchor": 0.30,   // vertical face position inside the video card (0 top .. 1 bottom)
+  "xAnchor":    0.5,    // horizontal crop anchor for a landscape source (0 left .. 1 right)
+  "yAnchor":    0.30,   // vertical crop anchor for a landscape source
+  "grid":       true,   // faint 60px background grid (false disables)
   "badgeUntil": 0,      // seconds the account badge stays on screen. 0 = never, -1 = whole video
   "badge":      false   // legacy boolean — true→badgeUntil 3, false→0 (kept for back-compat)
 }
 ```
 
-Only `bg / ink / acc / clay / mut / font / handle` (and `badgeUntil`, via `theme.ts`)
-reach the Remotion engine. `grade / xAnchor / yAnchor` are **no longer read by anything
-here** — `reframe.py` gets them from `project.config.json` since issue #8. They stay in
-this example only because `SKILL.md` step 1 still writes them (until issue #10 migrates
-it); writing them has no effect until then. `faceAnchor / grid` are read by `compose.html`
-only.
+**Mapping to `project.config.json`** (see [project-config.md](design/project-config.md)):
+`bg/ink/acc/clay/mut/font/handle/logo/grid` → `theme.*`; `grade` → top-level `grade`;
+`xAnchor/yAnchor/faceAnchor` → `crop.*`. **No equivalent exists for `badgeUntil`/`badge`**
+— badge is a rare, scene-design-time exception now (see
+[project-config.md](design/project-config.md)'s "What this file is — and isn't"), not a
+base config field; `compose.reference.html`'s own hardcoded default (`0`, off) governs
+unless a specific project's `compose.html` is hand-edited to change it.
 
-Consumers use hardcoded **fallbacks** if the file or a key is missing — `compose.html`:
+Every field in the example above stays in `theme.json` only because `SKILL.md` step 1
+still writes the whole file (until issue #10) — writing any of it has no effect until then.
+
+Consumers use hardcoded **fallbacks** if `project.config.json` or a key is missing —
+`compose.html`:
 cream/clay Claude theme; `theme.ts`: `#101828 / #F5F7FA / #F2B33D / #C98B18 / #98A2B3 / Cairo`.
 
 ---

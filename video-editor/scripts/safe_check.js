@@ -10,10 +10,12 @@
    الحدود تتعدّل بملف <work>/safe.json إذا احتجت.                                             */
 const path=require('path'), fs=require('fs');
 const {fileUrl,launchOptions,resolvePuppeteer}=require('./lib/platform');
+const {load:loadConfig}=require('./lib/config');
 const W=path.resolve(process.argv[2])+path.sep;
 const SHOT=process.argv.includes('--shot');
 const CFG=JSON.parse(fs.readFileSync(W+'sfx.json','utf8'));
-const THEME=fs.existsSync(W+'theme.json')?JSON.parse(fs.readFileSync(W+'theme.json','utf8')):{};
+const PCFG=loadConfig(W);   // project.config.json — راجع docs/design/project-config.md
+const THEME=Object.assign({},PCFG.theme||{},{faceAnchor:(PCFG.crop||{}).faceAnchor});
 const caps=JSON.parse(fs.readFileSync(W+'caps.json','utf8'));
 const FPS=30, OUT_D=CFG.outro, DUR=caps.total+OUT_D;
 

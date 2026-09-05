@@ -51,9 +51,15 @@ projects — there is no adapter and no reverse-compat synthesis. Each script mi
   Leaves `grade`/`xAnchor`/`yAnchor` orphaned in `theme.json` (still written by `SKILL.md`
   step 1, read by nothing) until issue #10 migrates the writing side too — see
   [data-contracts.md](../data-contracts.md).
-- Migrate `render_frames.js` and the Remotion generator to `config.load()` — delete their
-  `theme.json` reads (issue #9).
-- `SKILL.md` step 1 writes `project.config.json` instead of `theme.json` (issue #10).
+- ✅ Migrate the Remotion `project.json` generator (`remotion.sh`'s `sync_all`) to
+  `config.load()` — delete its `theme.json` read (issue #9).
+- ✅ Migrate `render_frames.js` to `config.load()` — delete its `theme.json` read. **Not
+  originally in this list** — split out as issue #55 during implementation, since #9 only
+  ever covered the Remotion generator.
+- ✅ Migrate `safe_check.js` to `config.load()` — same pattern, found while doing #9/#55.
+  **Also not originally in this list** — split out as issue #56.
+- `SKILL.md` step 1 writes `project.config.json` instead of `theme.json` (issue #10) — the
+  last remaining consumer of `theme.json`, and once it lands the file is retired entirely.
 - **Done when:** nothing in the pipeline reads `theme.json` anymore — every consumer reads
   `project.config.json` via `config.load()`.
 
