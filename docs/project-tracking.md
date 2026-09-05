@@ -129,7 +129,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | Title | Labels | Status |
 |---|---|---|
 | scenes: declarative scene schema | `area:scenes` `type:design` `prio:high` | ✅ #15 — `config/scenes.json` locked in `design/scenes-as-data.md` |
-| scenes: `motifs/` registry layout + `index.json` | `area:scenes` `type:design` | #16 |
+| scenes: `motifs/` registry layout + `index.json` | `area:scenes` `type:design` | ✅ #16 — `scripts/motifs/` + `index.json` (11-name manifest) + `stamp` on both engines |
 | scenes: light-engine interpreter (inside `safe()`) | `area:scenes` `area:engine-light` | #17 |
 | scenes: Remotion `<Scene>` dispatcher | `area:scenes` `area:engine-remotion` | #18 |
 | scenes: port reference functions → motifs (one issue per motif) | `area:scenes` | #19 |

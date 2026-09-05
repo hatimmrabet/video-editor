@@ -1,0 +1,83 @@
+{
+  "_doc": "Motif registry — parameterized scene types, one implementation per engine, selected by name from config/scenes.json. See docs/design/scenes-as-data.md and ./README.md. `kind`: scene = drawn over everything · overlay = drawn on the video card. `bottom`: nominal graphic-bottom y in the 1080x1920 space, feeds the DOWN flex rect (a scene's layout.gb overrides). `params`: a shallow shape hint (number | string | number[] | string[] | boolean) — not JSON Schema; values are hand-authored. `status`: implemented | planned.",
+
+  "motifs": {
+    "stamp": {
+      "status": "implemented",
+      "kind": "scene",
+      "bottom": 400,
+      "from": "stamp",
+      "params": { "text": "string", "lead": "string", "rotation": "number", "ring": "boolean" }
+    },
+    "counter": {
+      "status": "planned",
+      "kind": "scene",
+      "bottom": 520,
+      "from": "price",
+      "params": { "to": "number", "from": "number", "prefix": "string", "suffix": "string", "settle": "number" }
+    },
+    "card-stack": {
+      "status": "planned",
+      "kind": "scene",
+      "bottom": 560,
+      "from": "chips, cardStack",
+      "params": { "items": "string[]", "columns": "number", "checkmark": "boolean" }
+    },
+    "checklist": {
+      "status": "planned",
+      "kind": "scene",
+      "bottom": 540,
+      "from": "solved",
+      "params": { "items": "string[]", "tickPerWord": "boolean" }
+    },
+    "transcript-panel": {
+      "status": "planned",
+      "kind": "scene",
+      "bottom": 600,
+      "from": "transcript",
+      "params": { "lines": "string[]" }
+    },
+    "file-merge": {
+      "status": "planned",
+      "kind": "scene",
+      "bottom": 520,
+      "from": "fileToCloud, oneFile",
+      "params": { "sources": "string[]", "targetLabel": "string" }
+    },
+    "glitch": {
+      "status": "planned",
+      "kind": "overlay",
+      "bottom": 0,
+      "from": "glitch",
+      "params": { "intensity": "number", "slices": "number" }
+    },
+    "quote": {
+      "status": "planned",
+      "kind": "scene",
+      "bottom": 320,
+      "from": "titleChip",
+      "params": { "text": "string" }
+    },
+    "comment-box": {
+      "status": "planned",
+      "kind": "scene",
+      "bottom": 480,
+      "from": "commentBox",
+      "params": { "word": "string", "avatar": "boolean" }
+    },
+    "sync-viz": {
+      "status": "planned",
+      "kind": "scene",
+      "bottom": 560,
+      "from": "syncViz",
+      "params": {}
+    },
+    "suspense": {
+      "status": "planned",
+      "kind": "scene",
+      "bottom": 500,
+      "from": "suspense",
+      "params": {}
+    }
+  }
+}

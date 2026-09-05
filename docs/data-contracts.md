@@ -82,6 +82,33 @@ move. Unset `transition` = today's behaviour exactly.
 
 ---
 
+## `scripts/motifs/index.json` — the motif manifest (static skill file)
+
+**W** hand-edited, versioned with the skill · **R** the scene interpreters (issues #17 /
+#18) and the `config/scenes.json` author. See [scripts/motifs.md](scripts/motifs.md) and
+[design/scenes-as-data.md](design/scenes-as-data.md).
+
+```jsonc
+{
+  "motifs": {
+    "stamp": {
+      "status": "implemented",       // "implemented" | "planned" — the interpreter accepts only the former
+      "kind":   "scene",             // "scene" = over everything · "overlay" = on the video card (e.g. glitch)
+      "bottom": 400,                 // nominal graphic-bottom y (1920 space) — feeds the DOWN flex; layout.gb overrides
+      "from":   "stamp",             // reference function(s) it generalizes — for the #19 port
+      "params": { "text": "string", "lead": "string", "rotation": "number", "ring": "boolean" }
+    }
+    // + counter, card-stack, checklist, transcript-panel, file-merge, glitch, quote,
+    //   comment-box, sync-viz, suspense — all "planned" until #19 ports them
+  }
+}
+```
+
+`params` values are shape hints (`number | string | number[] | string[] | boolean`), not
+JSON Schema — the scene author fills concrete literals in `config/scenes.json`.
+
+---
+
 ## `theme.json` — retired (2026-09-05, issue #10)
 
 Superseded by `project.config.json` above. Nothing writes or reads it anymore. Kept here

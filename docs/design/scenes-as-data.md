@@ -2,9 +2,10 @@
 
 **The biggest lift in the roadmap.** Everything else is tidying; this is the structural change.
 
-Status: **schema locked (#15).** This page is the spec for `config/scenes.json` and the
-motif registry. Implementation: #16 (registry layout), #17 (light interpreter), #18
-(Remotion dispatcher), #19 (port the reference functions), #20 (`studio.html`).
+Status: **schema locked (#15); registry scaffolded (#16).** This page is the spec for
+`config/scenes.json` and the motif registry. Implementation: #16 (`scripts/motifs/` +
+`index.json` + `stamp` as the reference motif), #17 (light interpreter), #18 (Remotion
+dispatcher), #19 (port the reference functions), #20 (`studio.html`).
 
 ## Problem
 
@@ -115,31 +116,40 @@ Registry shape:
 
 ```
 scripts/motifs/
-  index.json              name → { kind, bottom, params }
-  canvas/<motif>.js        module.exports = (X, t, params, ctx) => { ... }   ← light engine
-  remotion/<Motif>.tsx     export default ({ t, params }) => <.../>          ← Remotion
+  index.json              name → { status, kind, bottom, from, params }
+  README.md               the ctx contract + rules
+  canvas/<motif>.js        module.exports = (ctx) => { ... }        ← light engine
+  remotion/<Motif>.tsx     export default (props) => <.../>         ← Remotion
 ```
 
-`index.json` entry:
+`index.json` entry (see [`scripts/motifs/README.md`](../../video-editor/scripts/motifs/README.md)
+and [data-contracts.md](data-contracts.md)):
 
 ```jsonc
 "counter": {
-  "kind":   "scene",              // "scene" = drawn over everything · "overlay" = drawn on the video card (e.g. glitch)
-  "bottom": 520,                  // nominal graphic-bottom y (1920 space) — feeds the DOWN flex; a scene's layout.gb overrides
+  "status": "planned",           // "implemented" = the interpreter accepts it
+  "kind":   "scene",              // "scene" = over everything · "overlay" = on the video card (glitch)
+  "bottom": 520,                  // nominal graphic-bottom y — feeds the DOWN flex; layout.gb overrides
+  "from":   "price",              // which reference function it generalizes (for the #19 port)
   "params": { "to": "number", "from": "number", "prefix": "string", "suffix": "string", "settle": "number" }
 }
 ```
 
-`params` is a shallow shape hint (`"number" | "string" | "string[]" | "boolean"`) for
-validation and docs — not a full JSON Schema (minimalism; the values are hand-authored, not
-machine-generated).
+`params` is a shallow shape hint (`"number" | "string" | "number[]" | "string[]" |
+"boolean"`) for docs and a soft check — not a full JSON Schema (minimalism; the values are
+hand-authored, not machine-generated).
 
-The light engine gets a small **interpreter**: read the scene list, for each active scene
-call `motifs.canvas[scene.motif](X, t, params, ctx)` inside the existing `safe()` wrapper
-(`ctx` carries `theme`, the resolved rect, the ref sentence's words). Remotion gets a
-`<Scene>` dispatcher that renders `motifs.remotion[scene.motif]`. `Scenes.tsx` and the
-scene section of `compose.html` shrink to almost nothing; `studio.html` renders the same
-list and stops carrying its own copy.
+The light engine gets a small **interpreter** (#17): read the scene list, and for each
+active scene — inside `safe()`, inside a `save()`/`restore()` that applies the container
+`rise` (enter/exit alpha + translate) — call `motifs.canvas[scene.motif](ctx)`. `ctx`
+carries `X`, `t`, the raw `enter`/`exit`/`hold` progress, the ref sentence's `words`, the
+resolved `rect`, `theme`, the merged `params`, and an `fx` helper bag. Remotion gets a
+`<Scene>` dispatcher (#18) rendering `motifs.remotion[scene.motif]` with the same fields as
+props. `Scenes.tsx` and the scene section of `compose.html` shrink to almost nothing;
+`studio.html` renders the same list and stops carrying its own copy (#20).
+
+The full `ctx` contract is drafted in `scripts/motifs/README.md` and finalized alongside
+the interpreters. `stamp` (#16) is the reference implementation both are checked against.
 
 **Motif versioning:** motifs are versioned with the skill, not per project — a re-render
 uses whatever the motif looks like now. No per-project pinning (that would be the
@@ -157,8 +167,8 @@ must change incompatibly gets a new name.
 
 ## Migration path
 
-1. #16 builds `scripts/motifs/` (`index.json` + the two engine folders) with **one** motif
-   (`stamp`).
+1. ✅ #16 — `scripts/motifs/` (`index.json` with the full 11-name manifest + `README.md` +
+   `canvas/` + `remotion/`), with **`stamp`** implemented on both engines as the reference.
 2. #17 / #18 build the light interpreter and the Remotion `<Scene>` dispatcher — both gated
    on `config/scenes.json` existing, so a project opts in by adding the file while every
    other project keeps its inline code unchanged.
