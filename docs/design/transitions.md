@@ -1,9 +1,9 @@
 # Transitions — a named vocabulary
 
-Status: **schema locked (#11); light engine wired (#12).** The canonical table is
-[`video-editor/scripts/transitions.json`](../../video-editor/scripts/transitions.json),
+Status: **schema locked (#11); light engine (#12) + Remotion (#13) wired.** The canonical
+table is [`video-editor/scripts/transitions.json`](../../video-editor/scripts/transitions.json),
 read via [`lib/transitions`](../scripts/lib-transitions.md); this page explains it.
-Remaining: #13 (Remotion), #14 (montage).
+Remaining: #14 (montage).
 
 ## Problem
 
@@ -167,9 +167,13 @@ total shortens by `Σ duration`, same arithmetic as the current `--xfade` path.
   overrides one boundary; `rect-morph` / `cut` / `dissolve` render on the reel video.
   Not done here: scene-graphic enter/exit still hand-rolled per scene (moves to `rise` in
   Pass 4); `wipe`/`push` on the reel (see the Type set note).
-- **#13 (Remotion):** `@remotion/transitions` for `dissolve` / `wipe` / `push` / `iris`;
-  hand-roll `zoom-blur` / `glitch`; `rect-morph` stays the existing `stage.ts` lerp. While
-  in `remotion/template/src/`, finish the #59 path-migration leftovers there (some comments
-  still say `theme.json` / old numbered script names).
+- **#13 (Remotion): done.** Scope matches #12 — the reel video gets `rect-morph` / `cut` /
+  `dissolve`, not `@remotion/transitions` (that library is sequence-to-sequence, which is
+  the Pass 4 graphic layer, not a continuous take). `remotion.sh` writes
+  `load()["defaults"]` into `project.json`; `theme.ts` exposes `TX`; `stage.ts` gains
+  `vtrans` + `videoLayers(t)` (two cross-fading rects mid-`dissolve`); `Ad.tsx` maps over
+  the layers; `Captions.tsx` uses the `rise` defaults; `util.tsx` gains `linear` + `ez()`.
+  A `stage[i].transition` overrides one boundary. (No #59 path leftovers were left in
+  `remotion/template/` after #61 — checked.)
 - **#14 (montage):** the `--transition` flag, the `plan[]` field, drop `--xfade`, and the
   eight-name → xfade-name map from `transitions.json`.

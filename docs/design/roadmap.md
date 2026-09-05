@@ -18,7 +18,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 | 0 | **Documentation** (this `docs/` tree) | `Pass 0 — Documentation` | — | ✅ done |
 | 1 | **Isolated execution & dependencies** | `Pass 1 — Execution & dependencies` | 0 | ✅ done (PR #37) |
 | 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | ✅ done (PRs #54, #57, issues #10, #59) |
-| 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | 🟡 #11 schema + #12 light engine done; #13–#14 pending |
+| 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | 🟡 #11 schema + #12 light + #13 Remotion done; #14 pending |
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | — |
 | 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | — |
 | 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | — |
@@ -111,8 +111,11 @@ to English — both cosmetic cleanup, pick up whenever.)*
   `dissolve` render on the reel video (`wipe`/`push` are montage + graphic-layer — see
   [transitions.md](transitions.md)). Byte-identical default render verified. Scene-graphic
   enter/exit still hand-rolled per scene until Pass 4.
-- Remotion (#13): `@remotion/transitions` where native, hand-rolled otherwise; also mop up
-  the #59 path-migration leftovers in `remotion/template/src/`.
+- ✅ **Remotion** (#13) — same scope as #12. `remotion.sh` writes `load()["defaults"]` into
+  `project.json`; `theme.ts` exposes `TX`; `stage.ts` gains `vtrans` + `videoLayers(t)`;
+  `Ad.tsx` maps over the layers (cross-fade mid-`dissolve`); `Captions.tsx` + `util.tsx`
+  wired. Not `@remotion/transitions` — that's sequence-to-sequence, i.e. the Pass 4 graphic
+  layer. Transition math verified equal to the old `stage.ts` for the default vocabulary.
 - `montage_mode.py build` (#14): `--transition <name>:<dur>:<param>`, an optional
   `transition` per `plan[]` entry, drop `--xfade`.
 - Defaults reproduce today's behavior exactly.

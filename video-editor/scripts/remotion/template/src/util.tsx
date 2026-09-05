@@ -5,9 +5,13 @@ import {FPS} from './theme';
 export const p = (t: number, a: number, b: number) =>
   interpolate(t, [a, b], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
+export const linear = (k: number) => k;
 export const ease = (k: number) => Easing.out(Easing.cubic)(k);
 export const eio  = (k: number) => Easing.inOut(Easing.cubic)(k);
 export const back = (k: number) => Easing.out(Easing.back(1.9))(k);
+/* The four named easings from scripts/transitions.json, by name. */
+export const ez = (name?: string): ((k: number) => number) =>
+  (({linear, ease, eio, back} as Record<string, (k: number) => number>)[name || 'eio']) || eio;
 export const sec  = (f: number) => f / FPS;
 export const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 

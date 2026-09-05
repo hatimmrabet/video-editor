@@ -1,5 +1,5 @@
-import {T} from './theme';
-import {p, rgba, ease, back} from './util';
+import {T, TX} from './theme';
+import {p, rgba, ease, back, ez} from './util';
 import caps from './caps.json';
 
 type W = {t:string; s:number; e:number; hot:boolean};
@@ -13,8 +13,9 @@ export const Captions: React.FC<{t:number}> = ({t}) => {
   if (!c) return null;
   const lt = t - c.s, rt = c.e - t;
   let a = 1, dy = 0, sc = 1;
-  if (lt < 0.20) { const k = lt/0.20; a = ease(k); dy = (1-ease(k))*28; sc = 0.93 + 0.07*back(k); }
-  if (rt < 0.13) { const k = rt/0.13; a = k; dy = -(1-k)*10; }
+  const en = TX.sceneEnter, ex = TX.sceneExit;   // the `rise` type — caption default (== today's values)
+  if (lt < en.duration) { const k = lt/en.duration, e = ez(en.easing)(k); a = e; dy = (1-e)*en.params.y; sc = en.params.scale ? 0.93 + 0.07*back(k) : 1; }
+  if (rt < ex.duration) { const k = rt/ex.duration, e = ez(ex.easing)(k); a = e; dy = (1-e)*ex.params.y; }
 
   return (
     <div style={{position:'absolute', left:0, right:0, bottom:1920-1460, display:'flex', justifyContent:'center',

@@ -25,7 +25,8 @@ sync_all(){
   "${VEVO_PY[@]}" - "$W" "$R" <<'PY'
 import json, os, sys
 sys.path.insert(0, os.path.join(os.environ["VEVO_SKILL_DIR"], "scripts"))
-from lib import config as cfg   # project.config.json — see docs/design/project-config.md
+from lib import config as cfg          # project.config.json — see docs/design/project-config.md
+from lib import transitions as trans   # scripts/transitions.json — see docs/design/transitions.md
 W, R = sys.argv[1], sys.argv[2]
 def rd(rel, dflt):
     p = os.path.join(W, rel)
@@ -41,6 +42,7 @@ proj = {
   "stage": rd(os.path.join("config", "stage.json"), [{"s":0, "e":9999, "m":"FULL"}]),
   "outro_copy": rd(os.path.join("config", "outro.json"), {"line":"", "recap":[], "cta_top":"", "cta_word":"", "tail":""}),
   "guides": bool(rd(os.path.join("config", "safe.json"), {}).get("guides", False)),   # true → live safe-zone guides in the studio
+  "transitions": trans.load()["defaults"],   # resolved transition defaults — the engine falls back to today's values without this
 }
 json.dump(proj, open(os.path.join(R, "src", "project.json"), "w"), ensure_ascii=False, indent=1)
 print("project.json → duration", proj["total"], "+ outro", proj["outro"], "· sfx:", "yes" if proj["sfx"] else "no")
