@@ -1,5 +1,9 @@
 # Transitions — a named vocabulary
 
+Status: **schema locked (Pass 3, issue #11).** The canonical table is
+[`video-editor/scripts/transitions.json`](../../video-editor/scripts/transitions.json);
+this page explains it. Engine wiring is issues #12 (light), #13 (Remotion), #14 (montage).
+
 ## Problem
 
 The current "bouquet" (see [../engines.md](../engines.md#transitions-today)) is:
@@ -13,59 +17,140 @@ The current "bouquet" (see [../engines.md](../engines.md#transitions-today)) is:
 Every one is hand-timed, none is named, and montage transitions and reel transitions have
 nothing in common.
 
-## Proposal — a transition is `{ type, duration, easing, params }`
+## A transition is `{ type, duration, easing, params }`
 
 ```jsonc
 { "type": "push", "duration": 0.35, "easing": "eio", "params": { "dir": "up" } }
 ```
 
-A single vocabulary, applied identically by:
+**Shorthand** (CLI, `montage-plan.json`, quick edits) — `type` or `type:duration` or
+`type:duration:param`:
 
-- **the light engine** — between `SCENES` entries, and as scene enter/exit
-- **Remotion** — same, via `@remotion/transitions` where a native one exists, hand-rolled otherwise
+```
+push            push:0.3            push:0.3:up
+```
+
+The shorthand expands against the type's defaults: `push` → `{type:"push", duration:0.35,
+easing:"eio", params:{dir:"up"}}`. The object form is canonical; the shorthand is sugar and
+always round-trips to it.
+
+One vocabulary, applied by all three renderers:
+
+- **the light engine** — between `SCENES` entries (rect transition) and as scene enter/exit
+- **Remotion** — the same, via `@remotion/transitions` where a native one exists, hand-rolled otherwise
 - **montage** (`montage_mode.py`) — mapped to ffmpeg `xfade=transition=<name>`
 
-### Type set (starter)
+## Type set
 
-| Name | Reel (canvas / Remotion) | Montage (ffmpeg `xfade`) |
+The vocabulary is **eight** types — curated, not "every ffmpeg xfade". Each row names what
+each side actually does and flags where the montage side is only an approximation.
+
+| `type` | Light / Remotion | Montage (ffmpeg `xfade`) | Params |
+|---|---|---|---|
+| `cut` | instant | plain `concat`, no xfade | — |
+| `dissolve` | cross-fade alpha | `fade` | — |
+| `rect-morph` | the current `vrect` lerp — **reel only** | — (no equivalent) | — |
+| `wipe` | clip-rect sweep | `wipeup` / `wipedown` / `wipeleft` / `wiperight` | `dir` |
+| `push` | both layers translate | `slideup` / `slidedown` / `slideleft` / `slideright` | `dir` |
+| `zoom-blur` | scale + blur out/in | `zoomin` *(approx)* | — |
+| `iris` | radial clip | `circleopen` / `circleclose` | `dir` = `open`\|`close` |
+| `glitch` | the current RGB-split slice effect | `pixelize` *(approx)* | — |
+
+`whip-pan` from the earlier draft is **dropped** for now — real per-frame motion blur on
+canvas is too expensive and a faked streak looked cheap. Add it later if a real need shows up.
+
+**Escape hatch (montage only):** `params.xfade` passes a raw ffmpeg xfade name straight
+through (`{"type":"dissolve","params":{"xfade":"hlslice"}}`). Not part of the vocabulary,
+not portable to the reel engines — for one-off montage experiments only.
+
+### Element enter/exit — `rise`
+
+Separate from shot transitions: how a caption card or a graphic scene appears/disappears.
+One type, `rise` = fade + `translateY(y → 0)` + optional out-back scale.
+
+- **Caption enter today** is exactly `rise` `{y:28, scale:true}` over 0.20 s, `ease`.
+- **Caption exit today** is `rise` `{y:-10, scale:false}` over 0.13 s, `linear`.
+
+These become the `sceneEnter` / `sceneExit` defaults so a scene author gets the house feel
+for free. The ~15 reference scenes still hand-roll their own entrances; they move onto
+`rise` (or a per-scene override) one at a time in Pass 4.
+
+## Easing names
+
+`linear`, `ease` (out-cubic), `eio` (in-out-cubic), `back` (out-back, overshoot 1.9) — the
+four already in `util.tsx` / `compose.html`, now with a shared name and a cubic-bezier (or
+overshoot constant) in `transitions.json` so Remotion and canvas produce the same curve.
+
+## Where a transition is declared
+
+| Situation | Where | Default (= today's behaviour) |
 |---|---|---|
-| `cut` | instant | `concat` (no xfade) |
-| `dissolve` | cross-fade alpha | `fade` |
-| `rect-morph` | the current `vrect` lerp (reel only) | — |
-| `wipe` (`dir`) | clip-rect sweep | `wipeleft` / `wiperight` / `wipeup` / `wipedown` |
-| `push` (`dir`) | both layers translate | `slideleft` / `slideright` / `slideup` / `slidedown` |
-| `zoom-blur` | scale + blur out/in | `zoomin` (approx) |
-| `whip-pan` (`dir`) | fast translate + motion blur | `slide*` + blur (approx) |
-| `glitch` | the current RGB-split effect | `pixelize` / `hlslice` (approx) |
-| `iris` | radial clip | `circleopen` / `circleclose` |
+| Scene ↔ scene (the video rect moves) | optional `transition` on a schedule entry — the inline `SCENES` array (light) / `config/stage.json` (Remotion) / a `scenes[]` entry once [scenes-as-data](scenes-as-data.md) lands | `rect-morph` 0.42 `eio` |
+| A scene's own entrance / exit | optional `enter` / `exit` in the scene's `timing` | `rise` 0.20 `ease` / `rise` 0.13 `linear` |
+| The outro reveal | fixed for now (not yet configurable) | `wipe` 0.45 `ease` `up` |
+| Montage, all cuts | `build --transition push:0.3:up` | `cut` |
+| Montage, one cut | `transition` on that `plan[]` entry in `build/montage-plan.json` (overrides the global) | inherits the global |
 
-Each row documents which side is **native** and which is an **approximation**.
+A schedule entry with no `transition` key renders exactly as it does today — **adopting the
+vocabulary changes nothing until someone sets a non-default value.**
 
-### Easing names
+## Sound stays coupled
 
-`linear`, `ease` (out-cubic), `eio` (in-out-cubic), `back` — the four already in
-`util.tsx` / `compose.html`. One shared table, referenced by name from config.
+A transition may carry an optional `sfx` naming a cue synth
+(`whoosh_up` \| `whoosh_down` \| `thud` \| `tap`):
 
-## Where transitions are declared
+```jsonc
+{ "type": "push", "duration": 0.3, "params": { "dir": "up" }, "sfx": "whoosh_up" }
+```
 
-- **Scene ↔ scene:** an optional `transition` on a `layout.schedule` entry (or on a scene
-  in [scenes-as-data.md](scenes-as-data.md)). Default: `rect-morph` 0.42 `eio` (today's behavior).
-- **Scene enter/exit:** in the scene's `timing`, defaulting to today's caption-style fade.
-- **Montage:** `build --transition push:0.3:up` (or a per-cut list in
-  `build/montage-plan.json`'s `plan`), replacing the current single `--xfade` float.
+When set, the whoosh is emitted at the transition's start time — the move and the sound
+land together instead of the cue time being authored separately in
+`build/sound-cues.json`. Unset = no sound (unchanged). How the emitted cue reaches
+`sound_fx.py` (a generated cue list vs. a merge at build time) is an implementation detail
+for #12/#14.
+
+## Montage plan — the per-cut field
+
+`build/montage-plan.json`'s `plan[]` entries gain an optional `transition` (shorthand
+string or object). `montage_mode.py build` reads, in priority order: the entry's
+`transition` → `--transition` on the command line → `cut`. The old `--xfade <float>` flag
+becomes `--transition dissolve:<float>` (kept as a hidden alias for one release).
+
+```jsonc
+"plan": [
+  { "i": 1, "file": "...", "in": 2.10, "dur": 1.50, "transition": "cut" },
+  { "i": 2, "file": "...", "in": 0.40, "dur": 1.50, "transition": "push:0.3:left" }
+]
+```
+
+The `transition` on entry *k* describes the cut **into** entry *k* (so entry 0's is
+ignored). `xfade` overlaps eat `duration` seconds from the outgoing clip — the plan's
+total shortens by `Σ duration`, same arithmetic as the current `--xfade` path.
 
 ## Why this is safe
 
-- Defaults reproduce exactly what happens today — adopting the vocabulary changes nothing
-  until someone picks a non-default.
-- Sound stays coupled: a transition can carry a `sfx` cue name so the whoosh lands with the
-  move (today the cue times are authored separately in `build/sound-cues.json`).
-- The safe-zone check is unaffected — transitions move existing elements, they don't add text.
+- Every default is exactly today's hand-tuned value — a project that sets nothing looks
+  identical.
+- The safe-zone check is unaffected: transitions move elements that already exist, they
+  never add text.
+- `rect-morph` stays reel-only and is the scene↔scene default, so `vrect` behaviour is
+  untouched.
 
-## Open questions
+## Resolved (were open questions)
 
-- Do we expose all ~50 ffmpeg `xfade` names for montage, or curate a dozen that read well?
-- Motion blur on canvas is expensive per frame — is `whip-pan` worth it, or fake it with a
-  short streak overlay?
-- Per-cut transitions in montage need the plan to carry them — extend
-  `build/montage-plan.json`'s `plan` entries with an optional `transition`.
+- **Expose all ~50 ffmpeg xfade names?** No. Curate the eight above; a raw name is reachable
+  only through the montage-only `params.xfade` escape hatch.
+- **`whip-pan` motion blur on canvas?** Dropped from the starter set.
+- **Per-cut montage transitions?** Yes — the optional `transition` on `plan[]` entries above.
+
+## Follow-ups for the implementation issues
+
+- **#12 (light):** a `lib/transitions.py` resolver (shorthand → object, apply type
+  defaults, look up easing) with `lib/transitions.js` shelling out to it — same pattern as
+  `lib/config`. Wire `vrect` and the caption/scene enter/exit onto it.
+- **#13 (Remotion):** `@remotion/transitions` for `dissolve` / `wipe` / `push` / `iris`;
+  hand-roll `zoom-blur` / `glitch`; `rect-morph` stays the existing `stage.ts` lerp. While
+  in `remotion/template/src/`, finish the #59 path-migration leftovers there (some comments
+  still say `theme.json` / old numbered script names).
+- **#14 (montage):** the `--transition` flag, the `plan[]` field, the `--xfade` alias, and
+  the eight-name → xfade-name map from `transitions.json`.

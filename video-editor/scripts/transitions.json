@@ -1,0 +1,40 @@
+{
+  "_doc": "Canonical transition + easing vocabulary. Read by both engines and montage_mode.py. See docs/design/transitions.md. Do not add a type here without a mapping for every side that can render it (reel-canvas, Remotion, ffmpeg xfade) or an explicit null.",
+
+  "easings": {
+    "linear": { "note": "identity",                    "bezier": [0.0,   0.0,   1.0,   1.0] },
+    "ease":   { "note": "out-cubic",                    "bezier": [0.215, 0.61,  0.355, 1.0] },
+    "eio":    { "note": "in-out-cubic",                 "bezier": [0.645, 0.045, 0.355, 1.0] },
+    "back":   { "note": "out-back, overshoot 1.9",      "overshoot": 1.9 }
+  },
+
+  "types": {
+    "cut":        { "reel": "instant",         "xfade": null,            "params": [],       "note": "no interpolation; montage emits a plain concat" },
+    "dissolve":   { "reel": "crossfade-alpha", "xfade": "fade",          "params": [],       "note": "cross-fade opacity; native on every side" },
+    "rect-morph": { "reel": "vrect-lerp",      "xfade": null,            "params": [],       "reelOnly": true, "note": "the current vrect x/y/w/h/r lerp between stage rects; no montage equivalent" },
+    "wipe":       { "reel": "clip-rect-sweep", "xfade": "wipe${dir}",    "params": ["dir"],  "note": "hard edge sweeps across; xfade: wipeup/wipedown/wipeleft/wiperight" },
+    "push":       { "reel": "translate-both",  "xfade": "slide${dir}",   "params": ["dir"],  "note": "old and new both translate; xfade: slideup/slidedown/slideleft/slideright" },
+    "zoom-blur":  { "reel": "scale-blur",      "xfade": "zoomin",        "params": [],       "xfadeApprox": true, "note": "scale up + blur out then in; xfade zoomin is a loose approximation" },
+    "iris":       { "reel": "radial-clip",     "xfade": "circle${dir}",  "params": ["dir"],  "note": "radial reveal; dir open|close -> xfade circleopen/circleclose" },
+    "glitch":     { "reel": "rgb-split-slice", "xfade": "pixelize",      "params": [],       "xfadeApprox": true, "note": "the current RGB-split slice effect; xfade pixelize is a loose approximation" }
+  },
+
+  "elementAnim": {
+    "rise": {
+      "params": { "y": 28, "scale": true },
+      "note": "fade + translateY(y->0) + optional out-back scale. This is exactly what caption enter does today (y=28, scale=true) and caption exit reversed (y=-10, scale=false, easing linear)."
+    }
+  },
+
+  "params": {
+    "dir": { "values": ["up", "down", "left", "right"], "default": "up", "note": "iris uses open|close instead" }
+  },
+
+  "defaults": {
+    "sceneToScene": { "type": "rect-morph", "duration": 0.42, "easing": "eio" },
+    "sceneEnter":   { "type": "rise",       "duration": 0.20, "easing": "ease",   "params": { "y": 28, "scale": true } },
+    "sceneExit":    { "type": "rise",       "duration": 0.13, "easing": "linear", "params": { "y": -10, "scale": false } },
+    "outro":        { "type": "wipe",       "duration": 0.45, "easing": "ease",   "params": { "dir": "up" } },
+    "montage":      { "type": "cut" }
+  }
+}
