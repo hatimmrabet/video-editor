@@ -4,20 +4,21 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""شيل أي جملة من الفيديو بحذفها من النص.
+"""Remove any sentence from the video by deleting it from the transcript.
 
-    python3 edit_script.py <work> show              # يطبع الجُمل مرقّمة (وينبّه للجُمل المعادة)
-    python3 edit_script.py <work> dupes             # الجُمل المعادة وحدها
-    python3 edit_script.py <work> drop 3 7 12       # يشيل هالجُمل من الفيديو
-    python3 edit_script.py <work> keep 1 2 5 6      # يبقي هذي بس ويشيل الباقي
-    python3 edit_script.py <work> apply             # يقرأ script.txt المعدّل ويشيل الناقص منه
-    python3 edit_script.py <work> undo              # يرجّع آخر تعديل
-    (أضف --dry لأي أمر: يوريك النتيجة بلا ما يغيّر شي)
+    python3 edit_script.py <work> show              # prints numbered sentences (and flags repeated ones)
+    python3 edit_script.py <work> dupes             # repeated sentences only
+    python3 edit_script.py <work> drop 3 7 12       # removes these sentences from the video
+    python3 edit_script.py <work> keep 1 2 5 6      # keeps only these, removes the rest
+    python3 edit_script.py <work> apply             # reads the edited transcript-editable.txt, drops whatever's missing
+    python3 edit_script.py <work> undo              # restores the last edit
+    (add --dry to any command: shows the result without changing anything)
 
-الفكرة: الجملة اللي تنحذف من النص ينحذف مقطعها من الفيديو والصوت، وكل اللي بعدها ينزاح لمكانه.
-يعدّل: build/cut-plan.json (مقاطع الفيديو) · build/captions.json (الكابشن) ·
-       build/sound-cues.json (أوقات المؤثرات).
-بعده: أعد بناء الفيديو ← reframe.py ثم استخراج الفريمات ثم الرسم.
+The idea: the sentence removed from the transcript has its video+audio segment removed too,
+and everything after it shifts back into place.
+Edits: build/cut-plan.json (video segments) · build/captions.json (captions) ·
+       build/sound-cues.json (sound-effect timings).
+Afterward: rebuild the video ← reframe.py, then extract frames, then render.
 """
 import json, os, sys, shutil
 
@@ -40,19 +41,19 @@ def save(n, d):
     json.dump(d, open(P(n), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 
-# ── كشف الجملة المعادة ─────────────────────────────────────────────────────
-# لما يعيد صياغة جملة، الغالب إن الأولى هي الغلط والثانية هي التصحيح.
+# ── repeated-sentence detection ─────────────────────────────────────────────
+# When a speaker restates a sentence, the first is usually the mistake and the second the correction.
 import re as _re, difflib
 _STOP = {"في","من","على","الى","إلى","عن","مع","هذا","هذي","هذه","ذلك","اللي","الي",
          "و","او","أو","ثم","بس","يا","ان","أن","إن","ما","لا","كل","كان","صار","هو","هي"}
 def _norm(w):
-    w = _re.sub(r"[\u064B-\u0652\u0640]", "", w)          # تشكيل وتطويل
+    w = _re.sub(r"[\u064B-\u0652\u0640]", "", w)          # strip diacritics and tatweel (elongation)
     w = w.replace("أ","ا").replace("إ","ا").replace("آ","ا").replace("ة","ه").replace("ى","ي")
     if len(w) > 4 and w.startswith("ال"): w = w[2:]
     return w
 def _words(c): return [_norm(x["t"]) for x in c["w"]]
 def _sim(a, b):
-    """تشابه جملتين: نسبة الكلمات المشتركة من الأقصر + تشابه الحروف"""
+    """Similarity between two sentences: shared-word ratio (of the shorter) + character similarity"""
     wa, wb = [w for w in a if w not in _STOP], [w for w in b if w not in _STOP]
     if not wa or not wb: return 0.0
     shared = len(set(wa) & set(wb)) / min(len(wa), len(wb))
@@ -73,47 +74,47 @@ def line(i, c):
 
 # ── show ──────────────────────────────────────────────────────────────────
 if CMD == "show":
-    body = ("# احذف أي سطر ما تبيه بالفيديو، واحفظ الملف، ثم:  python3 edit_script.py <work> apply\n"
-            "# (لا تغيّر الأرقام — هي اللي تربط السطر بمقطعه)\n\n"
+    body = ("# Delete any line you don't want in the video, save the file, then:  python3 edit_script.py <work> apply\n"
+            "# (don't change the numbers — they're what ties a line to its segment)\n\n"
             + "\n".join(line(i, c) for i, c in enumerate(cards)) + "\n")
     if not DRY: open(P(SCRIPT), "w", encoding="utf-8").write(body)
     print(body)
-    print(f"المدة الحالية: {caps['total']:.2f} ثانية · {len(cards)} جملة")
+    print(f"Current duration: {caps['total']:.2f}s · {len(cards)} sentences")
     d = find_dupes(cards)
     if d:
-        print("\n🔁 جُمل يبدو إنك أعدتها — والغالب إن الأولى هي الغلط:")
+        print("\n🔁 Sentences that look repeated — the first is likely the mistake:")
         for i, j, r in d:
-            print(f"   {i+1} ← {j+1}  (تشابه {r*100:.0f}٪)")
+            print(f"   {i+1} ← {j+1}  (similarity {r*100:.0f}%)")
             print(f"      {i+1}: " + " ".join(w['t'] for w in cards[i]['w']))
             print(f"      {j+1}: " + " ".join(w['t'] for w in cards[j]['w']))
-        print("   الاقتراح: drop " + " ".join(str(i+1) for i,_,_ in d) + "   (اعرضه على المستخدم قبل التنفيذ)")
+        print("   Suggestion: drop " + " ".join(str(i+1) for i,_,_ in d) + "   (show this to the user before doing it)")
     sys.exit(0)
 
 if CMD == "dupes":
     d = find_dupes(cards)
-    if not d: print("ما فيه جملة معادة."); sys.exit(0)
+    if not d: print("No repeated sentences."); sys.exit(0)
     for i, j, r in d:
-        print(f"{i+1} ← {j+1}  (تشابه {r*100:.0f}٪)")
+        print(f"{i+1} ← {j+1}  (similarity {r*100:.0f}%)")
         print(f"   {i+1}: " + " ".join(w['t'] for w in cards[i]['w']))
         print(f"   {j+1}: " + " ".join(w['t'] for w in cards[j]['w']))
-    print("\nلحذف الأولى من كل زوج:  drop " + " ".join(str(i+1) for i,_,_ in d))
+    print("\nTo drop the first of each pair:  drop " + " ".join(str(i+1) for i,_,_ in d))
     sys.exit(0)
 
 if CMD == "undo":
     n = 0
     for f in (CUT, CAPS, SFX):
         if os.path.exists(P(f + ".bak")): shutil.copy(P(f + ".bak"), P(f)); n += 1
-    print(f"↩️ رجّعت {n} ملفاً لآخر نسخة." if n else "ما فيه نسخة سابقة.")
+    print(f"↩️ Restored {n} file(s) to their last version." if n else "No previous version saved.")
     sys.exit(0)
 
-# ── أي جُمل تنشال؟ ────────────────────────────────────────────────────────
+# ── which sentences get removed? ──────────────────────────────────────────
 if CMD == "drop":
     drop = {int(a) - 1 for a in ARGS}
 elif CMD == "keep":
     keep_i = {int(a) - 1 for a in ARGS}
     drop = {i for i in range(len(cards)) if i not in keep_i}
 elif CMD == "apply":
-    if not os.path.exists(P(SCRIPT)): sys.exit("❌ ما فيه transcript-editable.txt — شغّل show أول")
+    if not os.path.exists(P(SCRIPT)): sys.exit("❌ no transcript-editable.txt — run show first")
     alive = set()
     for ln in open(P(SCRIPT), encoding="utf-8"):
         ln = ln.strip()
@@ -122,19 +123,19 @@ elif CMD == "apply":
         if head.isdigit(): alive.add(int(head) - 1)
     drop = {i for i in range(len(cards)) if i not in alive}
 else:
-    sys.exit("الأوامر: show · dupes · drop · keep · apply · undo")
+    sys.exit("Commands: show · dupes · drop · keep · apply · undo")
 
 drop = {i for i in drop if 0 <= i < len(cards)}
-if not drop: sys.exit("ما فيه جملة تنشال — بلا تغيير.")
-if len(drop) == len(cards): sys.exit("❌ هذا يشيل الفيديو كله — ألغيت.")
+if not drop: sys.exit("No sentence to remove — nothing changed.")
+if len(drop) == len(cards): sys.exit("❌ This would remove the whole video — cancelled.")
 
-# ── فترات الحذف على التايم-لاين الحالي ────────────────────────────────────
+# ── deletion intervals on the current timeline ────────────────────────────
 iv = []
 for i in sorted(drop):
     c = cards[i]
     a = max(0.0, c["w"][0]["s"] - PAD_L)
     b = min(caps["total"], c["w"][-1]["e"] + PAD_R)
-    if i + 1 < len(cards):                       # لا تاكل بداية الجملة اللي بعدها
+    if i + 1 < len(cards):                       # don't eat into the next sentence's start
         b = min(b, cards[i + 1]["w"][0]["s"] - 0.02)
     if b > a: iv.append([a, b])
 iv.sort(); merged = []
@@ -143,17 +144,17 @@ for a, b in iv:
     else: merged.append([a, b])
 gone = sum(b - a for a, b in merged)
 
-def shift(t):                                    # وقت جديد بعد الحذف
+def shift(t):                                    # new time after the deletion
     return t - sum(min(t, b) - a for a, b in merged if a < t)
 def inside(t):
     return any(a - 1e-6 <= t <= b + 1e-6 for a, b in merged)
 
-print("راح ينشال:")
+print("About to remove:")
 for i in sorted(drop): print("  ✂️ " + line(i, cards[i]).strip())
-print(f"المدة: {caps['total']:.2f} → {caps['total']-gone:.2f} ثانية (‎-{gone:.2f})")
+print(f"Duration: {caps['total']:.2f}s → {caps['total']-gone:.2f}s (‎-{gone:.2f})")
 if DRY: sys.exit(0)
 
-# ── 1) cut-plan.json: نقل فترات الحذف لزمن الفيديو الأصلي ─────────────────
+# ── 1) cut-plan.json: map the deletion intervals back to the original timeline ──
 cut = load(CUT); keep = [list(x) for x in cut["keep"]]
 off, acc = [], 0.0
 for a, b in keep: off.append(acc); acc += b - a
@@ -178,20 +179,20 @@ cut["keep"] = new_keep
 cut["total"] = round(sum(b - a for a, b in new_keep), 3)
 save(CUT, cut)
 
-# ── 2) captions.json: شيل الجُمل وازحف الباقي ────────────────────────────
+# ── 2) captions.json: remove the sentences and shift the rest ────────────
 new_cards = []
 for i, c in enumerate(cards):
     if i in drop: continue
     ws = [{**w, "s": round(shift(w["s"]), 3), "e": round(shift(w["e"]), 3)} for w in c["w"]]
     new_cards.append({"s": round(shift(c["s"]), 3), "e": round(shift(c["e"]), 3), "w": ws})
-for i in range(len(new_cards) - 1):              # لا تتداخل الكروت بعد الزحف
+for i in range(len(new_cards) - 1):              # cards must not overlap after the shift
     if new_cards[i]["e"] > new_cards[i + 1]["s"]:
         new_cards[i]["e"] = round(new_cards[i + 1]["s"] - 0.02, 3)
-# المدة النهائية = طول الفيديو الفعلي بعد القص (لا الحساب النظري) حتى ما يطلع فريم زايد
+# final duration = the actual video length after the cut (not the theoretical calc), so no extra frame
 new_total = round(min(caps["total"] - gone, cut["total"]), 3)
 save(CAPS, {"total": new_total, "cards": new_cards})
 
-# ── 3) sound-cues.json: أوقات المؤثرات ───────────────────────────────────
+# ── 3) sound-cues.json: sound-effect timings ──────────────────────────────
 if os.path.exists(P(SFX)):
     sfx = load(SFX); moved = 0; killed = 0
     for k, v in list(sfx.items()):
@@ -202,12 +203,12 @@ if os.path.exists(P(SFX)):
             else: out.append(round(shift(t), 3)); moved += 1
         sfx[k] = out
     save(SFX, sfx)
-    print(f"المؤثرات: {moved} انزاحت · {killed} انشالت")
+    print(f"Sound effects: {moved} shifted · {killed} removed")
 
 print(f"""
-✅ تم. الحين أعد بناء الفيديو:
+✅ Done. Now rebuild the video:
    python3 scripts/reframe.py {W}
    mkdir -p {W}/build/frames-source && ffmpeg -v error -i {W}/build/video-reframed.mp4 -vf fps=30 -q:v 3 -y {W}/build/frames-source/%05d.jpg
-   node scripts/render_frames.js {W} all --force     (أو remotion/remotion.sh {W} render)
-⚠️ لو كنت مصمّماً مشاهد بأوقات ثابتة — أوقاتها انزاحت، راجعها.
-↩️ للتراجع: python3 scripts/edit_script.py {W} undo""")
+   node scripts/render_frames.js {W} all --force     (or remotion/remotion.sh {W} render)
+⚠️ If you already designed scenes with hardcoded timestamps — they've shifted, review them.
+↩️ To undo: python3 scripts/edit_script.py {W} undo""")

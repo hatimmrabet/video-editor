@@ -20,7 +20,7 @@ button.alt{background:rgba(243,239,234,.10)}
 .sc.on{background:rgba(217,119,87,.28);border-color:#D97757}
 #LOGO,#VF{display:none}
 </style></head><body>
-<div id="stage"><div id="panel"><h2>استوديو الإعلان — كل مشهد ورسمه</h2><div class="sub">اسحب الشريط أو اضغط أي مشهد. كل إطار يُرسم الحين بنفس الكود اللي طلّع الفيديو.</div><input id="tl" type="range" min="0" max="1537" value="0"><div class="row"><button id="pl">تشغيل</button><button class="alt" id="bk">-1 ث</button><button class="alt" id="fw">+1 ث</button><span id="tm"></span></div><div id="list"></div></div><div id="left"><canvas id="cv" width="1080" height="1920"></canvas></div></div>
+<div id="stage"><div id="panel"><h2>Ad studio — every scene and its drawing</h2><div class="sub">Drag the timeline or click any scene. Each frame is drawn live by the same code that produced the video.</div><input id="tl" type="range" min="0" max="1537" value="0"><div class="row"><button id="pl">Play</button><button class="alt" id="bk">-1 s</button><button class="alt" id="fw">+1 s</button><span id="tm"></span></div><div id="list"></div></div><div id="left"><canvas id="cv" width="1080" height="1920"></canvas></div></div>
 <img id="LOGO" src="config/logo.png"><img id="VF">
 <script>
 const C=document.getElementById('cv'),X=C.getContext('2d');
@@ -39,7 +39,7 @@ function init(d){
     document.head.appendChild(l);}
 }
 /* ---------- utils ---------- */
-/* ألوان مشتقّة من الثيم — لا تكتب rgba ثابتة */
+/* colours derived from the theme — never write a fixed rgba */
 function hx(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');
   return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
 function rgba(hex,a){const c=hx(hex);return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';}
@@ -65,7 +65,7 @@ const R_FULL={x:0,y:0,w:1080,h:1920,r:0};
 const R_STAGE={x:190,y:660,w:700,h:700,r:44};
 const R_SIDE={x:120,y:700,w:840,h:620,r:44};
 const R_LOWER={x:350,y:1370,w:380,h:520,r:32};
-const R_DOWN={x:214,y:760,w:652,h:1160,r:40};   /* الافتراضي للحظات الرسم: رسم فوق ← كابشن ← وجه تحت */
+const R_DOWN={x:214,y:760,w:652,h:1160,r:40};   /* the default for drawing moments: graphics on top ← caption ← face below */
 const SCENES=[
  {s:0.00,e:3.32,m:R_FULL},{s:3.32,e:8.00,m:R_DOWN},{s:8.00,e:11.45,m:R_FULL},
  {s:11.45,e:15.36,m:R_DOWN},{s:15.36,e:18.56,m:R_DOWN},{s:18.56,e:20.42,m:R_FULL},
@@ -486,16 +486,16 @@ window.shot=q=>document.getElementById('cv').toDataURL('image/jpeg',q);
 </script>
 <script>
 const FPS=30, OUT_D=5.2, NVF=1379;
-const SCLIST=[[0,'ختم 0% مونتاج يدوي'],[3.32,'بطاقات: كابشن · زوم · كت · مؤثرات'],[8.0,'الملف يطير لسحابة درايف'],
-[11.45,'لوحة التفريغ — كلمة كلمة بتوقيتها'],[15.36,'كروت تتكدّس + عدّاد 15'],[18.56,'لحظة تشويق'],
-[20.42,'موجة صوتية + مؤشر مزامنة'],[25.76,'عدّاد السعر ينزل $0.00'],[28.35,'قليتش «كسر»'],
-[30.75,'المشكلة: العربي ينقلب والفيديو يسوَدّ'],[34.9,'الإصلاح: شريط تقدّم + قائمة'],[38.38,'ختم انحلّت'],
-[39.76,'كرت ملف واحد + بطاقات تندمج'],[42.82,'مربع التعليق يكتب «فيديو»'],[46.078,'كرت النهاية']];
+const SCLIST=[[0,'0% handmade-montage stamp'],[3.32,'cards: caption · zoom · cut · effects'],[8.0,'the file flies to the Drive cloud'],
+[11.45,'transcription panel — word by word, on time'],[15.36,'cards stacking up + counter 15'],[18.56,'suspense beat'],
+[20.42,'sound wave + sync indicator'],[25.76,'price counter dropping to $0.00'],[28.35,'"break" glitch'],
+[30.75,'the problem: Arabic flips and the video goes black'],[34.9,'the fix: progress bar + list'],[38.38,'"solved" stamp'],
+[39.76,'one-file card + cards merging'],[42.82,'comment box typing "video"'],[46.078,'end card']];
 let caps=null,playing=false,cur=0;
 const tl=document.getElementById('tl'),tm=document.getElementById('tm'),list=document.getElementById('list');
 SCLIST.forEach((x,i)=>{const b=document.createElement('button');b.className='sc';b.dataset.i=i;
   b.innerHTML=x[1]+'<b>'+x[0].toFixed(2)+'s</b>';
-  b.onclick=()=>{playing=false;document.getElementById('pl').textContent='تشغيل';go(Math.round((x[0]+0.45)*FPS));};
+  b.onclick=()=>{playing=false;document.getElementById('pl').textContent='Play';go(Math.round((x[0]+0.45)*FPS));};
   list.appendChild(b);});
 function mark(t){[...list.children].forEach((b,i)=>{
   const a=SCLIST[i][0],e=i+1<SCLIST.length?SCLIST[i+1][0]:999;b.classList.toggle('on',t>=a&&t<e);});}
@@ -511,10 +511,10 @@ async function go(f){
 tl.oninput=()=>go(+tl.value);
 document.getElementById('bk').onclick=()=>go(cur-FPS);
 document.getElementById('fw').onclick=()=>go(cur+FPS);
-document.getElementById('pl').onclick=function(){playing=!playing;this.textContent=playing?'إيقاف':'تشغيل';if(playing)loop();};
+document.getElementById('pl').onclick=function(){playing=!playing;this.textContent=playing?'Pause':'Play';if(playing)loop();};
 async function loop(){const t0=performance.now(),f0=cur;
   while(playing){const f=f0+Math.round((performance.now()-t0)/1000*FPS);
-    if(f>+tl.max){playing=false;document.getElementById('pl').textContent='تشغيل';break;}
+    if(f>+tl.max){playing=false;document.getElementById('pl').textContent='Play';break;}
     await go(f); await new Promise(r=>setTimeout(r,0));}}
 (async()=>{caps=await (await fetch('build/captions.json')).json();
   let th={}; try{

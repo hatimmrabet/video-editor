@@ -4,9 +4,10 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""ملف ترجمة SRT + نص كامل من الكابشن.  python3 subtitles.py <workdir>
-يطلّع: video-final.srt (يوتيوب يقراه، وانستقرام يقبله بالرفع) و post-caption.txt (نص جاهز لكابشن البوست).
-يقرأ build/captions.json — نفس التوقيتات اللي انرسمت بالفيديو، فالمزامنة مضمونة."""
+"""SRT subtitle file + full caption text.  python3 subtitles.py <workdir>
+Produces: video-final.srt (YouTube reads it, Instagram accepts it on upload) and
+post-caption.txt (text ready for the post caption).
+Reads build/captions.json — the same timings that were rendered onto the video, so sync is guaranteed."""
 import json, sys, os
 
 W = os.path.abspath(sys.argv[1])
@@ -19,7 +20,7 @@ def ts(t):
     if ms == 1000: s += 1; ms = 0
     return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
 
-MAXCH = 42          # سطر أطول من كذا ينقص بالجوال
+MAXCH = 42          # a line longer than this gets cut off on mobile
 def wrap(words):
     lines, cur = [], ""
     for w in words:
@@ -35,7 +36,7 @@ srt, txt = [], []
 for i, c in enumerate(cards, 1):
     words = [w["t"] for w in c["w"]]
     end = c["e"]
-    if i < len(cards):                       # لا تتداخل مع الكرت اللي بعده
+    if i < len(cards):                       # don't overlap the next card
         end = min(end, cards[i]["s"] - 0.02)
     if end <= c["s"]: end = c["s"] + 0.4
     srt.append(f"{i}\n{ts(c['s'])} --> {ts(end)}\n" + "\n".join(wrap(words)) + "\n")
@@ -44,5 +45,5 @@ for i, c in enumerate(cards, 1):
 sp = os.path.join(W, "video-final.srt"); tp = os.path.join(W, "post-caption.txt")
 open(sp, "w", encoding="utf-8").write("\n".join(srt))
 open(tp, "w", encoding="utf-8").write("\n".join(txt) + "\n")
-print(f"✅ {sp}  ({len(cards)} سطر ترجمة)")
-print(f"✅ {tp}  ({sum(len(t.split()) for t in txt)} كلمة — جاهز لكابشن البوست)")
+print(f"✅ {sp}  ({len(cards)} subtitle lines)")
+print(f"✅ {tp}  ({sum(len(t.split()) for t in txt)} words — ready for the post caption)")

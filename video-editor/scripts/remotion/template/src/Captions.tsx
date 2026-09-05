@@ -6,8 +6,8 @@ type W = {t:string; s:number; e:number; hot:boolean};
 type C = {s:number; e:number; w:W[]};
 const CARDS = (caps as any).cards as C[];
 
-/* ⚠️ الأسفل: 1920-1500 = الكرت ينتهي عند y=1460، فوق منطقة أزرار انستقرام.
-   لا تنزّله تحت ذلك — شغّل 08_safe_check.js بعد أي تعديل. */
+/* WARNING bottom: 1920-1500 = the card ends at y=1460, above Instagram's button area.
+   Don't push it lower — run safe_check.js after any change. */
 export const Captions: React.FC<{t:number}> = ({t}) => {
   const c = CARDS.find(c => t >= c.s && t < c.e);
   if (!c) return null;

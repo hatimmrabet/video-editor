@@ -4,27 +4,28 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""تفريغ الكلام بتوقيت كل كلمة → <work>/build/transcript-raw.json  (نفس صيغة openai-whisper).
+"""Word-level speech transcription → <work>/build/transcript-raw.json (openai-whisper shape).
 
   python3 transcribe.py <work> [--language ar] [--model large-v3]
                                [--engine auto|faster-whisper|whisper]
                                [--device auto|cuda|cpu] [--hard-dialect]
 
-يقرأ  : <work>/build/transcribe-input.wav
-يكتب  : <work>/build/transcript-raw.json  = {"text":..., "segments":[{id,start,end,text,words:[{word,start,end}]}], "language":...}
+Reads : <work>/build/transcribe-input.wav
+Writes: <work>/build/transcript-raw.json  = {"text":..., "segments":[{id,start,end,text,words:[{word,start,end}]}], "language":...}
 
-المحرّكات (auto = يجرّب الأسرع أولاً):
-  faster-whisper على GPU  ← الأسرع (يحتاج CUDA + الحزم nvidia-cublas-cu12 / nvidia-cudnn-cu12)
-  faster-whisper على CPU  ← أسرع ~4× من openai-whisper، نفس الجودة
-  openai-whisper على CPU  ← الاحتياطي
+Engines (auto = tries the fastest first):
+  faster-whisper on GPU  ← fastest (needs CUDA + the nvidia-cublas-cu12 / nvidia-cudnn-cu12 packages)
+  faster-whisper on CPU  ← ~4x faster than openai-whisper, same quality
+  openai-whisper on CPU  ← fallback
 
---hard-dialect : للدارجة المغربية والجزائرية… إلخ — يفعّل VAD + عقوبة التكرار + عتبة صمت أعلى،
-                 ويطبع تحذيراً إن التفريغ التلقائي راح يحتاج تصحيحاً يدوياً.
+--hard-dialect : for Moroccan/Algerian darija etc. — enables VAD + a repetition penalty + a
+                 higher silence threshold, and prints a warning that the automatic
+                 transcription will need manual correction.
 """
 import argparse, importlib.util, json, os, wave
 
 
-# ── دارجات صعبة على Whisper: نخفّضها لرمز ISO مقبول، ونشغّل وضع hard-dialect ──
+# ── dialects Whisper struggles with: mapped down to an acceptable ISO code, hard-dialect mode enabled ──
 HARD_DIALECTS = {
     "ar-ma": "ar", "ar-dz": "ar", "ar-tn": "ar", "ar-ly": "ar",
     "darija": "ar", "maghrebi": "ar", "moroccan": "ar",
@@ -32,7 +33,7 @@ HARD_DIALECTS = {
 
 
 def enable_cuda_libs():
-    """يجعل مكتبات CUDA المثبّتة عبر pip مرئية لـCTranslate2 على ويندوز (ولا يضرّ غيره)."""
+    """Makes CUDA libraries installed via pip visible to CTranslate2 on Windows (harmless elsewhere)."""
     found = []
     for mod in ("nvidia.cublas", "nvidia.cudnn"):
         try:
@@ -81,7 +82,7 @@ def to_a_json(segments, language, out_path):
         print(f"[{s['start']:7.2f}-{s['end']:7.2f}] {s['text'].strip()}")
     json.dump({"text": " ".join(full), "segments": segs, "language": language},
               open(out_path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-    print(f"✅ {out_path}  — {len(segs)} مقطع")
+    print(f"✅ {out_path}  — {len(segs)} segment(s)")
 
 
 def run_faster_whisper(wav, language, model, device, hard):
@@ -126,25 +127,25 @@ def main():
     ap.add_argument("--engine", default="auto", choices=["auto", "faster-whisper", "whisper"])
     ap.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
     ap.add_argument("--hard-dialect", action="store_true")
-    ap.add_argument("--wav", help="ملف صوتي بديل (افتراضي <work>/build/transcribe-input.wav)")
-    ap.add_argument("--out", help="ملف خرج بديل (افتراضي <work>/build/transcript-raw.json)")
+    ap.add_argument("--wav", help="alternate input file (default <work>/build/transcribe-input.wav)")
+    ap.add_argument("--out", help="alternate output file (default <work>/build/transcript-raw.json)")
     args = ap.parse_args()
 
     W = os.path.abspath(args.work)
     os.makedirs(os.path.join(W, "build"), exist_ok=True)
     wav = os.path.abspath(args.wav) if args.wav else os.path.join(W, "build", "transcribe-input.wav")
     if not os.path.exists(wav):
-        _sys.exit(f"❌ ما لقيت {wav} — استخرجه أول: ffmpeg -i <rush source> -vn -ac 1 -ar 16000 {wav}")
+        _sys.exit(f"❌ couldn't find {wav} — extract it first: ffmpeg -i <rush source> -vn -ac 1 -ar 16000 {wav}")
 
     lang = args.language.lower()
     hard = args.hard_dialect or lang in HARD_DIALECTS
     language = HARD_DIALECTS.get(lang, args.language)
     if hard:
-        print("⚠️  لهجة صعبة — التفريغ التلقائي غالباً غلط: اعرض النص على المستخدم وصحّحه قبل الكابشن.")
+        print("⚠️  Hard dialect — the automatic transcription is likely wrong: show the text to the user and correct it before captioning.")
 
     with wave.open(wav) as wf:
         dur = wf.getnframes() / wf.getframerate()
-    print(f"صوت {dur:.1f}s · لغة {language}")
+    print(f"audio {dur:.1f}s · language {language}")
 
     engine = args.engine
     if engine == "auto":
@@ -157,17 +158,17 @@ def main():
     try:
         if engine == "faster-whisper":
             if not have("faster_whisper"):
-                _sys.exit("❌ faster-whisper غير مثبّت — pip install faster-whisper")
+                _sys.exit("❌ faster-whisper not installed — pip install faster-whisper")
             if device == "cuda":
                 enable_cuda_libs()
             segs, detected = run_faster_whisper(wav, language, args.model, device, hard)
         else:
             if not have("whisper"):
-                _sys.exit("❌ ولا محرّك مثبّت — pip install faster-whisper  (أو openai-whisper)")
+                _sys.exit("❌ no engine installed — pip install faster-whisper  (or openai-whisper)")
             segs, detected = run_openai_whisper(wav, language, args.model, hard)
     except Exception as e:
         if engine == "faster-whisper" and have("whisper"):
-            print(f"⚠️  faster-whisper فشل ({e}) — أجرّب openai-whisper…")
+            print(f"⚠️  faster-whisper failed ({e}) — trying openai-whisper…")
             segs, detected = run_openai_whisper(wav, language, args.model, hard)
         else:
             raise

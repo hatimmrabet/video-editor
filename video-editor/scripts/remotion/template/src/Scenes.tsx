@@ -1,16 +1,16 @@
-/* ═══════ المشاهد — هني شغلك أنت ═══════
-   ⛔ هذا الملف مكتبة أنماط، مو قالباً يُنسخ. اخترع مشاهد جديدة لكل فيديو:
-      كل مشهد استعارة بصرية لما يقوله المتحدث بتلك اللحظة، لا زينة.
-   • توقيت كل مشهد من كلمات caps.json — W(i) ترجّع كلمات الجملة i بتوقيتها.
-   • VideoOverlay = ما يُرسم فوق الفيديو نفسه (داخل الكرت) — مثل القليتش.
-   • Scenes      = ما يُرسم فوق كل شي (بطاقات، عدّادات، لوحات).
-   • بعد أي تعديل: node scripts/08_safe_check.js <work> (المنطقة الآمنة + الهوك). */
+/* ═══════ The scenes — this is your part ═══════
+   This file is a pattern library, not a template to copy. Invent new scenes for every video:
+      each scene is a visual metaphor for what the speaker is saying at that moment, not decoration.
+   • Time each scene from the words in caps.json — W(i) returns the words of sentence i with their timing.
+   • VideoOverlay = what is drawn over the video itself (inside the card) — like the glitch.
+   • Scenes      = what is drawn over everything (cards, counters, panels).
+   • After any change: node scripts/safe_check.js <work> (safe zone + hook). */
 import {T} from './theme';
 import {p, ease, back, rgba, onACC, lerp} from './util';
 import caps from './caps.json';
 
 const CARDS = (caps as any).cards;
-/** كلمات الجملة رقم i — {t,s,e} */
+/** the words of sentence i — {t,s,e} */
 export const W = (i:number) => CARDS[i].w as {t:string;s:number;e:number}[];
 const abs = (s:React.CSSProperties):React.CSSProperties => ({position:'absolute', ...s});
 export const CARD: React.CSSProperties = {
@@ -18,8 +18,8 @@ export const CARD: React.CSSProperties = {
   boxShadow:`0 18px 44px ${rgba(T.ink,0.20)}`, borderRadius:20,
 };
 
-/* ── مثال 1 · ختم يهبط مع كلمة ── */
-const Stamp = ({t, at=[2.45,3.30], text='مثال'}:{t:number; at?:number[]; text?:string}) => {
+/* ── Example 1 · a stamp dropping in on a word ── */
+const Stamp = ({t, at=[2.45,3.30], text='example'}:{t:number; at?:number[]; text?:string}) => {
   if (t < at[0] || t > at[1]) return null;
   const k = p(t,at[0],at[0]+0.30), a = t > at[1]-0.20 ? 1-p(t,at[1]-0.20,at[1]) : 1;
   return (
@@ -31,7 +31,7 @@ const Stamp = ({t, at=[2.45,3.30], text='مثال'}:{t:number; at?:number[]; tex
   );
 };
 
-/* ── مثال 2 · بطاقات تدخل وحدة مع كل كلمة ── */
+/* ── Example 2 · cards entering one at a time with each word ── */
 const Chips = ({t, seg=1, labels=[] as string[], from=0, to=0}:
   {t:number; seg?:number; labels?:string[]; from?:number; to?:number}) => {
   if (!labels.length || t < from || t > to) return null;
@@ -51,11 +51,11 @@ const Chips = ({t, seg=1, labels=[] as string[], from=0, to=0}:
   })}</>);
 };
 
-/** فوق الفيديو نفسه (داخل الكرت) */
+/** over the video itself (inside the card) */
 export const VideoOverlay = ({t}:{t:number}) => (<></>);
 
-/** فوق كل شي */
+/** over everything */
 export const Scenes = ({t}:{t:number}) => (<>
   <Stamp t={t}/>
-  {/* <Chips t={t} seg={1} labels={['أ','ب','ج','د']} from={3.3} to={8.0}/> */}
+  {/* <Chips t={t} seg={1} labels={['A','B','C','D']} from={3.3} to={8.0}/> */}
 </>);
