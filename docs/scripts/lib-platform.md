@@ -60,6 +60,8 @@ const { fileUrl, chromePath, launchOptions, resolvePuppeteer, hasFullPuppeteer }
 | `hasFullPuppeteer()` | is the full `puppeteer` package (bundled Chromium) resolvable? |
 | `launchOptions(extra)` | ready-made options: `headless:true`, the four `--no-sandbox …` args, and a browser only if needed — `$CHROME_PATH` if set; else nothing when `hasFullPuppeteer()` (puppeteer finds its own via `.puppeteerrc.cjs`); else the system-Chrome path or `channel:'chrome'` |
 | `resolvePuppeteer()` | tries `$PUPPETEER_PATH`, `puppeteer` (preferred), `puppeteer-core`, then the same names under `./node_modules` and the skill's `node_modules`; throws with a `setup.sh` hint if none found |
+| `skillDir()` | the skill root — same arithmetic as `VEVO_SKILL_DIR` in `platform.sh` |
+| `pythonCmd()` | JS mirror of `VEVO_PY`: `['uv','run','--project',skillDir(),'python']` if `uv` is on PATH, else the skill's `.venv` python, else `['python3']`. Returns an array — `const c = pythonCmd(); execFileSync(c[0], [...c.slice(1), script, arg])`. Used by [`lib/config.js`](lib-config.md) to shell out to `config.py` rather than reimplementing its logic |
 
 ### Required by
 

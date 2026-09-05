@@ -54,6 +54,12 @@ Every run operates on one **work directory** (`<work>`), passed as the first arg
 every script. Each script reads its inputs from `<work>` and writes its outputs back
 there. There is no database and no global state — the work dir *is* the state.
 
+**This section describes today's flat layout.** A 2026-09-05 design session settled on
+splitting `<work>` into `rush/` (raw input) / `config/` (`project.config.json`) / `build/`
+(everything generated) plus a root-level deliverable — not yet implemented. See
+[design/file-layout.md](design/file-layout.md) for the target layout and the full
+file-by-file rename.
+
 A speech-ad work dir accumulates roughly this:
 
 ```

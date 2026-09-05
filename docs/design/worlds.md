@@ -64,8 +64,13 @@ exist.
      long-form ──┤   + jump-cut/filler engine + chaptering + B-roll cutaways
 ```
 
-`world` is a field in [project.config.json](project-config.md). The orchestrator
-([orchestrator.md](orchestrator.md)) picks the stage list from the world.
+**Not a config field.** Which world a project belongs to is inferred at the start of each
+run from what's actually in `rush/` (one file with speech vs. many clips) — not stored in
+[project.config.json](project-config.md), to avoid a second source of truth alongside the
+filesystem (decided 2026-09-05, see project-config.md). The orchestrator
+([orchestrator.md](orchestrator.md)) picks the stage list from the inferred world.
+`project.config.json` does carry `format` (`short`/`long`) — the one related thing that
+can't be inferred from the footage itself.
 
 ## Open questions
 

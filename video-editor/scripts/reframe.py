@@ -10,15 +10,17 @@ python3 reframe.py <workdir>
 يشتغل مع أي مصدر:
 - مصدر عمودي (سيلفي ~9:16)  → يمرّ كما هو (السلوك الأصلي، بلا تغيير)
 - مصدر أفقي (16:9 / كاميرا)  → يُقصّ منه إطار عمودي 9:16 من الوسط قبل الزوم
-theme.json (اختياري): xAnchor (0-1، أفقي · افتراضي 0.5) · yAnchor (0-1، عمودي · افتراضي 0.30)
+project.config.json (اختياري): crop.xAnchor (0-1، أفقي · افتراضي 0.5) ·
+crop.yAnchor (0-1، عمودي · افتراضي 0.30) · grade (bool · افتراضي false)
 """
 import json, subprocess, sys, os
+from lib import config as _cfg
 W=os.path.abspath(sys.argv[1]); SRC=os.path.join(W,"src.mov")
 k=json.load(open(os.path.join(W,"cut.json")))["keep"]
-_tp=os.path.join(W,"theme.json")
-_theme=json.load(open(_tp)) if os.path.exists(_tp) else {}
-GRADE=_theme.get("grade",False)
-XANCH=float(_theme.get("xAnchor",0.5)); YANCH=float(_theme.get("yAnchor",0.30))
+_cfg_data=_cfg.load(W)
+GRADE=_cfg_data.get("grade",False)
+_crop=_cfg_data.get("crop",{})
+XANCH=float(_crop.get("xAnchor",0.5)); YANCH=float(_crop.get("yAnchor",0.30))
 Z=[1.00,1.08,1.00,1.06,1.00,1.12,1.04,1.14,1.00,1.08,1.00,1.05,1.10,1.00]
 p=subprocess.run(["ffprobe","-v","error","-select_streams","v:0","-show_entries",
    "stream=width,height","-of","csv=p=0:s=x",SRC],capture_output=True,text=True).stdout.strip()

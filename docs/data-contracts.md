@@ -7,10 +7,41 @@ Legend: **W** = written by, **R** = read by, **M** = mutated in place by.
 
 ---
 
-## `theme.json` — visual identity (hand-authored)
+## `config/project.config.json` — the per-project config (in progress)
 
-**W** hand-authored (SKILL.md step 1) · **R** `reframe.py`, `render_frames.js`,
-`safe_check.js`, `compose.html`, `remotion.sh`
+**W** hand-authored, via the mandatory config-confirmation phase (see
+[orchestrator.md](design/orchestrator.md)) · **R**/**W** `lib/config.py` /
+`lib/config.js`'s `load()` — see [lib-config.md](scripts/lib-config.md)
+
+```jsonc
+{
+  "format": "short",          // short | long
+  "engine": "light",          // light | remotion — literal, never "auto"
+  "language": "ar",           // absent for broll-montage (no speech)
+  "grade": false,
+  "crop": { "xAnchor": 0.5, "yAnchor": 0.30, "faceAnchor": 0.30 },
+  "theme": { "bg": "#101828", "ink": "#F5F7FA", "acc": "#F2B33D", "clay": "#C98B18",
+             "mut": "#98A2B3", "font": "Tajawal", "logo": "logo.png", "handle": "@his_handle",
+             "grid": true }
+}
+```
+
+Full rationale (why it's this lean, what deliberately isn't in it) in
+[design/project-config.md](design/project-config.md). **Partially consumed** —
+`reframe.py` reads its `grade`/`crop` via `config.load()` as of issue #8 (2026-09-05);
+`render_frames.js`, the Remotion generator, and `SKILL.md` step 1 still read/write the
+legacy files below directly (issues #9–#10). **No back-compat bridge exists or is
+planned** — one user, no installed base to protect; each script migrates to
+`config.load()` directly and drops its old file-reading code in the same change (see
+[project-config.md](design/project-config.md#migration--direct-no-bridge)).
+
+---
+
+## `theme.json` — visual identity (hand-authored today; retired once #9–#10 land)
+
+**W** hand-authored (SKILL.md step 1) · **R** `render_frames.js`, `safe_check.js`,
+`compose.html`, `remotion.sh` — no longer `reframe.py` (migrated to `project.config.json`
+via `config.load()`, issue #8)
 
 ```jsonc
 {
@@ -23,10 +54,13 @@ Legend: **W** = written by, **R** = read by, **M** = mutated in place by.
   "handle":"@his_handle",// account handle (drawn LTR)
   "logo":  "logo.png",  // logo filename inside <work>
 
-  "grade":      false,  // reframe.py: apply eq/colorbalance grade to the video. OFF by default — invariant #4
+  "grade":      false,  // ⚠️ orphaned here since issue #8 — reframe.py now reads `grade` from
+                         // project.config.json instead. OFF by default — invariant #4
   "faceAnchor": 0.30,   // compose.html: vertical face position inside the video card (0 top .. 1 bottom)
-  "xAnchor":    0.5,    // reframe.py: horizontal crop anchor for a landscape source (0 left .. 1 right)
-  "yAnchor":    0.30,   // reframe.py: vertical crop anchor for a landscape source
+  "xAnchor":    0.5,    // ⚠️ orphaned here since issue #8 — reframe.py now reads `crop.xAnchor`
+                         // from project.config.json instead (0 left .. 1 right)
+  "yAnchor":    0.30,   // ⚠️ orphaned here since issue #8 — reframe.py now reads `crop.yAnchor`
+                         // from project.config.json instead
   "grid":       true,   // compose.html: faint 60px background grid (false disables)
   "badgeUntil": 0,      // seconds the account badge stays on screen. 0 = never, -1 = whole video
   "badge":      false   // legacy boolean — true→badgeUntil 3, false→0 (kept for back-compat)
@@ -34,8 +68,11 @@ Legend: **W** = written by, **R** = read by, **M** = mutated in place by.
 ```
 
 Only `bg / ink / acc / clay / mut / font / handle` (and `badgeUntil`, via `theme.ts`)
-reach the Remotion engine. `grade / xAnchor / yAnchor` are read by `reframe.py` only.
-`faceAnchor / grid` are read by `compose.html` only.
+reach the Remotion engine. `grade / xAnchor / yAnchor` are **no longer read by anything
+here** — `reframe.py` gets them from `project.config.json` since issue #8. They stay in
+this example only because `SKILL.md` step 1 still writes them (until issue #10 migrates
+it); writing them has no effect until then. `faceAnchor / grid` are read by `compose.html`
+only.
 
 Consumers use hardcoded **fallbacks** if the file or a key is missing — `compose.html`:
 cream/clay Claude theme; `theme.ts`: `#101828 / #F5F7FA / #F2B33D / #C98B18 / #98A2B3 / Cairo`.
