@@ -55,6 +55,15 @@ const ease=t=>1-Math.pow(1-t,3);
 const eio=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 const back=t=>{const c=1.9,s=c+1;return 1+s*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
 const pr=(t,a,b)=>cl((t-a)/(b-a),0,1);
+/* ---------- transition vocabulary (mirror of compose.reference.html; see scripts/transitions.json) ---------- */
+const EZ={linear:t=>t,ease:ease,eio:eio,back:back};
+const ez=n=>EZ[n]||eio;
+/* The studio has no injection path to scripts/transitions.json, so this stays at today's
+   exact values — the studio previews the default behaviour. Per-scene `transition`
+   overrides on the SCENES array still work. */
+const TX={ sceneToScene:{type:'rect-morph',duration:0.42,easing:'eio'},
+           sceneEnter:{type:'rise',duration:0.20,easing:'ease',  params:{y:28, scale:true}},
+           sceneExit: {type:'rise',duration:0.13,easing:'linear',params:{y:-10,scale:false}} };
 function rr(x,y,w,h,r){r=Math.min(r,w/2,h/2);X.beginPath();X.moveTo(x+r,y);X.arcTo(x+w,y,x+w,y+h,r);X.arcTo(x+w,y+h,x,y+h,r);X.arcTo(x,y+h,x,y,r);X.arcTo(x,y,x+w,y,r);X.closePath();}
 function sh(b,y,a){X.shadowColor=cINK(a);X.shadowBlur=b;X.shadowOffsetY=y;}
 function nsh(){X.shadowColor='transparent';X.shadowBlur=0;X.shadowOffsetY=0;}
@@ -72,23 +81,39 @@ const SCENES=[
  {s:20.42,e:25.76,m:R_FULL},{s:25.76,e:28.35,m:R_DOWN},{s:28.35,e:30.75,m:R_FULL},
  {s:30.75,e:34.90,m:R_DOWN},{s:34.90,e:38.38,m:R_DOWN},{s:38.38,e:39.76,m:R_FULL},
  {s:39.76,e:42.82,m:R_DOWN},{s:42.82,e:99,m:R_FULL}];
-const TR=0.42;
+let TR=0.42;   /* = TX.sceneToScene.duration */
+function vtrans(i){
+  const d=TX.sceneToScene, o=(SCENES[i]&&SCENES[i].transition)||null;
+  if(o&&typeof o==='object') return {type:o.type||d.type, dur:(o.duration!=null?o.duration:d.duration), easing:o.easing||d.easing};
+  if(typeof o==='string')    return {type:o, dur:d.duration, easing:d.easing};
+  return {type:d.type, dur:d.duration, easing:d.easing};
+}
 function vrect(t){
   let i=SCENES.findIndex(s=>t>=s.s&&t<s.e); if(i<0)i=SCENES.length-1;
+  const tr=vtrans(i);
   let a=SCENES[i].m,b=a,k=1;
-  if(t<SCENES[i].s+TR&&i>0){a=SCENES[i-1].m;b=SCENES[i].m;k=eio(pr(t,SCENES[i].s,SCENES[i].s+TR));}
+  if(i>0&&tr.type!=='cut'&&t<SCENES[i].s+tr.dur){a=SCENES[i-1].m;b=SCENES[i].m;k=ez(tr.easing)(pr(t,SCENES[i].s,SCENES[i].s+tr.dur));}
   return {x:lerp(a.x,b.x,k),y:lerp(a.y,b.y,k),w:lerp(a.w,b.w,k),h:lerp(a.h,b.h,k),r:lerp(a.r,b.r,k)};
 }
-function drawVideo(t){
-  const R=vrect(t), sw=VF.naturalWidth||1080, shh=VF.naturalHeight||1920;
+function paintVideo(R,alpha){
+  const sw=VF.naturalWidth||1080, shh=VF.naturalHeight||1920;
   const sc=Math.max(R.w/sw,R.h/shh), cw=R.w/sc, ch=R.h/sc;
   const sx=(sw-cw)/2, sy=(shh-ch)*0.26;
-  X.save();
+  X.save(); if(alpha!=null)X.globalAlpha*=alpha;
   if(R.r>0.5){sh(70,26,0.26);X.fillStyle='#000';rr(R.x,R.y,R.w,R.h,R.r);X.fill();nsh();}
   rr(R.x,R.y,R.w,R.h,R.r);X.clip();
   X.drawImage(VF,sx,sy,cw,ch,R.x,R.y,R.w,R.h);
   X.restore();
-  if(R.r>0.5){X.save();X.strokeStyle=cINK(0.10);X.lineWidth=3;rr(R.x,R.y,R.w,R.h,R.r);X.stroke();X.restore();}
+  if(R.r>0.5){X.save();if(alpha!=null)X.globalAlpha*=alpha;X.strokeStyle=cINK(0.10);X.lineWidth=3;rr(R.x,R.y,R.w,R.h,R.r);X.stroke();X.restore();}
+}
+function drawVideo(t){
+  let i=SCENES.findIndex(s=>t>=s.s&&t<s.e); if(i<0)i=SCENES.length-1;
+  const tr=vtrans(i);
+  if(i>0&&tr.type==='dissolve'&&t<SCENES[i].s+tr.dur){
+    const k=ez(tr.easing)(pr(t,SCENES[i].s,SCENES[i].s+tr.dur));
+    paintVideo(SCENES[i-1].m,1-k); paintVideo(SCENES[i].m,k); return;
+  }
+  paintVideo(vrect(t),null);
 }
 /* ---------- icons ---------- */
 function iCaption(x,y,s,c){X.save();X.strokeStyle=c;X.lineWidth=s*0.09;X.lineCap='round';
@@ -143,8 +168,9 @@ function layout(ws){X.font='800 '+FS+'px '+FONT;
 function caption(t){
   const c=CAPS.find(c=>t>=c.s&&t<c.e); if(!c)return;
   const lt=t-c.s,rt=c.e-t;let a=1,dy=0,sc=1;
-  if(lt<0.2){const k=lt/0.2;a=ease(k);dy=(1-ease(k))*28;sc=0.93+0.07*back(k);}
-  if(rt<0.13){const k=rt/0.13;a=k;dy=-(1-k)*10;}
+  const _en=TX.sceneEnter,_ex=TX.sceneExit;   /* `rise` — the caption default (== today's values) */
+  if(lt<_en.duration){const k=lt/_en.duration,e=ez(_en.easing)(k);a=e;dy=(1-e)*_en.params.y;sc=_en.params.scale?0.93+0.07*back(k):1;}
+  if(rt<_ex.duration){const k=rt/_ex.duration,e=ez(_ex.easing)(k);a=e;dy=(1-e)*_ex.params.y;}
   const L=layout(c.w),bh=L.length*LH+PADY*2,bw=Math.max(...L.map(l=>l.w))+PADX*2;
   const bx=540-bw/2,by=1580-bh;
   X.save();X.globalAlpha=a;X.translate(540,by+bh/2+dy);X.scale(sc,sc);X.translate(-540,-(by+bh/2));

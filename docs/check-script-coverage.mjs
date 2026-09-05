@@ -38,6 +38,7 @@ const COVERAGE = [
   ['setup',               ['setup.sh']],
   ['lib-platform',        ['lib/platform.sh', 'lib/platform.js']],
   ['lib-config',          ['lib/config.py', 'lib/config.js']],
+  ['lib-transitions',     ['lib/transitions.py', 'lib/transitions.js']],
   ['lib-rush',            ['lib/rush.py']],
   ['compose_html',        ['compose.reference.html']],
   ['studio_html',         ['studio.html']],

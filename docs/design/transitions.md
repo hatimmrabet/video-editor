@@ -1,8 +1,9 @@
 # Transitions — a named vocabulary
 
-Status: **schema locked (Pass 3, issue #11).** The canonical table is
-[`video-editor/scripts/transitions.json`](../../video-editor/scripts/transitions.json);
-this page explains it. Engine wiring is issues #12 (light), #13 (Remotion), #14 (montage).
+Status: **schema locked (#11); light engine wired (#12).** The canonical table is
+[`video-editor/scripts/transitions.json`](../../video-editor/scripts/transitions.json),
+read via [`lib/transitions`](../scripts/lib-transitions.md); this page explains it.
+Remaining: #13 (Remotion), #14 (montage).
 
 ## Problem
 
@@ -62,6 +63,12 @@ each side actually does and flags where the montage side is only an approximatio
 
 `whip-pan` from the earlier draft is **dropped** for now — real per-frame motion blur on
 canvas is too expensive and a faked streak looked cheap. Add it later if a real need shows up.
+
+**On the reel video rect** (`SCENES[i].transition`), only `rect-morph` / `cut` / `dissolve`
+are wired — the reel is one continuous take, so `wipe`/`push`/`iris`/etc. between two crops
+of the *same* frame read as a gimmick, not a shot change. Those types are for montage
+(#14) and, later, the scene graphic layer (Pass 4). An unsupported type on a `SCENES`
+entry falls back to `rect-morph` timing.
 
 **Escape hatch (montage only):** `params.xfade` passes a raw ffmpeg xfade name straight
 through (`{"type":"dissolve","params":{"xfade":"hlslice"}}`). Not part of the vocabulary,
@@ -153,9 +160,13 @@ total shortens by `Σ duration`, same arithmetic as the current `--xfade` path.
 
 ## Follow-ups for the implementation issues
 
-- **#12 (light):** a `lib/transitions.py` resolver (shorthand → object, apply type
-  defaults, look up easing) with `lib/transitions.js` shelling out to it — same pattern as
-  `lib/config`. Wire `vrect` and the caption/scene enter/exit onto it.
+- **#12 (light): done.** `lib/transitions.py` resolver + `lib/transitions.js` shelling out
+  to it. `render_frames.js` injects `load().defaults`; `compose.html` / `studio.html` read
+  it in `vrect` (`sceneToScene`) and `caption` (`sceneEnter` / `sceneExit` = the `rise`
+  type), with today's literals as the fallback. `SCENES[i].transition` (object form)
+  overrides one boundary; `rect-morph` / `cut` / `dissolve` render on the reel video.
+  Not done here: scene-graphic enter/exit still hand-rolled per scene (moves to `rise` in
+  Pass 4); `wipe`/`push` on the reel (see the Type set note).
 - **#13 (Remotion):** `@remotion/transitions` for `dissolve` / `wipe` / `push` / `iris`;
   hand-roll `zoom-blur` / `glitch`; `rect-morph` stays the existing `stage.ts` lerp. While
   in `remotion/template/src/`, finish the #59 path-migration leftovers there (some comments

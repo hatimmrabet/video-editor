@@ -10,7 +10,7 @@
 
 | Function | Purpose |
 |---|---|
-| `init(d)` | `d = { cards, total, outro, theme, behind }`. Sets theme vars, injects a non-Cairo font `<link>`, updates the logo, calls `preloadBroll()`. Returns a Promise |
+| `init(d)` | `d = { cards, total, outro, theme, behind, transitions }`. Sets theme vars, injects a non-Cairo font `<link>`, updates the logo, applies `transitions` (→ `TX`, `TR`), calls `preloadBroll()`. Returns a Promise |
 | `setFrame(url)` | `VF.src = url; VF.decode()` — set the source video frame |
 | `setPerson(url, face)` | set the person-cutout PNG + face box (`{x,y,w,h}`) for this frame; `PRS_OK` gates the effect |
 | `draw(t)` | render one frame at time `t`. **Resets all canvas state first** |
@@ -37,8 +37,13 @@
 `const SCENES = [ {s, e, m}, ... ]` — inline array of `{start, end, rect}`.
 `resolveScenes()` swaps each `R_DOWN` for a flexible rect from the graphic bottom (`gb`,
 per-scene, e.g. `{s,e,m:R_DOWN,gb:480}`) and the caption line count.
-`vrect(t)` lerps between consecutive rects over `TR = 0.42 s` (cubic-in-out).
-`isFull(R)` = `R.w >= 1079 && R.h >= 1919` (by area, not corner radius — bug #8 note).
+`vrect(t)` lerps between consecutive rects over `TR` (= `TX.sceneToScene.duration`, 0.42 s)
+with `TX.sceneToScene.easing` (`eio`). A `SCENES[i].transition` object overrides
+type/duration/easing for that boundary — `rect-morph` (lerp, default), `cut` (snap), or
+`dissolve` (`drawVideo` cross-fades the two rects). Transition vocabulary + easing registry
+(`EZ`, `ez()`, `TX`) come from [`scripts/transitions.json`](../../video-editor/scripts/transitions.json)
+via `init`; fallback = today's literals. `isFull(R)` = `R.w >= 1079 && R.h >= 1919` (by
+area, not corner radius — bug #8 note).
 
 ## Persistent chrome
 
@@ -49,6 +54,8 @@ per-scene, e.g. `{s,e,m:R_DOWN,gb:480}`) and the caption line count.
 - `caption(t)` — active card from `CAPS`; `layout()` wraps at `MAXW = 730`; per-word
   highlight (`ACC` when spoken; animated accent pill for `hot`); position from
   `vtarget(t)` (full → y 1460; lowered → rides the edge; cutout → above the head `PTOP`).
+  Enter/exit are the `rise` type — `TX.sceneEnter` (0.2 s ease, y 28, back-scale) /
+  `TX.sceneExit` (0.13 s linear, y −10).
 
 ## Scene functions
 

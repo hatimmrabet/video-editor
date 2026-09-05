@@ -189,15 +189,25 @@ Also:
 - No `.skill` distribution package is published yet — the old one (a stale snapshot from
   before the script rename) was removed. See [project-tracking.md](project-tracking.md).
 
-## Transitions today
+## Transitions
 
-The "bouquet" is thin — see [design/transitions.md](design/transitions.md) for the plan.
+The vocabulary is data — [`scripts/transitions.json`](../video-editor/scripts/transitions.json),
+read via [`lib/transitions`](scripts/lib-transitions.md), explained in
+[design/transitions.md](design/transitions.md). The **light engine** is wired to it
+(issue #12): `render_frames.js` injects `load().defaults` into `window.init`, and
+`compose.html` / `studio.html` read `TX.sceneToScene` in `vrect` and
+`TX.sceneEnter` / `TX.sceneExit` (the `rise` type) in `caption`. The defaults equal the
+values below exactly, so nothing changed. Remotion parity is issue #13; montage is #14.
 
 - **Video-rectangle transition:** `vrect(t)` lerps x/y/w/h/r between consecutive `SCENES`
-  rects over `TR = 0.42 s` with cubic-in-out easing. This is the only "shot transition"
-  (the underlying video is one continuous `cutz.mp4`).
+  rects over `TR = 0.42 s` (`sceneToScene.duration`) with cubic-in-out easing — the
+  `rect-morph` type, and the default. A `SCENES[i].transition` object overrides
+  type/duration/easing for that one boundary; on the reel video `rect-morph` / `cut` /
+  `dissolve` are the meaningful set (it's one continuous take, so `wipe`/`push` — which
+  read as two different shots — belong to montage and the graphic layer).
 - **Caption in/out:** enter over 0.2 s (ease alpha + translateY 28→0 + back scale), exit
-  over 0.13 s (linear fade + translateY 0→−10). Identical math in both engines.
+  over 0.13 s (linear fade + translateY 0→−10) — the `rise` element animation. Identical
+  math in both engines.
 - **Per-scene:** each scene function rolls its own with `pr(t,a,b)` progress + `ease`/`eio`/`back`.
 - **`glitch(t)`:** RGB-split slice displacement + accent flash (light engine, timestamp-hardcoded).
 - **`outro(t)`:** wipe-up reveal over 0.45 s, then staggered element fade-ins. Both engines.

@@ -120,7 +120,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | Title | Labels | Status |
 |---|---|---|
 | transitions: shared `{type,duration,easing,params}` table | `area:transitions` `type:design` | ✅ #11 — `scripts/transitions.json` + `design/transitions.md` |
-| transitions: light-engine scene enter/exit + rect transitions | `area:transitions` `area:engine-light` | #12 |
+| transitions: light-engine scene enter/exit + rect transitions | `area:transitions` `area:engine-light` | ✅ #12 — `lib/transitions.{py,js}`, `compose.html` / `studio.html` wired |
 | transitions: Remotion parity (`@remotion/transitions`) | `area:transitions` `area:engine-remotion` | #13 (also mops up #59 leftovers in `remotion/template/src/`) |
 | transitions: `montage_mode.py build --transition` → ffmpeg `xfade` | `area:transitions` `area:montage` | #14 |
 

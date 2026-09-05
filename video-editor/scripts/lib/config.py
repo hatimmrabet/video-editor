@@ -4,13 +4,13 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""project.config.json partagé — load() lit et fusionne avec les défauts du skill.
-Schéma complet : docs/design/project-config.md. N'invente ni `theme` ni `language`
-manquants — ça, c'est le travail de la phase de configuration (SKILL.md), pas de load().
+"""Shared project.config.json — load() reads it and merges it over the skill defaults.
+Full schema: docs/design/project-config.md. Does not invent a missing `theme` or
+`language` — that's the configuration phase's job (SKILL.md), not load()'s.
 
-Pas de pont vers les anciens theme.json/stage.json/outro.json/safe.json : un seul
-utilisateur, aucun projet existant à préserver — les scripts qui consomment ces champs
-migrent directement vers config.load() (voir docs/design/roadmap.md, Pass 2)."""
+No bridge to the old theme.json/stage.json/outro.json/safe.json: one user, no existing
+project to preserve — the scripts that consume those fields migrate straight to
+config.load() (see docs/design/roadmap.md, Pass 2)."""
 import json
 import os
 
@@ -24,15 +24,15 @@ def _skill_dir():
 
 def _read_json(path, default=None):
     if os.path.exists(path):
-        # utf-8-sig : tolère un BOM si le fichier a été enregistré depuis un éditeur Windows
+        # utf-8-sig: tolerate a BOM if the file was saved from a Windows editor
         with open(path, encoding="utf-8-sig") as f:
             return json.load(f)
     return {} if default is None else default
 
 
 def _deep_merge(base, override):
-    """Fusionne `override` par-dessus `base` — les dicts se fusionnent champ par champ,
-    toute autre valeur remplace entièrement celle du dessous."""
+    """Merge `override` onto `base` — dicts merge field by field, any other value
+    replaces the one below it entirely."""
     out = dict(base)
     for k, v in override.items():
         if isinstance(v, dict) and isinstance(out.get(k), dict):
@@ -43,9 +43,9 @@ def _deep_merge(base, override):
 
 
 def load(work):
-    """Renvoie la config fusionnée : defaults.config.json (skill) <- project.config.json
-    (projet). Pas de project.config.json ? Juste les défauts du skill — c'est à la phase
-    de configuration d'en avoir écrit un avant qu'un script en ait besoin."""
+    """The merged config: defaults.config.json (skill) <- project.config.json (project).
+    No project.config.json? Just the skill defaults — the configuration phase is meant to
+    have written one before any script needs it."""
     work = os.path.abspath(work)
     defaults = _read_json(os.path.join(_skill_dir(), _DEFAULTS_NAME))
     project = _read_json(os.path.join(work, "config", "project.config.json"))

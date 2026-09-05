@@ -31,6 +31,12 @@ its own copy of the drawing code.
 
 - If you change `compose.reference.html`'s drawing code, `studio.html` will not reflect it
   until you port the change by hand.
+- Transitions (issue #12): `studio.html` carries the same `EZ` / `ez()` / `TX` block and
+  `vrect` / `caption` wiring, but with **no injection path** to `scripts/transitions.json` —
+  `TX` stays at today's literal values, so the studio previews the default behaviour.
+  Per-scene `SCENES[i].transition` overrides still work (they're read from the inline
+  array). A project that overrides the global defaults in `transitions.json` won't be
+  reflected here.
 - Treat `studio.html`'s rect values as **not authoritative** — `compose.reference.html` is.
 - `OUT_D=5.2` and `NVF=1379` (line ~488) are **hardcoded literals**, not read from any
   file — edit them by hand per project. Unrelated to the layout migration below; a

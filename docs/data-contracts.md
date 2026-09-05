@@ -45,8 +45,9 @@ dropping its old file-reading code in the same change (see
 
 ## `scripts/transitions.json` — transition + easing vocabulary (static skill file)
 
-**W** hand-edited, versioned with the skill (not per work-dir) · **R** both engines and
-`montage_mode.py` via `lib/transitions` (added with issue #12). See
+**W** hand-edited, versioned with the skill (not per work-dir) · **R** `render_frames.js`
+→ `compose.html`, and `studio.html`, via [`lib/transitions`](scripts/lib-transitions.md)
+(light engine wired in issue #12; Remotion is #13, `montage_mode.py` is #14). See
 [design/transitions.md](design/transitions.md) for the full explanation.
 
 ```jsonc

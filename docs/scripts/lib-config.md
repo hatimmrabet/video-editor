@@ -70,8 +70,7 @@ hand-edited `project.config.json`.
 
 ## Consumers
 
-Not yet wired into any script — that's issue #8 (`reframe.py` migrates to `config.load()`,
-deleting its `theme.json` reads), #9 (`render_frames.js` + the Remotion generator, same
-way), #10 (`SKILL.md` step 1 writes `project.config.json` instead of `theme.json`). Until
-those land, nothing calls `load()` outside of this library's own smoke tests, and the
-pipeline keeps running exactly as it does today.
+Fully wired in as of 2026-09-05 (Pass 2). `SKILL.md` step 1 writes `project.config.json`
+(#10); `reframe.py` (#8), `render_frames.js` (#55), `safe_check.js` (#56) and the Remotion
+generator in `remotion.sh` (#9) all read it via `load()`. `theme.json` is retired — see
+[data-contracts.md](../data-contracts.md).

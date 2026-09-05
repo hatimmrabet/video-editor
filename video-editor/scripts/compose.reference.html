@@ -24,6 +24,7 @@ function init(d){
   if(typeof t.badgeUntil==='number') BADGE_UNTIL=t.badgeUntil;
   if(typeof t.badge==='boolean') BADGE_UNTIL=t.badge?3:0;   /* back-compat: projects that wrote badge:false */
   if(typeof t.grid==='boolean') GRID=t.grid;
+  if(d.transitions){ TX=Object.assign({},TX,d.transitions); TR=TX.sceneToScene.duration; }
   if(t.logo){const L=document.getElementById('LOGO'); if(L.getAttribute('src')!==t.logo) L.src=t.logo;}
   if(FONT!=='Cairo'){const l=document.createElement('link');l.rel='stylesheet';
     l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(FONT)+':wght@400;600;700;800;900&display=swap';
@@ -47,6 +48,16 @@ const ease=t=>1-Math.pow(1-t,3);
 const eio=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 const back=t=>{const c=1.9,s=c+1;return 1+s*Math.pow(t-1,3)+c*Math.pow(t-1,2);};
 const pr=(t,a,b)=>cl((t-a)/(b-a),0,1);
+/* ---------- transition vocabulary (scripts/transitions.json, injected via init) ---------- */
+/* The four named easings. `linear` is the identity; the others reuse the fns above.
+   `back` is out-back(1.9) — matches transitions.json's {overshoot:1.9}. */
+const EZ={linear:t=>t,ease:ease,eio:eio,back:back};
+const ez=n=>EZ[n]||eio;
+/* Fallback = today's exact hand-tuned values, so studio.html (no injection) is unchanged.
+   render_frames.js overwrites this from scripts/transitions.json in init(). */
+let TX={ sceneToScene:{type:'rect-morph',duration:0.42,easing:'eio'},
+         sceneEnter:{type:'rise',duration:0.20,easing:'ease',  params:{y:28, scale:true}},
+         sceneExit: {type:'rise',duration:0.13,easing:'linear',params:{y:-10,scale:false}} };
 function rr(x,y,w,h,r){r=Math.min(r,w/2,h/2);X.beginPath();X.moveTo(x+r,y);X.arcTo(x+w,y,x+w,y+h,r);X.arcTo(x+w,y+h,x,y+h,r);X.arcTo(x,y+h,x,y,r);X.arcTo(x,y,x+w,y,r);X.closePath();}
 function sh(b,y,a){X.shadowColor=cINK(a);X.shadowBlur=b;X.shadowOffsetY=y;}
 function nsh(){X.shadowColor='transparent';X.shadowBlur=0;X.shadowOffsetY=0;}
@@ -72,7 +83,7 @@ const SCENES=[
  {s:20.42,e:25.76,m:R_FULL},{s:25.76,e:28.35,m:R_DOWN},{s:28.35,e:30.75,m:R_FULL},
  {s:30.75,e:34.90,m:R_DOWN},{s:34.90,e:38.38,m:R_DOWN},{s:38.38,e:39.76,m:R_FULL},
  {s:39.76,e:42.82,m:R_DOWN},{s:42.82,e:99,m:R_FULL}];
-const TR=0.42;
+let TR=0.42;   /* = TX.sceneToScene.duration; init() syncs it. panelIn() still reads it. */
 /* The flexible card: shrinks proportionally (9:16) based on the graphic's bottom (gb) and
    the caption's line count at that moment — so nothing crowds anything else */
 const CAPH=l=>l*LH+PADY*2;
@@ -84,23 +95,47 @@ function resolveScenes(){ if(_RES||!CAPS.length)return; _RES=true;
     s.m=rDown(gb,lines); }); }
 const isFull=R=>R.w>=1079&&R.h>=1919;   /* genuinely full-screen — don't rely on r (corner radius) */
 function vtarget(t){ resolveScenes(); let i=SCENES.findIndex(s=>t>=s.s&&t<s.e); if(i<0)i=SCENES.length-1; return SCENES[i].m; }
+/* The transition INTO SCENES[i]. `SCENES[i].transition` (object form) overrides type /
+   duration / easing for that one boundary; otherwise TX.sceneToScene (rect-morph 0.42 eio).
+   On the reel video only rect-morph / cut / dissolve are meaningful — it's one continuous
+   take, so wipe/push (which read as two different shots) live in montage (#14) and the
+   scene graphic layer (Pass 4). */
+function vtrans(i){
+  const d=TX.sceneToScene, o=(SCENES[i]&&SCENES[i].transition)||null;
+  if(o&&typeof o==='object') return {type:o.type||d.type, dur:(o.duration!=null?o.duration:d.duration), easing:o.easing||d.easing};
+  if(typeof o==='string')    return {type:o, dur:d.duration, easing:d.easing};
+  return {type:d.type, dur:d.duration, easing:d.easing};
+}
 function vrect(t){
   resolveScenes();
   let i=SCENES.findIndex(s=>t>=s.s&&t<s.e); if(i<0)i=SCENES.length-1;
+  const tr=vtrans(i);
   let a=SCENES[i].m,b=a,k=1;
-  if(t<SCENES[i].s+TR&&i>0){a=SCENES[i-1].m;b=SCENES[i].m;k=eio(pr(t,SCENES[i].s,SCENES[i].s+TR));}
+  if(i>0&&tr.type!=='cut'&&t<SCENES[i].s+tr.dur){a=SCENES[i-1].m;b=SCENES[i].m;k=ez(tr.easing)(pr(t,SCENES[i].s,SCENES[i].s+tr.dur));}
   return {x:lerp(a.x,b.x,k),y:lerp(a.y,b.y,k),w:lerp(a.w,b.w,k),h:lerp(a.h,b.h,k),r:lerp(a.r,b.r,k)};
 }
-function drawVideo(t){
-  const R=vrect(t), sw=VF.naturalWidth||1080, shh=VF.naturalHeight||1920;
+/* Paint the source frame cropped into rect R. alpha=null → no globalAlpha touch (the
+   steady-state path, byte-identical to before); a number → used for the dissolve blend. */
+function paintVideo(R,alpha){
+  const sw=VF.naturalWidth||1080, shh=VF.naturalHeight||1920;
   const sc=Math.max(R.w/sw,R.h/shh), cw=R.w/sc, ch=R.h/sc;
   const sx=(sw-cw)/2, sy=(shh-ch)*FACE_ANCH;
-  X.save();
+  X.save(); if(alpha!=null)X.globalAlpha*=alpha;
   if(R.r>0.5){sh(70,26,0.26);X.fillStyle='#000';rr(R.x,R.y,R.w,R.h,R.r);X.fill();nsh();}
   rr(R.x,R.y,R.w,R.h,R.r);X.clip();
   X.drawImage(VF,sx,sy,cw,ch,R.x,R.y,R.w,R.h);
   X.restore();
-  if(R.r>0.5){X.save();X.strokeStyle=cINK(0.10);X.lineWidth=3;rr(R.x,R.y,R.w,R.h,R.r);X.stroke();X.restore();}
+  if(R.r>0.5){X.save();if(alpha!=null)X.globalAlpha*=alpha;X.strokeStyle=cINK(0.10);X.lineWidth=3;rr(R.x,R.y,R.w,R.h,R.r);X.stroke();X.restore();}
+}
+function drawVideo(t){
+  resolveScenes();
+  let i=SCENES.findIndex(s=>t>=s.s&&t<s.e); if(i<0)i=SCENES.length-1;
+  const tr=vtrans(i);
+  if(i>0&&tr.type==='dissolve'&&t<SCENES[i].s+tr.dur){
+    const k=ez(tr.easing)(pr(t,SCENES[i].s,SCENES[i].s+tr.dur));
+    paintVideo(SCENES[i-1].m,1-k); paintVideo(SCENES[i].m,k); return;
+  }
+  paintVideo(vrect(t),null);   /* rect-morph (lerp) · cut (snapped) · steady state */
 }
 /* ---------- icons ---------- */
 function iCaption(x,y,s,c){X.save();X.strokeStyle=c;X.lineWidth=s*0.09;X.lineCap='round';
@@ -174,8 +209,9 @@ function caption(t){
   if(BEHIND&&PRS_OK&&isFull(vrect(t))&&BEHIND.lines.some(l=>t>=l.s&&t<=l.e)) return;
   const c=CAPS.find(c=>t>=c.s&&t<c.e); if(!c)return;
   const lt=t-c.s,rt=c.e-t;let a=1,dy=0,sc=1;
-  if(lt<0.2){const k=lt/0.2;a=ease(k);dy=(1-ease(k))*28;sc=0.93+0.07*back(k);}
-  if(rt<0.13){const k=rt/0.13;a=k;dy=-(1-k)*10;}
+  const _en=TX.sceneEnter,_ex=TX.sceneExit;   /* `rise` — the caption default (== today's values) */
+  if(lt<_en.duration){const k=lt/_en.duration,e=ez(_en.easing)(k);a=e;dy=(1-e)*_en.params.y;sc=_en.params.scale?0.93+0.07*back(k):1;}
+  if(rt<_ex.duration){const k=rt/_ex.duration,e=ez(_ex.easing)(k);a=e;dy=(1-e)*_ex.params.y;}
   const L=layout(c.w),bh=L.length*LH+PADY*2,bw=Math.max(...L.map(l=>l.w))+PADX*2;
   const _R=vtarget(t), LOW=_R.y>700;   /* Target rect, not the moving one: the caption locks into place from the first frame with no jump */          /* R_DOWN or R_LOWER → caption above the video card */          /* Video below → caption above it */
   const CUT=(cutoutActive(t)||headoutActive(t))&&PTOP>200;   /* Caption above their head in both modes */
