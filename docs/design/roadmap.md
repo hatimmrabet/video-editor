@@ -130,8 +130,10 @@ to English — both cosmetic cleanup, pick up whenever.)*
   `edit_script.py` drop). `layout` carries the rect mode + optional Pass 3 `transition`.
   **Subsumes `config/stage.json`** when present. No params expression language; motifs
   version with the skill. Locked in [scenes-as-data.md](scenes-as-data.md).
-- `motifs/` registry (#16) — `index.json` (`{kind, bottom, params}` per name) + `canvas/`
-  + `remotion/`; starter set generalized from the ~15 reference functions.
+- ✅ **`motifs/` registry** (#16) — `scripts/motifs/` with `index.json` (the 11-name
+  manifest: `{status, kind, bottom, from, params}`), `README.md` (the `ctx` contract),
+  `canvas/` + `remotion/`. `stamp` implemented on both engines as the reference; the other
+  ten are `status: "planned"` until #19.
 - Light-engine interpreter (#17, inside `safe()`); Remotion `<Scene>` dispatcher (#18).
 - Port the reference functions to motifs, one at a time, each with a 3-way visual diff (#19).
 - `studio.html` renders the scene list, drops its private drawing copy (#20).

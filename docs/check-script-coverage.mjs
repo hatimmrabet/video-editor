@@ -40,6 +40,7 @@ const COVERAGE = [
   ['lib-config',          ['lib/config.py', 'lib/config.js']],
   ['lib-transitions',     ['lib/transitions.py', 'lib/transitions.js']],
   ['lib-rush',            ['lib/rush.py']],
+  ['motifs',              ['motifs/']],
   ['compose_html',        ['compose.reference.html']],
   ['studio_html',         ['studio.html']],
   ['fx-behind_text',      ['fx/behind_text.js']],
