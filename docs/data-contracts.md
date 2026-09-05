@@ -297,7 +297,31 @@ is a rare per-project exception, not something set routinely. Defaults:
 type/duration/easing for the cut **into** that entry — `rect-morph` / `cut` / `dissolve` on
 the reel video. Entry 0's is ignored.
 **The light engine ignores `stage.json`** — its equivalent `SCENES` array is inline in
-`compose.html`. See [engines.md](engines.md#drift).
+`compose.html`. See [engines.md](engines.md#drift). **Subsumed by `config/scenes.json` when
+that file is present** (issue #15) — the schedule is then derived from the scenes' `layout`.
+
+---
+
+## `config/scenes.json` — declarative scene list (optional, hand-authored)
+
+**W** hand-authored (the per-video design work) · **R** both engines' scene interpreters
+(issues #17 / #18). Schema + rationale: [design/scenes-as-data.md](design/scenes-as-data.md).
+
+```jsonc
+[
+  {
+    "ref":    { "sentence": 4 },              // OR {sentence,words:[a,b]} OR {range:[t0,t1]}
+    "layout": { "mode": "DOWN", "transition": "dissolve:0.3", "gb": 480 },  // or just "DOWN"
+    "motif":  "counter",                      // scripts/motifs/index.json name (null = layout only)
+    "params": { "to": 46, "suffix": "٪" },    // plain literals, motif-specific
+    "timing": { "in": 0.2, "hold": "words", "out": 0.25 }   // optional
+  }
+]
+```
+
+`ref` resolves against `build/captions.json`, so an `edit_script.py` sentence drop shifts
+the scene with it. Absent → today's behaviour (inline `SCENES` / `stage.json`). This is the
+Pass 4 core; **the schema is locked (#15), the engines are not wired yet** (#17–#20).
 
 ---
 

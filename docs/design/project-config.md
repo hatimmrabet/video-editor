@@ -32,7 +32,11 @@ whether a field belongs here.
   `project.config.json` would mean asking the user to configure things that don't exist
   yet. (This reverses the first draft's `layout`, `scenes`, `audio`, `outro`, `safe`
   sections — removed. `safe` doubly so: the safe zone is a fixed, shared value now, not a
-  per-project setting at all — see [file-layout.md](file-layout.md).)
+  per-project setting at all — see [file-layout.md](file-layout.md).) The one nuance: the
+  *hand-authored* design that shapes those outputs — `config/stage.json`, `config/outro.json`,
+  and `config/scenes.json` (Pass 4, [scenes-as-data.md](scenes-as-data.md)) — lives in
+  `config/` as its own files, not here and not in `build/`; only what a script *generates*
+  is `build/`.
 - **A place for rarely-used cosmetic toggles that already have an off-by-default answer.**
   `badge` (the account handle overlay) is off by default and only ever turned on as a
   one-off exception for a specific video — that's a scene-design-time decision, not

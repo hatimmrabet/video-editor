@@ -125,12 +125,18 @@ to English — both cosmetic cleanup, pick up whenever.)*
 
 ## Pass 4 — Scenes
 
-- Scene schema + `motifs/` registry (`index.json` + `canvas/` + `remotion/`).
-- Light-engine interpreter (inside `safe()`); Remotion `<Scene>` dispatcher.
-- Port the ~15 reference functions to motifs, one at a time, each with a 3-way visual diff.
-- `studio.html` renders the scene list, drops its private drawing copy.
-- **Done when:** a new video is authored as a `scenes` array with zero inline JS/JSX, and
-  both engines match.
+- ✅ **Declarative scene schema** (#15) — `config/scenes.json`, a hand-authored array of
+  `{ ref, layout, motif, params, timing }`. `ref` binds to a caption sentence (survives an
+  `edit_script.py` drop). `layout` carries the rect mode + optional Pass 3 `transition`.
+  **Subsumes `config/stage.json`** when present. No params expression language; motifs
+  version with the skill. Locked in [scenes-as-data.md](scenes-as-data.md).
+- `motifs/` registry (#16) — `index.json` (`{kind, bottom, params}` per name) + `canvas/`
+  + `remotion/`; starter set generalized from the ~15 reference functions.
+- Light-engine interpreter (#17, inside `safe()`); Remotion `<Scene>` dispatcher (#18).
+- Port the reference functions to motifs, one at a time, each with a 3-way visual diff (#19).
+- `studio.html` renders the scene list, drops its private drawing copy (#20).
+- **Done when:** a new video is authored as a `config/scenes.json` with zero inline JS/JSX,
+  and both engines match.
 
 ## Pass 5 — Orchestrator
 
