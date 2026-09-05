@@ -18,7 +18,7 @@ for a repeat job, no path to a web UI.
 python3 scripts/run.py <work> [--from <stage>] [--to <stage>] [--dry]
 ```
 
-- Reads `<work>/project.config.json`, picks the stage list from `world`
+- Reads `<work>/config/project.config.json`, picks the stage list from `world`
   ([worlds.md](worlds.md)).
 - Runs each stage in order, calling the **same scripts** that exist today (it is a
   conductor, not a reimplementation).
@@ -31,7 +31,7 @@ Some stages can't be fully automated — they need judgment:
 
 | Stage | Decision | How the orchestrator handles it |
 |---|---|---|
-| transcript correction (`fixes.json`) | fix Whisper errors | **pause** — the agent fills `fixes.json`, then `run.py --from captions` |
+| transcript correction (`build/transcript-fixes.json`) | fix Whisper errors | **pause** — the agent fills it, then `run.py --from captions` |
 | sentence trimming (`edit_script.py`) | which sentences to drop | pause — agent proposes, user confirms |
 | scene design (`scenes` in config) | the visual metaphors | pause — agent authors the `scenes` array |
 | sound cues | where the whooshes land | can be derived from scene transitions (see [transitions.md](transitions.md)) or paused |
@@ -45,8 +45,8 @@ report what it needs". The agent (or a web form) fills the gap and resumes.
 skill: video-editor  (the entry point — unchanged trigger phrases)
   │
   ├─ mandatory config phase (see below) — reads/creates project.config.json with the user
-  ├─ subagent: transcript-fixer   (reads a.json, proposes fixes.json)
-  ├─ subagent: scene-designer     (reads caps.json, proposes the scenes array)
+  ├─ subagent: transcript-fixer   (reads build/transcript-raw.json, proposes build/transcript-fixes.json)
+  ├─ subagent: scene-designer     (reads build/captions.json, proposes the scenes array)
   ├─ subagent: reviewer           (runs safe_check.js + contact sheet, reports)
   └─ calls run.py between decision points
 ```
