@@ -549,9 +549,9 @@ uv run scripts/montage_mode.py <work> build
 | | |
 |---|---|
 | `--ar 9:16` | aspect ratio: `9:16` · `4:5` · `1:1` · `16:9` (center crop) |
-| `--xfade 0.25` | a crossfade between shots instead of a hard cut |
+| `--transition dissolve:0.3` | a transition between shots instead of a hard cut — a name or `name:duration:param` (`dissolve` · `wipe:0.4:left` · `push:0.3:up` · `iris:0.5:open` · `zoom-blur` · `glitch`); default `cut`. A `transition` on a `plan[]` entry in `build/montage-plan.json` overrides it for the cut into that clip. |
 | `--zoom 0` | turns off the faint internal push-in |
-| `--amb 0.3` | keeps the clips' ambience at low volume (needs every clip to have audio and no crossfade) |
+| `--amb 0.3` | keeps the clips' ambience at low volume (needs every clip to have audio and no transition) |
 
 **The zoom only works if the source is at least 1.5× bigger than the output** (4K, say),
 otherwise the engine turns it off itself and tells you — because cropping a source the

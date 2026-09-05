@@ -18,7 +18,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 | 0 | **Documentation** (this `docs/` tree) | `Pass 0 — Documentation` | — | ✅ done |
 | 1 | **Isolated execution & dependencies** | `Pass 1 — Execution & dependencies` | 0 | ✅ done (PR #37) |
 | 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | ✅ done (PRs #54, #57, issues #10, #59) |
-| 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | 🟡 #11 schema + #12 light + #13 Remotion done; #14 pending |
+| 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | ✅ done (#11 schema · #12 light · #13 Remotion · #14 montage) |
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | — |
 | 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | — |
 | 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | — |
@@ -116,11 +116,12 @@ to English — both cosmetic cleanup, pick up whenever.)*
   `Ad.tsx` maps over the layers (cross-fade mid-`dissolve`); `Captions.tsx` + `util.tsx`
   wired. Not `@remotion/transitions` — that's sequence-to-sequence, i.e. the Pass 4 graphic
   layer. Transition math verified equal to the old `stage.ts` for the default vocabulary.
-- `montage_mode.py build` (#14): `--transition <name>:<dur>:<param>`, an optional
-  `transition` per `plan[]` entry, drop `--xfade`.
-- Defaults reproduce today's behavior exactly.
-- **Done when:** `build --transition push:0.3:up` works and a reel scene can specify a
-  non-default transition.
+- ✅ **`montage_mode.py build`** (#14) — `--transition <name>:<dur>:<param>` (replaces
+  `--xfade`, removed) + an optional `transition` per `plan[]` entry; `xfade_for()` maps the
+  vocabulary to ffmpeg `xfade` names. All-`cut` → plain `concat` (unchanged); any
+  transition → one `xfade` chain. Verified end-to-end with real ffmpeg. `montage-plan.json`
+  now read `utf-8-sig`.
+- Defaults reproduce today's behavior exactly. **Pass 3 complete.**
 
 ## Pass 4 — Scenes
 

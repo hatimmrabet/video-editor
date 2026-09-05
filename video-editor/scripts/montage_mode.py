@@ -12,12 +12,18 @@ except Exception:
   python3 montage_mode.py <work> sheet [out.jpg] [--cols 6]
   python3 montage_mode.py <work> drop 3 7      |  keep 1 2 5   |  undo
   python3 montage_mode.py <work> plan [--dur 30] [--shot 1.5] [--bpm 0] [--order energy|best|folder]
-  python3 montage_mode.py <work> build [out.mp4] [--ar 9:16] [--xfade 0] [--amb 0] [--zoom 1]
+  python3 montage_mode.py <work> build [out.mp4] [--ar 9:16] [--transition cut] [--amb 0] [--zoom 1]
+
+--transition is a name or `name:duration:param` from scripts/transitions.json
+(cut · dissolve · wipe:0.4:left · push:0.3:up · zoom-blur · iris:0.5:open · glitch).
+Default `cut` = a hard join (today's behaviour). A `transition` on a plan[] entry in
+build/montage-plan.json overrides --transition for the cut INTO that clip.
 
 Selection is about the shot itself: sharpness · motion by amount (no freeze, no shake) · lighting · color.
 No transcription, no captions — this mode is independent of the speech-ad flow.
 """
 import json, os, re, subprocess, sys, shutil, math
+from lib import transitions as _trans
 
 VID_EXT = (".mov", ".mp4", ".m4v", ".avi", ".mkv", ".webm", ".mts", ".m2ts")
 AR = {"9:16": (1080, 1920), "1:1": (1080, 1080), "16:9": (1920, 1080), "4:5": (1080, 1350)}
@@ -84,11 +90,14 @@ def load(W):
     p = mpath(W)
     if not os.path.exists(p):
         die("no build/montage-plan.json — run `scan` first.")
-    return json.load(open(p))
+    # utf-8-sig: tolerate a BOM if the plan was hand-edited and re-saved from a Windows editor
+    with open(p, encoding="utf-8-sig") as f:
+        return json.load(f)
 
 
 def save(W, d):
-    json.dump(d, open(mpath(W), "w"), ensure_ascii=False, indent=1)
+    with open(mpath(W), "w", encoding="utf-8") as f:
+        json.dump(d, f, ensure_ascii=False, indent=1)
 
 
 def flag(args, name, default, cast=float):
@@ -100,6 +109,31 @@ def flag(args, name, default, cast=float):
             except Exception:
                 pass
     return default
+
+
+_TT = None   # scripts/transitions.json, loaded once
+
+
+def xfade_for(spec):
+    """(ffmpeg xfade transition name | None, duration seconds) for a montage transition spec.
+    `None` / `cut` / `rect-morph` → (None, dur) meaning a hard join, no overlap."""
+    global _TT
+    if spec is None:
+        return None, 0.0
+    if _TT is None:
+        _TT = _trans.load()
+    t = _trans.resolve(spec, "montage", _TT)
+    params = t.get("params") or {}
+    raw = params.get("xfade")                      # montage-only escape hatch: a raw ffmpeg name
+    if raw:
+        return str(raw), float(t["duration"])
+    name = (_TT.get("types", {}).get(t["type"], {}) or {}).get("xfade")
+    if not name:                                   # cut, rect-morph
+        return None, float(t["duration"])
+    if "${dir}" in name:
+        name = name.replace("${dir}", str(params.get("dir") or "up"))
+    dur = float(t["duration"])
+    return name, dur if dur > 0 else 0.30
 
 
 def pct_ranks(vals):
@@ -495,7 +529,7 @@ def cmd_build(W, args):
     if ar not in AR:
         die("Available sizes: " + " · ".join(AR))
     OW, OH = AR[ar]
-    xf = flag(args, "--xfade", 0.0)
+    cli_trans = flag(args, "--transition", None, cast=str)
     amb = flag(args, "--amb", 0.0)
     zoom = flag(args, "--zoom", 1.0)
     R = 30
@@ -522,22 +556,35 @@ def cmd_build(W, args):
                   f"format=yuv420p[v{k}]")
         vs.append(f"[v{k}]")
 
-    if xf > 0 and len(plan) > 1:
+    # The cut INTO clip k: the plan entry's `transition` wins, else --transition, else cut.
+    bounds = []                              # (xfade name | None, duration) for k = 1 .. len(plan)-1
+    for k in range(1, len(plan)):
+        spec = plan[k].get("transition") or cli_trans
+        try:
+            bounds.append(xfade_for(spec))
+        except Exception as e:
+            die(f"clip {k + 1}: bad transition {spec!r} — {e}")
+    any_xf = any(nm for nm, _ in bounds)
+
+    if any_xf and len(plan) > 1:
         prev, off = "[v0]", 0.0
         for k in range(1, len(plan)):
-            off += plan[k - 1]["dur"] - xf
+            nm, dur = bounds[k - 1]
+            if not nm:                       # a `cut` mixed into a transitioned montage → one-frame fade
+                nm, dur = "fade", 1.0 / R
+            off += plan[k - 1]["dur"] - dur
             lbl = f"[x{k}]"
-            fc.append(f"{prev}[v{k}]xfade=transition=fade:duration={xf:.3f}:offset={off:.3f}{lbl}")
+            fc.append(f"{prev}[v{k}]xfade=transition={nm}:duration={dur:.3f}:offset={off:.3f}{lbl}")
             prev = lbl
         fc.append(f"{prev}null[vo]")
-        total = sum(p["dur"] for p in plan) - xf * (len(plan) - 1)
+        total = sum(p["dur"] for p in plan) - sum(d if nm else 1.0 / R for nm, d in bounds)
     else:
         fc.append("".join(vs) + f"concat=n={len(plan)}:v=1:a=0[vo]")
         total = sum(p["dur"] for p in plan)
 
     # Audio: the clips' own ambience if requested and all of them have audio, else a silent
     # track (needs master_audio.sh)
-    use_amb = amb > 0 and all(p.get("audio") for p in plan) and xf <= 0
+    use_amb = amb > 0 and all(p.get("audio") for p in plan) and not any_xf
     if use_amb:
         for k, p in enumerate(plan):
             fc.append(f"[{k}:a]asetpts=PTS-STARTPTS,aresample=48000,"
@@ -558,8 +605,12 @@ def cmd_build(W, args):
               "-bufsize", "16M", "-profile:v", "high", "-level", "4.0",
               "-pix_fmt", "yuv420p", "-r", str(R), "-c:a", "aac", "-b:a", "160k",
               "-ar", "48000", "-shortest", "-movflags", "+faststart", "-y", out])
-    print(f"🎬 Building {len(plan)} shot(s) → {total:.1f}s · {ar}"
-          + (f" · {xf}s crossfade" if xf > 0 else " · hard cut")
+    if not any_xf:
+        tdesc = "hard cut"
+    else:
+        names = sorted({nm or "cut" for nm, _ in bounds})
+        tdesc = names[0] if len(names) == 1 else "mixed (" + " · ".join(names) + ")"
+    print(f"🎬 Building {len(plan)} shot(s) → {total:.1f}s · {ar} · {tdesc}"
           + ("" if not zoom else (" · no zoom (source isn't bigger than the output)" if nozoom == len(plan)
                                   else f" · zoom on {len(plan)-nozoom} shot(s)")))
     r = subprocess.run(cmd)

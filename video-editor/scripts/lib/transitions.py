@@ -37,10 +37,9 @@ def _parse_shorthand(s, table):
         out["duration"] = float(parts[1])
     if len(parts) > 2 and parts[2] != "":
         names = (table.get("types", {}).get(parts[0], {}) or {}).get("params", [])
-        if names:
-            out["params"] = {names[0]: parts[2]}
-        else:
-            out["params"] = {"raw": parts[2]}
+        # first declared param (dir for wipe/push/iris), or `xfade` — the raw-name escape
+        # hatch — for a param-less type
+        out["params"] = {names[0]: parts[2]} if names else {"xfade": parts[2]}
     return out
 
 

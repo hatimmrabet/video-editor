@@ -94,7 +94,7 @@ flowchart LR
     sheet["sheet --cols 6<br/>→ build/montage-contact-sheet.jpg"] --> pick
     pick["drop / keep / undo<br/>MUTATES montage-plan.json"] --> planm
     planm["plan --dur 30<br/>→ montage-plan.json[plan]"] --> buildm
-    buildm["build<br/>→ build/montage-raw.mp4<br/>--ar --xfade --amb --zoom"] --> masterm
+    buildm["build<br/>→ build/montage-raw.mp4<br/>--ar --transition --amb --zoom"] --> masterm
     masterm["master_audio.sh<br/>→ video-final.mp4"]
 ```
 
