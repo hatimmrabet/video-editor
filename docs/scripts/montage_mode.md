@@ -15,7 +15,7 @@ uv run scripts/montage_mode.py <work> show
 uv run scripts/montage_mode.py <work> sheet [out.jpg] [--cols 6]
 uv run scripts/montage_mode.py <work> drop 3 7   |  keep 1 2 5   |  undo
 uv run scripts/montage_mode.py <work> plan [--dur 30] [--shot 1.5] [--bpm 0] [--order energy|best|folder]
-uv run scripts/montage_mode.py <work> build [out.mp4] [--ar 9:16|1:1|16:9|4:5] [--xfade 0] [--amb 0] [--zoom 1]
+uv run scripts/montage_mode.py <work> build [out.mp4] [--ar 9:16|1:1|16:9|4:5] [--transition cut] [--amb 0] [--zoom 1]
 ```
 
 `scan`'s `clipdir` is optional since issue #59 — defaults to `<work>/rush` (put the clips
@@ -72,10 +72,19 @@ The first and last third-second of every clip are trimmed (hand-on-device moment
 
 - Per clip: `setpts`, `fps=30`, optional slow push-in zoom (only if source ≥ 1.4× output),
   scale + centre-crop to the AR, `setparams` bt709, `yuv420p`.
-- `--xfade 0.25` → chained `xfade=transition=fade` (only `fade` is wired). Default is a
-  hard `concat`.
+- `--transition <spec>` (issue #14) → a name or `name:duration:param` from
+  [`transitions.json`](lib-transitions.md) resolved via `lib/transitions` and mapped to an
+  ffmpeg `xfade` name (`dissolve`→`fade`, `wipe:_:left`→`wipeleft`, `push`→`slide*`,
+  `iris:_:open`→`circleopen`, `zoom-blur`→`zoomin`, `glitch`→`pixelize`). A `transition` on
+  a `plan[]` entry overrides `--transition` for the cut **into** that clip; priority is
+  entry → CLI → `cut`. **Default `cut`** = a hard `concat`, byte-identical to before. When
+  any boundary is a transition, the whole video becomes one `xfade` chain (a `cut` mixed in
+  becomes a one-frame `fade`); total shortens by Σ of the boundary durations. Escape hatch
+  for montage only: `params.xfade` (or the 3rd shorthand field for a param-less type)
+  passes a raw ffmpeg `xfade` name straight through.
 - `--amb 0.3` → keep clip ambience at low volume — requires every clip to have audio and
-  `--xfade 0`. Otherwise a silent `anullsrc` track (then `master_audio.sh` is mandatory).
+  **no transition** (a plain `concat`). Otherwise a silent `anullsrc` track (then
+  `master_audio.sh` is mandatory).
 - Encode: `libx264 -preset slow -crf 20 -maxrate 8M`, `aac 160k`, `-shortest`, `+faststart`.
 
 ## External tools
@@ -102,6 +111,8 @@ name (`video-final.mp4`, at the work-dir root) as the speech-ad flow — see
 
 - A montage with no ambience is a **silent track** — the background audio file here is not
   decoration.
+- `build/montage-plan.json` is read BOM-tolerantly (`utf-8-sig`) since #14 — a hand-added
+  `transition` field re-saved from a Windows editor won't break the load.
 - Reasonable duration is 20–40 s.
 - Never repeat a clip; if the clips can't fill `--dur`, the script warns and suggests a
   larger `--shot`.

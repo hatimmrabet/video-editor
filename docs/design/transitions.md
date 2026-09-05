@@ -1,9 +1,9 @@
 # Transitions — a named vocabulary
 
-Status: **schema locked (#11); light engine (#12) + Remotion (#13) wired.** The canonical
-table is [`video-editor/scripts/transitions.json`](../../video-editor/scripts/transitions.json),
+Status: **Pass 3 complete** — schema (#11), light engine (#12), Remotion (#13), montage
+(#14). The canonical table is
+[`video-editor/scripts/transitions.json`](../../video-editor/scripts/transitions.json),
 read via [`lib/transitions`](../scripts/lib-transitions.md); this page explains it.
-Remaining: #14 (montage).
 
 ## Problem
 
@@ -124,12 +124,12 @@ for #12/#14.
 
 ## Montage plan — the per-cut field
 
-`build/montage-plan.json`'s `plan[]` entries gain an optional `transition` (shorthand
+`build/montage-plan.json`'s `plan[]` entries take an optional `transition` (shorthand
 string or object). `montage_mode.py build` reads, in priority order: the entry's
 `transition` → `--transition` on the command line → `cut`. The old `--xfade <float>` flag
-is **removed** — `--transition dissolve:<float>` replaces it exactly, and there is no
-installed base of scripts calling the old flag to keep an alias for (same reasoning as the
-Pass 2 no-back-compat rule).
+is **removed** — `--transition dissolve:<float>` replaces it, and there is no installed
+base of scripts calling the old flag to keep an alias for (same reasoning as the Pass 2
+no-back-compat rule).
 
 ```jsonc
 "plan": [
@@ -138,9 +138,11 @@ Pass 2 no-back-compat rule).
 ]
 ```
 
-The `transition` on entry *k* describes the cut **into** entry *k* (so entry 0's is
-ignored). `xfade` overlaps eat `duration` seconds from the outgoing clip — the plan's
-total shortens by `Σ duration`, same arithmetic as the current `--xfade` path.
+The `transition` on entry *k* is the cut **into** entry *k* (entry 0's is ignored). When
+**every** boundary is `cut` the build is a plain `concat`, byte-identical to before;
+otherwise the whole video is one `xfade` chain — a `cut` mixed in becomes a one-frame
+`fade`, and the total shortens by Σ of the boundary durations. A montage transition with no
+duration gets `defaults.montage.duration` (0.30 s).
 
 ## Why this is safe
 
@@ -175,5 +177,11 @@ total shortens by `Σ duration`, same arithmetic as the current `--xfade` path.
   the layers; `Captions.tsx` uses the `rise` defaults; `util.tsx` gains `linear` + `ez()`.
   A `stage[i].transition` overrides one boundary. (No #59 path leftovers were left in
   `remotion/template/` after #61 — checked.)
-- **#14 (montage):** the `--transition` flag, the `plan[]` field, drop `--xfade`, and the
-  eight-name → xfade-name map from `transitions.json`.
+- **#14 (montage): done.** `montage_mode.py` imports `lib/transitions`; `xfade_for(spec)`
+  maps a resolved montage transition to an ffmpeg `xfade` name (`${dir}` substituted;
+  `params.xfade` / the 3rd shorthand field passes a raw name through). `--transition`
+  replaces `--xfade` (removed); a per-`plan[]` `transition` overrides it. All-`cut` →
+  plain `concat` (unchanged); any transition → one `xfade` chain. `montage-plan.json` is
+  now read `utf-8-sig` (a hand-added field survives a Windows-editor BOM). Verified
+  end-to-end with real ffmpeg: `cut` duration == Σ dur; `dissolve:0.3` == Σ dur − 0.3·(n−1);
+  a mixed `wipe`/`cut` plan lands on the exact expected duration.

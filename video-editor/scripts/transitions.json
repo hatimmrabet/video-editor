@@ -35,6 +35,6 @@
     "sceneEnter":   { "type": "rise",       "duration": 0.20, "easing": "ease",   "params": { "y": 28, "scale": true } },
     "sceneExit":    { "type": "rise",       "duration": 0.13, "easing": "linear", "params": { "y": -10, "scale": false } },
     "outro":        { "type": "wipe",       "duration": 0.45, "easing": "ease",   "params": { "dir": "up" } },
-    "montage":      { "type": "cut" }
+    "montage":      { "type": "cut",        "duration": 0.30 }
   }
 }

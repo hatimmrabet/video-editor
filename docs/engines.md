@@ -202,8 +202,11 @@ read via [`lib/transitions`](scripts/lib-transitions.md), explained in
   `theme.ts` exposes `TX`, `stage.ts` `vrect` / `videoLayers` use `sceneToScene`,
   `Captions.tsx` uses the `rise` defaults. Easings resolve by name through `util.tsx`'s
   `ez()`.
+- **montage** (#14): `montage_mode.py build --transition <spec>` and an optional
+  `transition` per `plan[]` entry, each mapped to an ffmpeg `xfade` name via
+  `lib/transitions`. Default `cut` = plain `concat`, unchanged.
 
-The defaults equal the values below exactly, so nothing changed. Montage is #14.
+The defaults equal the values below exactly, so nothing changed. **Pass 3 is complete.**
 
 - **Video-rectangle transition:** `vrect(t)` lerps x/y/w/h/r between consecutive `SCENES`
   rects over `TR = 0.42 s` (`sceneToScene.duration`) with cubic-in-out easing — the
@@ -217,6 +220,7 @@ The defaults equal the values below exactly, so nothing changed. Montage is #14.
 - **Per-scene:** each scene function rolls its own with `pr(t,a,b)` progress + `ease`/`eio`/`back`.
 - **`glitch(t)`:** RGB-split slice displacement + accent flash (light engine, timestamp-hardcoded).
 - **`outro(t)`:** wipe-up reveal over 0.45 s, then staggered element fade-ins. Both engines.
-- **Montage:** `--xfade` → ffmpeg `xfade=transition=fade` chained across clips; only
-  `fade` is wired up (ffmpeg's `xfade` has ~50). Default is a hard cut.
+- **Montage:** `--transition <spec>` / per-`plan[]` `transition` → the eight-name
+  vocabulary mapped to ffmpeg `xfade` names, chained across clips. Default `cut` = plain
+  `concat`. See [montage_mode.md](scripts/montage_mode.md).
 - **Sound side:** `sfx.json` cue arrays (`whoosh_up/down`, `thud`, `tap`, `outro`).

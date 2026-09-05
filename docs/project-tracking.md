@@ -115,14 +115,14 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | chore: translate Arabic logs/printf/comments to English across scripts | `type:chore` | ✅ #61 (PR #64) |
 | chore: `fx/behind_text.js` uses `execSync` with string-concatenated commands | `type:chore` | #63 — open, deferred |
 
-### Pass 3 — Transitions
+### Pass 3 — Transitions — **complete** (2026-09-05)
 
 | Title | Labels | Status |
 |---|---|---|
 | transitions: shared `{type,duration,easing,params}` table | `area:transitions` `type:design` | ✅ #11 — `scripts/transitions.json` + `design/transitions.md` |
 | transitions: light-engine scene enter/exit + rect transitions | `area:transitions` `area:engine-light` | ✅ #12 — `lib/transitions.{py,js}`, `compose.html` / `studio.html` wired |
 | transitions: Remotion parity | `area:transitions` `area:engine-remotion` | ✅ #13 — `theme.ts` `TX`, `stage.ts` `videoLayers`, `Ad.tsx` / `Captions.tsx` wired (no `@remotion/transitions` dep) |
-| transitions: `montage_mode.py build --transition` → ffmpeg `xfade` | `area:transitions` `area:montage` | #14 |
+| transitions: `montage_mode.py build --transition` → ffmpeg `xfade` | `area:transitions` `area:montage` | ✅ #14 — `xfade_for()` map, `--xfade` removed, per-`plan[]` field |
 
 ### Pass 4 — Scenes
 
