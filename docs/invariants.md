@@ -12,7 +12,8 @@ found in real production runs — each is fixed in code, and the fix must not be
    where they landed before export. (Spraying a tick on every word was tried — it reads as
    noise.)
 2. **Western digits always** (0–9).
-3. **Colors from `theme.json` only** — no hardcoded color anywhere in scene code.
+3. **Colors from `project.config.json`'s `theme.*` only** (via `lib/config`) — no hardcoded
+   color anywhere in scene code.
 4. **No color or filter over the person's image** — no grade, tint, LUT, or colored layer
    over the video. Original colors always, unless the user explicitly asks. Colors are for
    cards and text only. (`reframe.py` only re-tags to bt709; `grade` is off by default.)
@@ -83,9 +84,9 @@ With a side-card layout the caption landed on the face. Fixed by the layout rule
 
 ### 6. Fixed crop ignored the speaker's position
 
-The vertical crop was a constant. Fix: `faceAnchor` in `theme.json` (default 0.30; a value
-like 0.45 for a speaker who sits low). `xAnchor`/`yAnchor` added for landscape sources. —
-`reframe.py`, `compose.reference.html`
+The vertical crop was a constant. Fix: `crop.faceAnchor` in `project.config.json` (default
+0.30; a value like 0.45 for a speaker who sits low). `crop.xAnchor`/`crop.yAnchor` added
+for landscape sources. — `reframe.py`, `compose.reference.html`
 
 ### 7. "Behind the person" required a short sentence
 

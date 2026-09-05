@@ -27,8 +27,9 @@ bash encode.sh <work> [outfile]     # default: <work>/build/video-raw.mp4
 |---|---|
 | `<work>/build/video-raw.mp4` | `libx264 -preset slow -crf 21 -maxrate 6M -bufsize 12M`, `profile high level 4.0`, `yuv420p`, 30 fps, `aac 160k 48kHz`, `+faststart`. Prints an `ffprobe` summary. **Not the deliverable** — `master_audio.sh` produces `video-final.mp4` next |
 
-Audio graph: `[1:a]apad=pad_dur=8` (pad the speech), `amix` with `sfx.wav`
-(`normalize=0`), `atrim` to duration, `afade out` over the last 0.6 s.
+Audio graph: `[1:a]apad=pad_dur=8` (pad the speech), `amix` with
+`build/sound-effects.wav` (`normalize=0`), `atrim` to duration, `afade out` over the last
+0.6 s.
 
 ## External tools
 

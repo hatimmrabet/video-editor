@@ -5,8 +5,9 @@
 ## Problem
 
 Today the pipeline is a sequence of manual commands the model/agent types one by one, with
-manual steps interleaved (extract audio, extract frames, author `fixes.json`, author
-`sfx.json`, design scenes). `SKILL.md` *is* the orchestrator, executed by a human-in-the-loop.
+manual steps interleaved (extract audio, extract frames, author
+`build/transcript-fixes.json`, author `build/sound-cues.json`, design scenes). `SKILL.md`
+*is* the orchestrator, executed by a human-in-the-loop.
 
 That's fine for a skill, but it means: no way to re-run "from stage 6", no single command
 for a repeat job, no path to a web UI.
