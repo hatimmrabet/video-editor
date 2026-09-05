@@ -1,16 +1,17 @@
-# قالب ريموشن — المحرّك الثاني للسكل
+# Remotion template — the skill's second engine
 
-ما تشغّله يدوياً. `scripts/remotion/remotion.sh` ينسخه لمجلد الشغل ويعبّي بياناته.
+You don't run this by hand. `scripts/remotion/remotion.sh` copies it into the work
+directory and fills in its data.
 
-| ملف | شنو فيه |
+| File | What's in it |
 |---|---|
-| `src/project.json` | يُولَّد آلياً: الثيم + المدة + جدول مستطيلات الفيديو + نصوص الختام |
-| `src/Ad.tsx` | التركيب: الفيديو داخل كرت متحرك + كل الطبقات |
-| `src/stage.ts` | مستطيلات العرض (FULL/STAGE/SIDE) والانتقال — الجدول من project.json |
-| `src/Scenes.tsx` | **مكانك أنت** — المشاهد. مثالان فقط، اخترع غيرهم |
-| `src/Captions.tsx` | كروت الكابشن مع تظليل الكلمة المنطوقة |
-| `src/Outro.tsx` | كرت النهاية — نصوصه من project.json |
-| `src/Chrome.tsx` | شارة الحساب وشريط التقدّم |
+| `src/project.json` | Generated automatically: theme + duration + the video-rect schedule + end-card copy |
+| `src/Ad.tsx` | The composition: the video inside a moving card + every layer |
+| `src/stage.ts` | The display rects (FULL/STAGE/SIDE) and the transition — the schedule comes from project.json |
+| `src/Scenes.tsx` | **Your part** — the scenes. Only two examples; invent your own |
+| `src/Captions.tsx` | The caption cards with the spoken word highlighted |
+| `src/Outro.tsx` | The end card — its copy comes from project.json |
+| `src/Chrome.tsx` | The account badge and the progress bar |
 
-⚠️ `public/video.mp4` لازم يكون موسوماً bt709 — مخرج `03_cut_zoom.py` كذا أصلاً.
-مخرج آيفون HDR الخام (bt2020/HLG) يطلع برتقالياً بالمتصفح.
+WARNING: `public/video.mp4` must be tagged bt709 — `reframe.py` already outputs it that way.
+A raw iPhone HDR output (bt2020/HLG) comes out orange in the browser.

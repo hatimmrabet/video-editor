@@ -1,4 +1,4 @@
-// قصّ الشخص من كل فريم + بيانات الوجه — يشتغل بمكتبة ماك المدمجة (Vision)
+// Cuts the person out of every frame + face data — uses macOS's built-in framework (Vision)
 // personmask <inDir> <outDir> [fast|balanced|accurate] [feather]
 import Foundation
 import Vision
@@ -26,7 +26,7 @@ for f in files {
     guard let obs = seg.results?.first as? VNPixelBufferObservation else { continue }
     var m = CIImage(cvPixelBuffer: obs.pixelBuffer)
     m = m.transformed(by: CGAffineTransform(scaleX: W / m.extent.width, y: H / m.extent.height))
-    if feather > 0 {                                  // حواف ناعمة بدل الحادة
+    if feather > 0 {                                  // soft edges instead of hard ones
         m = m.clampedToExtent()
              .applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: feather])
              .cropped(to: CGRect(x: 0, y: 0, width: W, height: H))
@@ -36,7 +36,7 @@ for f in files {
 
     var row: [String: Any] = ["f": f]
     if let fo = (face.results as? [VNFaceObservation])?.max(by: { $0.boundingBox.width < $1.boundingBox.width }) {
-        let b = fo.boundingBox                        // Vision: أصل الإحداثيات أسفل يسار ونسبي
+        let b = fo.boundingBox                        // Vision: origin is bottom-left, coordinates are relative
         row["face"] = ["x": b.minX * W, "y": (1 - b.maxY) * H, "w": b.width * W, "h": b.height * H]
     }
     meta.append(row)

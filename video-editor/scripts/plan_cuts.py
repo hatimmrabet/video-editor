@@ -4,7 +4,7 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""خطة القص: يقيس السكتات بالصوت ويطلع مقاطع الكلام.  الاستخدام: python3 plan_cuts.py <workdir>"""
+"""Cut plan: measures the silences in the audio and produces the speech segments.  Usage: python3 plan_cuts.py <workdir>"""
 import subprocess, re, json, sys, os
 from lib import rush
 W = os.path.abspath(sys.argv[1]); SRC = rush.find_source(W)
@@ -37,5 +37,5 @@ for seg in keep:
 m=[x for x in m if x[1]-x[0]>=0.30]
 tot=sum(b-a for a,b in m)
 json.dump({"keep":m,"total":tot,"src_dur":dur}, open(os.path.join(W,"build","cut-plan.json"),"w"), indent=1)
-print(f"مقاطع={len(m)}  الباقي={tot:.2f}s  انشال={dur-tot:.2f}s ({(dur-tot)/dur*100:.0f}%)")
+print(f"segments={len(m)}  kept={tot:.2f}s  removed={dur-tot:.2f}s ({(dur-tot)/dur*100:.0f}%)")
 for a,b in m: print(f"  {a:7.2f} -> {b:7.2f}  ({b-a:5.2f}s)")

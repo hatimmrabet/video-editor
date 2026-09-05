@@ -4,18 +4,18 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""وضع المونتاج — مجموعة مقاطع بلا كلام → مونتاج واحد.
+"""Montage mode — a batch of speechless clips → one montage.
 
-  python3 montage_mode.py <work> scan [مجلد_المقاطع] [--shot 1.5] [--fps 4]
-                                       (افتراضي: <work>/rush — حط المقاطع فيه أولاً)
+  python3 montage_mode.py <work> scan [clip_folder] [--shot 1.5] [--fps 4]
+                                       (default: <work>/rush — put the clips there first)
   python3 montage_mode.py <work> show
   python3 montage_mode.py <work> sheet [out.jpg] [--cols 6]
   python3 montage_mode.py <work> drop 3 7      |  keep 1 2 5   |  undo
   python3 montage_mode.py <work> plan [--dur 30] [--shot 1.5] [--bpm 0] [--order energy|best|folder]
   python3 montage_mode.py <work> build [out.mp4] [--ar 9:16] [--xfade 0] [--amb 0] [--zoom 1]
 
-الاختيار على المشهد نفسه: وضوح الصورة · حركة بمقدار (لا جمود ولا رجّة) · إضاءة · لون.
-بلا تفريغ ولا كابشن — هذا وضع مستقل عن إعلان الكلام.
+Selection is about the shot itself: sharpness · motion by amount (no freeze, no shake) · lighting · color.
+No transcription, no captions — this mode is independent of the speech-ad flow.
 """
 import json, os, re, subprocess, sys, shutil, math
 
@@ -23,7 +23,7 @@ VID_EXT = (".mov", ".mp4", ".m4v", ".avi", ".mkv", ".webm", ".mts", ".m2ts")
 AR = {"9:16": (1080, 1920), "1:1": (1080, 1080), "16:9": (1920, 1080), "4:5": (1080, 1350)}
 
 
-# ───────────────────────── أدوات صغيرة ─────────────────────────
+# ───────────────────────── small helpers ─────────────────────────
 def die(m):
     print("❌ " + m)
     sys.exit(2)
@@ -38,7 +38,7 @@ def run(cmd, **kw):
 
 
 def probe(path):
-    """مدة · مقاس · تردد · فيه صوت؟ — بلا افتراضات."""
+    """Duration · size · frame rate · has audio? — no assumptions."""
     o = run(["ffprobe", "-v", "error", "-show_entries",
              "format=duration:stream=codec_type,width,height,avg_frame_rate"
              ":stream_side_data=rotation", "-of", "json", path]).stdout
@@ -53,8 +53,9 @@ def probe(path):
     for st in d.get("streams", []):
         if st.get("codec_type") == "video" and not w:
             w, h = int(st.get("width") or 0), int(st.get("height") or 0)
-            # مقاطع الجوال تجي موسومة بدوران — ffmpeg يدوّرها وقت الرسم،
-            # فالمقاس المعروض هو المقلوب. بدون هالسطر نقيس مقاساً ما يشوفه أحد.
+            # Phone clips arrive tagged with a rotation — ffmpeg rotates them at draw time,
+            # so the displayed size is the transposed one. Without this, we'd measure a size
+            # nobody actually sees.
             for sd in st.get("side_data_list") or []:
                 try:
                     if abs(int(sd.get("rotation", 0))) % 180 == 90:
@@ -82,7 +83,7 @@ def mpath(W):
 def load(W):
     p = mpath(W)
     if not os.path.exists(p):
-        die("ما فيه build/montage-plan.json — شغّل `scan` أولاً.")
+        die("no build/montage-plan.json — run `scan` first.")
     return json.load(open(p))
 
 
@@ -102,7 +103,7 @@ def flag(args, name, default, cast=float):
 
 
 def pct_ranks(vals):
-    """رتبة مئوية 0..1 لكل قيمة — تقارن بين المقاطع بلا ثوابت سحرية."""
+    """Percentile rank 0..1 for each value — compares clips to each other, no magic constants."""
     n = len(vals)
     if n <= 1:
         return [0.5] * n
@@ -121,19 +122,19 @@ def pct_ranks(vals):
 
 
 def life_score(m):
-    """الحركة بمقياس مطلق (متوسط فرق الإضاءة بين فريمين، 0-255):
-       جامد=رديء · هادئ=مقبول · 8-16=حي · فوق ذلك رجّة."""
+    """Motion on an absolute scale (mean inter-frame luma diff, 0-255):
+       frozen=bad · calm=fine · 8-16=alive · above that=shaky."""
     if m < 0.5:
-        return 0.0                                   # مجمّد
+        return 0.0                                   # frozen
     if m < 8.0:
         return 0.25 + m / 8.0 * 0.75
     if m <= 16.0:
         return 1.0
-    return max(0.10, 1.0 - (m - 16.0) / 16.0 * 0.9)  # 32 فما فوق = رجّة
+    return max(0.10, 1.0 - (m - 16.0) / 16.0 * 0.9)  # 32+ = shaky
 
 
 def expo_score(l):
-    """الإضاءة (متوسط لمعان 0-255): المعتم والمحروق مرفوضان بلا مجاملة."""
+    """Exposure (mean luma 0-255): dark and blown-out are rejected without mercy."""
     if l <= 40 or l >= 225:
         return 0.03
     if l < 95:
@@ -143,9 +144,9 @@ def expo_score(l):
     return max(0.05, 1.0 - (l - 180) / 45.0 * 0.95)
 
 
-# ───────────────────────── 1) فحص المقاطع ─────────────────────────
+# ───────────────────────── 1) scan the clips ─────────────────────────
 def metrics(path, mf, fps):
-    """مرور واحد بـffmpeg: وضوح (blur) · حركة (YDIF) · إضاءة (YAVG) · لون (SATAVG)."""
+    """One ffmpeg pass: sharpness (blur) · motion (YDIF) · lighting (YAVG) · color (SATAVG)."""
     if os.path.exists(mf):
         os.remove(mf)
     vf = (f"fps={fps},scale=320:-2,blurdetect=low=0.05:high=0.15,"
@@ -175,13 +176,13 @@ def metrics(path, mf, fps):
 
 
 def windows(rows, dur, shot, fps, margin=0.30):
-    """نوافذ مرشّحة داخل المقطع (يقصّ أول وآخر ثلث ثانية — لحظة اليد على الجهاز)."""
-    rows = [r for r in rows if r["t"] > 1e-6]      # أول فريم حركته صفر دائماً (ما قبله شي)
+    """Candidate windows inside the clip (trims the first and last third-second — the hand-on-device moment)."""
+    rows = [r for r in rows if r["t"] > 1e-6]      # the first frame's motion is always zero (nothing came before it)
     if not rows:
         return []
     a0, b0 = margin, max(margin + 0.2, dur - margin)
     L = min(shot, max(0.35, b0 - a0))
-    step = max(0.20, 1.0 / fps * 2, (b0 - a0) / 120.0)   # سقف ١٢٠ نافذة للمقطع الطويل
+    step = max(0.20, 1.0 / fps * 2, (b0 - a0) / 120.0)   # cap of 120 windows for a long clip
     out, t = [], a0
     while t + L <= b0 + 1e-6:
         seg = [r for r in rows if t - 1e-6 <= r["t"] <= t + L + 1e-6]
@@ -201,7 +202,7 @@ def windows(rows, dur, shot, fps, margin=0.30):
 
 
 def cmd_scan(W, args):
-    # لازم نتجاهل قيمة كل علم (--shot 1.0) مو بس العلم نفسه، وإلا "1.0" تنقرا كمجلد
+    # must ignore each flag's value (--shot 1.0), not just the flag itself, or "1.0" gets read as a folder
     flag_names = {"--shot", "--fps"}
     folder_args, skip = [], False
     for a in args:
@@ -211,17 +212,17 @@ def cmd_scan(W, args):
         folder_args.append(a)
     src = os.path.abspath(folder_args[0]) if folder_args else os.path.join(W, "rush")
     if not os.path.isdir(src):
-        die(f"ما لقيت المجلد {src} — حط المقاطع بـ<work>/rush أو عطني مجلداً: `scan <مجلد>`")
+        die(f"couldn't find the folder {src} — put the clips in <work>/rush or give me one: `scan <folder>`")
     shot = flag(args, "--shot", 1.5)
     fps = flag(args, "--fps", 4.0)
     files = sorted((f for f in os.listdir(src)
                     if f.lower().endswith(VID_EXT) and not f.startswith(".")), key=natkey)
     if not files:
-        die("المجلد ما فيه مقاطع فيديو.")
+        die("The folder has no video clips.")
     tmp = os.path.join(W, "build", ".mscan")
     os.makedirs(tmp, exist_ok=True)
 
-    print(f"📼 {len(files)} مقطعاً — أفحصها (أربعة بنفس الوقت)…")
+    print(f"📼 {len(files)} clip(s) — scanning them (four at a time)…")
 
     def one(n_f):
         n, f = n_f
@@ -231,7 +232,7 @@ def cmd_scan(W, args):
             return (n, f, None, None)
         rows = metrics(p, os.path.join(tmp, f"m{n}.txt"), fps)
         ws = windows(rows, info["dur"], shot, fps)
-        if not ws:                                   # مقطع قصير جداً: خذه كله
+        if not ws:                                   # very short clip: take it whole
             ws = [{"a": 0.0, "b": round(min(info["dur"], shot), 3), "blur": 8.0,
                    "mot": 4.0, "jit": 2.0, "lum": 128.0, "sat": 20.0}]
         return (n, f, info, ws)
@@ -243,18 +244,19 @@ def cmd_scan(W, args):
     clips, allw = [], []
     for n, f, info, ws in res:
         if not info:
-            print(f"  {n:2d}. {f} — ما قدرت أقراه، تخطّيته")
+            print(f"  {n:2d}. {f} — couldn't read it, skipped")
             continue
         c = dict(info)
         c.update({"i": len(clips) + 1, "file": os.path.join(src, f), "name": f,
                   "win": ws, "skip": False})
         clips.append(c)
         allw += [(c["i"], w) for w in ws]
-        print(f"  {c['i']:2d}. {f}  {info['dur']:5.1f}s  {info['w']}×{info['h']}  {len(ws)} نافذة")
+        print(f"  {c['i']:2d}. {f}  {info['dur']:5.1f}s  {info['w']}×{info['h']}  {len(ws)} window(s)")
     if not clips:
-        die("ما طلع ولا مقطع صالح.")
+        die("No usable clip came out of this.")
 
-    # الوضوح يُقاس بنسبة المقطع لوسيط المجموعة — نسبة بلا وحدة، تشتغل بأي دقة وأي مشهد.
+    # Sharpness is measured as the clip's ratio to the batch median — a unitless ratio that
+    # works at any resolution or scene.
     bl = sorted(w["blur"] for _, w in allw)
     medb = bl[len(bl) // 2] or 1.0
     rj = pct_ranks([w["jit"] for _, w in allw])
@@ -264,9 +266,10 @@ def cmd_scan(W, args):
         steady = 1.0 - rj[k]
         color = 0.5 + rs[k] * 0.5
         base = 0.40 * life_score(w["mot"]) + 0.25 * steady + 0.15 * color + 0.20
-        # الوضوح والإضاءة والجمود **تضرب** ولا تُضاف: اللقطة المهزوزة أو المظلمة أو
-        # المجمّدة ما تنفع مهما حسنت بقية صفاتها. (والصورة المعتمة تخدع مقياس الوضوح:
-        # تقلّ تفاصيلها فتبين «حادّة» — فالإضاءة تنقض ذلك.)
+        # Sharpness, exposure and the freeze penalty **multiply**, they don't add: a shaky,
+        # dark, or frozen shot isn't rescued no matter how good its other qualities are.
+        # (A dark image also fools the sharpness metric — less detail reads as "sharp" —
+        # so exposure counteracts that.)
         w["score"] = round(base * (0.20 + 0.80 * sharp) * expo_score(w["lum"])
                            * (0.35 if w["mot"] < 0.5 else 1.0), 4)
 
@@ -282,53 +285,53 @@ def cmd_scan(W, args):
 
     shutil.rmtree(tmp, ignore_errors=True)
     save(W, {"src": src, "shot": shot, "clips": clips})
-    print(f"\n✅ build/montage-plan.json — {len(clips)} مقطعاً، أحلى لحظة بكل واحد مختارة.")
+    print(f"\n✅ build/montage-plan.json — {len(clips)} clip(s), best moment of each picked.")
     cmd_show(W, [])
 
 
-# ───────────────────────── 2) عرض وتحرير ─────────────────────────
+# ───────────────────────── 2) show and edit ─────────────────────────
 def cmd_show(W, args):
     d = load(W)
     cs = d["clips"]
     live = [c for c in cs if not c.get("skip")]
-    print(f"\n🎬 {len(live)} مقطعاً شغّالاً من {len(cs)}  ·  طول اللقطة {d['shot']}s\n")
+    print(f"\n🎬 {len(live)} active clip(s) out of {len(cs)}  ·  shot length {d['shot']}s\n")
     for c in cs:
         mark = "  " if not c.get("skip") else "⊘ "
         bar = "█" * int(round(c["score"] * 10)) + "·" * (10 - int(round(c["score"] * 10)))
         print(f"{mark}{c['i']:2d}. {bar} {c['score']:.2f}  {c['pick'][0]:6.2f}→{c['pick'][1]:6.2f}"
-              f"  حركة {c['mot']:5.1f}  {c['name']}")
+              f"  motion {c['mot']:5.1f}  {c['name']}")
     if "plan" in d:
         tot = sum(p["dur"] for p in d["plan"])
-        print(f"\n📋 خطة جاهزة: {len(d['plan'])} لقطة · {tot:.1f} ثانية")
+        print(f"\n📋 Plan ready: {len(d['plan'])} shot(s) · {tot:.1f}s")
 
 
 def cmd_pick(W, args, mode):
     d = load(W)
     nums = {int(a) for a in args if a.isdigit()}
     if not nums:
-        die("عطني أرقام المقاطع.")
+        die("Give me clip numbers.")
     bak = mpath(W) + ".bak"
     json.dump(d, open(bak, "w"), ensure_ascii=False, indent=1)
     for c in d["clips"]:
         c["skip"] = (c["i"] in nums) if mode == "drop" else (c["i"] not in nums)
     d.pop("plan", None)
     save(W, d)
-    print(f"✅ {'شلت' if mode=='drop' else 'أبقيت'} {sorted(nums)} — الباقي "
-          f"{len([c for c in d['clips'] if not c['skip']])} مقطعاً. (خطة قديمة أُلغيت)")
+    print(f"✅ {'removed' if mode=='drop' else 'kept'} {sorted(nums)} — "
+          f"{len([c for c in d['clips'] if not c['skip']])} clip(s) remain. (old plan discarded)")
 
 
 def cmd_undo(W, args):
     bak = mpath(W) + ".bak"
     if not os.path.exists(bak):
-        die("ما فيه تراجع محفوظ.")
+        die("No saved undo state.")
     shutil.copy(bak, mpath(W))
-    print("↩️  رجّعت الحالة السابقة.")
+    print("↩️  Restored the previous state.")
     cmd_show(W, [])
 
 
-# ───────────────────────── 3) ورقة اللقطات ─────────────────────────
+# ───────────────────────── 3) contact sheet ─────────────────────────
 def _font(px):
-    """أول خط متاح بالنظام — وإلا الخط المدمج."""
+    """The first font available on the system — else the built-in one."""
     from PIL import ImageFont
     for p in ("/System/Library/Fonts/Supplemental/Arial Bold.ttf",
               "/System/Library/Fonts/Supplemental/Arial.ttf",
@@ -351,8 +354,8 @@ def cmd_sheet(W, args):
     cols = int(flag(args, "--cols", 6))
     live = [c for c in d["clips"] if not c.get("skip")]
     if not live:
-        die("كل المقاطع مشطوبة.")
-    # خلية الورقة تاخذ شكل المقاطع نفسها — بلا فراغ أسود
+        die("Every clip is dropped.")
+    # The sheet's cell takes the clips' own shape — no black padding
     ars = sorted((c["w"] / c["h"]) for c in live if c.get("h"))
     ar = ars[len(ars) // 2] if ars else 0.5625
     CH = 300
@@ -372,11 +375,11 @@ def cmd_sheet(W, args):
         if os.path.exists(f) and os.path.getsize(f) > 0:
             shots.append((c, f))
     if not shots:
-        die("ما قدرت أطلّع ولا لقطة.")
+        die("Couldn't produce a single shot.")
     rows = max(1, math.ceil(len(shots) / cols))
     order = " · ".join(str(c["i"]) for c, _ in shots)
 
-    try:                                    # الأفضل: أرقام واضحة على كل لقطة
+    try:                                    # best case: a clear number on every shot
         from PIL import Image, ImageDraw
         P = 6
         sheet = Image.new("RGB", (cols * (CW + P) + P, rows * (CH + P) + P), (17, 17, 17))
@@ -391,25 +394,25 @@ def cmd_sheet(W, args):
             dr.text((x + 14, y + 8), lbl, fill=(255, 255, 255), font=fnt)
         sheet.save(out, quality=88)
         shutil.rmtree(tmp, ignore_errors=True)
-        print(f"✅ {out}  ({len(shots)} لقطة · {cols}×{rows}) — الرقم على كل لقطة هو رقم المقطع.")
-    except ImportError:                     # بلا PIL: ورقة بلا أرقام + مفتاح الترتيب
+        print(f"✅ {out}  ({len(shots)} shot(s) · {cols}×{rows}) — the number on each shot is its clip number.")
+    except ImportError:                     # no PIL: an unlabeled sheet + an order key
         r = run(["ffmpeg", "-v", "error", "-i", os.path.join(tmp, "%03d.jpg"),
                  "-vf", f"tile={cols}x{rows}:padding=6:margin=6:color=0x111111",
                  "-frames:v", "1", "-q:v", "3", "-y", out])
         shutil.rmtree(tmp, ignore_errors=True)
         if r.returncode:
-            die("فشل تجميع الورقة:\n" + r.stderr[-400:])
-        print(f"✅ {out}  ({len(shots)} لقطة · {cols}×{rows}) — بلا أرقام على الصور.\n"
-              f"   الترتيب من فوق-يسار وسطراً سطراً: {order}")
-    print("اقرأها وحدة، لا تقرأ الصور فرادى.")
+            die("Failed to assemble the sheet:\n" + r.stderr[-400:])
+        print(f"✅ {out}  ({len(shots)} shot(s) · {cols}×{rows}) — no numbers on the images.\n"
+              f"   Order, top-left going row by row: {order}")
+    print("Read it as one image — don't read the frames one by one.")
 
 
-# ───────────────────────── 4) الخطة ─────────────────────────
+# ───────────────────────── 4) the plan ─────────────────────────
 def cmd_plan(W, args):
     d = load(W)
     live = [c for c in d["clips"] if not c.get("skip")]
     if not live:
-        die("كل المقاطع مشطوبة.")
+        die("Every clip is dropped.")
     target = flag(args, "--dur", 0.0)
     shot = flag(args, "--shot", d.get("shot", 1.5))
     bpm = flag(args, "--bpm", 0.0)
@@ -419,11 +422,12 @@ def cmd_plan(W, args):
         if i + 1 < len(args):
             order = args[i + 1]
 
-    # إيقاع اللقطات: على النبضة إن أُعطي BPM، وإلا نمط متغيّر يكسر الرتابة
+    # Shot rhythm: on the beat if a BPM is given, else a varying pattern that breaks monotony
     if bpm > 0:
         beat = 60.0 / bpm
         k = max(1, round(shot / beat))
-        # نمط ينكسر بلقطة أطول، بلا لقطة نبضة وحدة — تطلع كخطأ مو كإيقاع
+        # a pattern that breaks with one longer shot, never a single-beat shot — that would
+        # read as a mistake, not a rhythm
         pat = [k, k, k, k + 1] if k <= 2 else [k, k, k - 1, k + 1]
         durs = [p * beat for p in pat]
     else:
@@ -434,7 +438,7 @@ def cmd_plan(W, args):
         seq = sorted(live, key=lambda c: c["i"])
     elif order == "best":
         seq = ranked
-    else:                                   # energy: هادئ/متحرك بالتناوب، والأقوى بالبداية
+    else:                                   # energy: alternate calm/moving, strongest first
         mid = sorted(x["mot"] for x in live)[len(live) // 2]
         hi = sorted([c for c in live if c["mot"] >= mid], key=lambda c: -c["score"])
         his = {c["i"] for c in hi}
@@ -445,7 +449,7 @@ def cmd_plan(W, args):
                 seq.append(hi[a]); a += 1
             if b < len(lo):
                 seq.append(lo[b]); b += 1
-        top = ranked[0]["i"]                      # أقوى لقطة أول شي يشوفه المشاهد
+        top = ranked[0]["i"]                      # the strongest shot is the first thing the viewer sees
         seq = [c for c in seq if c["i"] != top]
         seq.insert(0, ranked[0])
 
@@ -466,15 +470,15 @@ def cmd_plan(W, args):
     d["shot"] = shot
     save(W, d)
     if target and tot < target * 0.92:
-        print(f"⚠️  المقاطع ما تكفي {target:.0f} ثانية — طلع {tot:.1f}. "
-              f"زد `--shot` أو زد مقاطع (ما نكرّر لقطة مرتين).")
-    print(f"📋 {len(plan)} لقطة · {tot:.1f} ثانية"
-          + (f" · على نبضة {bpm:.0f}" if bpm else "") + f" · ترتيب {order}")
+        print(f"⚠️  The clips don't add up to {target:.0f}s — got {tot:.1f}. "
+              f"Increase `--shot` or add more clips (a shot is never repeated).")
+    print(f"📋 {len(plan)} shot(s) · {tot:.1f}s"
+          + (f" · on the {bpm:.0f} beat" if bpm else "") + f" · order {order}")
     for k, p in enumerate(plan, 1):
         print(f"  {k:2d}. [{p['i']:2d}] {p['in']:6.2f} +{p['dur']:.2f}s  {p['name']}")
 
 
-# ───────────────────────── 5) التركيب ─────────────────────────
+# ───────────────────────── 5) build ─────────────────────────
 def cmd_build(W, args):
     d = load(W)
     if "plan" not in d:
@@ -489,20 +493,21 @@ def cmd_build(W, args):
         if i + 1 < len(args):
             ar = args[i + 1]
     if ar not in AR:
-        die("المقاس المتاح: " + " · ".join(AR))
+        die("Available sizes: " + " · ".join(AR))
     OW, OH = AR[ar]
     xf = flag(args, "--xfade", 0.0)
     amb = flag(args, "--amb", 0.0)
     zoom = flag(args, "--zoom", 1.0)
     R = 30
 
-    # ffmpeg ≤7 يحتاج eval=frame عشان يعيد حساب القص كل فريم، و8 حذف الخيار وصار الافتراضي.
+    # ffmpeg ≤7 needs eval=frame to recompute the crop every frame; 8 dropped the option and made it the default.
     ev = ":eval=frame" if "eval" in run(["ffmpeg", "-hide_banner", "-h", "filter=crop"]).stdout else ""
     ins, fc, vs, nozoom = [], [], [], 0
     for k, p in enumerate(plan):
         ins += ["-ss", f"{p['in']:.3f}", "-t", f"{p['dur']:.3f}", "-i", p["file"]]
-        # زوم داخلي خفيف — بس إذا كان المصدر أكبر من المخرَج بمراحل.
-        # على مصدر بحجم المخرَج القصّ يتحرك بكسلاً كاملاً بالفريم فيبين الزوم متقطّعاً.
+        # A faint internal push-in zoom — only if the source is bigger than the output by some margin.
+        # On a source the same size as the output, the crop moves a whole pixel per frame,
+        # so the zoom looks choppy.
         K = 0.055
         pw, ph = p.get("w", 0), p.get("h", 0)
         big = min(max(pw, ph) / max(OW, OH), min(pw, ph) / min(OW, OH)) >= 1.4
@@ -530,7 +535,8 @@ def cmd_build(W, args):
         fc.append("".join(vs) + f"concat=n={len(plan)}:v=1:a=0[vo]")
         total = sum(p["dur"] for p in plan)
 
-    # الصوت: أجواء المقاطع إن طُلبت وكلها فيها صوت، وإلا مسار صامت (يلزمه 06b_master)
+    # Audio: the clips' own ambience if requested and all of them have audio, else a silent
+    # track (needs master_audio.sh)
     use_amb = amb > 0 and all(p.get("audio") for p in plan) and xf <= 0
     if use_amb:
         for k, p in enumerate(plan):
@@ -544,7 +550,7 @@ def cmd_build(W, args):
         ins += ["-f", "lavfi", "-t", f"{total:.3f}", "-i", "anullsrc=r=48000:cl=stereo"]
         amap = ["-map", f"{len(plan)}:a"]
         if amb > 0:
-            print("ℹ️  الأجواء متخطّاة (مقطع بلا صوت أو تلاشٍ مفعّل) — مسار صامت.")
+            print("ℹ️  Ambience skipped (a clip has no audio, or a crossfade is on) — silent track.")
 
     cmd = (["ffmpeg", "-v", "error", "-stats"] + ins
            + ["-filter_complex", ";".join(fc), "-map", "[vo]"] + amap
@@ -552,21 +558,21 @@ def cmd_build(W, args):
               "-bufsize", "16M", "-profile:v", "high", "-level", "4.0",
               "-pix_fmt", "yuv420p", "-r", str(R), "-c:a", "aac", "-b:a", "160k",
               "-ar", "48000", "-shortest", "-movflags", "+faststart", "-y", out])
-    print(f"🎬 أركّب {len(plan)} لقطة → {total:.1f} ثانية · {ar}"
-          + (f" · تلاشٍ {xf}s" if xf > 0 else " · قطع حاد")
-          + ("" if not zoom else (" · بلا زوم (المصدر مو أكبر من المخرَج)" if nozoom == len(plan)
-                                  else f" · زوم على {len(plan)-nozoom} لقطة")))
+    print(f"🎬 Building {len(plan)} shot(s) → {total:.1f}s · {ar}"
+          + (f" · {xf}s crossfade" if xf > 0 else " · hard cut")
+          + ("" if not zoom else (" · no zoom (source isn't bigger than the output)" if nozoom == len(plan)
+                                  else f" · zoom on {len(plan)-nozoom} shot(s)")))
     r = subprocess.run(cmd)
     if r.returncode:
-        die("فشل التركيب.")
+        die("Build failed.")
     print(f"✅ {out}")
     print(run(["ffprobe", "-v", "error", "-show_entries", "format=duration,size",
                "-show_entries", "stream=width,height", "-of", "default=nw=1", out]).stdout.strip())
-    print(f"↩︎ بعدها: bash scripts/master_audio.sh {W} {out} "
+    print(f"↩︎ next: bash scripts/master_audio.sh {W} {out} "
           f"{os.path.join(W, 'video-final.mp4')}")
 
 
-# ───────────────────────── الموجّه ─────────────────────────
+# ───────────────────────── dispatcher ─────────────────────────
 CMDS = {"scan": cmd_scan, "show": cmd_show, "sheet": cmd_sheet, "plan": cmd_plan,
         "build": cmd_build, "undo": cmd_undo,
         "drop": lambda W, a: cmd_pick(W, a, "drop"),

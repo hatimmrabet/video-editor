@@ -1,5 +1,5 @@
-/* كل القيم تجي من project.json — يبنيه remotion/remotion.sh من project.config.json و caps.json.
-   ⛔ لا تكتب لوناً ثابتاً هني. */
+/* Every value comes from project.json — remotion/remotion.sh builds it from project.config.json and caps.json.
+   Do not hardcode a colour here. */
 import P from './project.json';
 
 export const T = {
@@ -13,11 +13,11 @@ export const T = {
   badgeUntil: typeof P.theme.badgeUntil === 'number' ? P.theme.badgeUntil : 0,
 };
 export const FPS   = 30;
-export const VEND  = P.total;              // نهاية كلام الفيديو
-export const OUTRO = P.outro;              // مدة كرت النهاية
+export const VEND  = P.total;              // end of the video's speech
+export const OUTRO = P.outro;              // the end card's duration
 export const DUR_F = Math.round((VEND + OUTRO) * FPS);
 export const HAS_SFX = !!P.sfx;
 export const OUTRO_COPY = P.outro_copy || {recap:[]};
 export const STAGE = P.stage || [{s:0,e:1e9,m:'FULL'}];
-/* "guides": true بـproject.json → تظهر مناطق انستقرام الحمراء بالاستوديو (اطفيها قبل الرندر) */
+/* "guides": true in project.json → the red Instagram areas show in the studio (turn them off before rendering) */
 export const GUIDES = !!(P as any).guides;

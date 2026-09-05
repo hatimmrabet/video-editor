@@ -8,12 +8,12 @@ const card = (a=0.96) => ({
   boxShadow: `0 20px 48px ${rgba(T.ink,0.30)}`,
 });
 
-/** شارة الحساب — فوق، داخل المنطقة الآمنة.
-    تختفي بعد BADGE_UNTIL ثانية (theme.json ← badgeUntil · افتراضي 3 · ‎-1 = تبقى طول الفيديو):
-    اسمه مكتوب بالمنصة نفسها وبكرت النهاية، وبقاؤها ياكل أعلى الشاشة اللي يحتاجه الرسم. */
+/** The account badge — at the top, inside the safe zone.
+    Disappears after BADGE_UNTIL seconds (theme ← badgeUntil · default 3 · -1 = stays the whole video):
+    the name is already written on the platform itself and on the end card, and keeping it up eats into the top of the screen that the drawing needs. */
 export const Badge: React.FC<{t:number}> = ({t}) => {
   const bu = T.badgeUntil;
-  if (!bu) return null;                       /* 0 = مطفية نهائياً */
+  if (!bu) return null;                       /* 0 = permanently off */
   const a = p(t,0.25,0.7)
     * (bu > 0 ? 1-p(t,bu,bu+0.4) : 1)
     * (t > VEND-0.3 ? 1-p(t,VEND-0.3,VEND) : 1);
@@ -29,7 +29,7 @@ export const Badge: React.FC<{t:number}> = ({t}) => {
   );
 };
 
-/** شريط التقدّم — أعلى من حافة الشاشة لأن انستقرام يغطي الأسفل */
+/** The progress bar — raised above the screen edge because Instagram covers the bottom */
 export const Bar: React.FC<{t:number}> = ({t}) => {
   const a = t > VEND-0.3 ? 1-p(t,VEND-0.3,VEND) : 1;
   if (a <= 0) return null;

@@ -1,9 +1,11 @@
 #!/bin/bash
-# ورقة تواصل: يجمع لقطات كثيرة بصورة وحدة — كلود يشوفها بقراءة وحدة بدل عشر قراءات (توفير توكنز كبير).
+# Contact sheet: gathers several shots into one image — Claude reads it in one go instead
+# of ten separate reads (a big token saving).
 # ./contact_sheet.sh <workdir> <sheet.jpg> <t1> <t2> ...
-#   المصدر: SRC=<ملف.mp4> إن أُعطي · وإلا build/video-raw.mp4 · وإلا مجلد build/prev/
-# ⚠️ وسم التوقيت يُرسم ببايثون (PIL) لأن كثيراً من بناءات ffmpeg تجي بلا drawtext —
-#    وبلا وسم الورقة تصير ألغازاً: تشوف لقطات وما تدري أي لحظة كل وحدة.
+#   Source: SRC=<file.mp4> if given · else build/video-raw.mp4 · else the build/prev/ folder
+# ⚠️ The timestamp label is drawn with Python (PIL) because many ffmpeg builds ship without
+#    drawtext — and without a label the sheet becomes a riddle: you see shots and don't know
+#    which moment each one is.
 set -e
 . "$(dirname "$0")/lib/platform.sh"
 W="$(vevo_abspath "$1")"; OUT="$2"; shift 2
@@ -42,9 +44,9 @@ for k, im in enumerate(ims):
     dr.text((k * w + 12, 9), lbl, fill=(255, 255, 255), font=fnt)
 sheet.save(out, quality=88)
 PY
-then echo "✅ $OUT  ($i لقطة · بالتوقيت على كل وحدة)"
+then echo "✅ $OUT  ($i shot(s) · timestamp on each one)"
 else
   ffmpeg -v error $IN -filter_complex "hstack=inputs=$i" -y "$OUT"
-  echo "✅ $OUT  ($i لقطة · بلا وسم — الترتيب من اليسار: $*)"
+  echo "✅ $OUT  ($i shot(s) · no label — order from the left: $*)"
 fi
 rm -rf "$TMP"

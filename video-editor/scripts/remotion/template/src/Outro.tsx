@@ -2,7 +2,7 @@ import {Img, staticFile} from 'remotion';
 import {T, VEND, OUTRO_COPY} from './theme';
 import {p, ease, eio, back, rgba, onACC} from './util';
 
-/* النصوص من project.json ← outro_copy — لا تكتب نصاً ثابتاً هني */
+/* The copy comes from project.json ← outro_copy — don't hardcode any text here */
 export const Outro: React.FC<{t:number}> = ({t}) => {
   if (t < VEND) return null;
   const s = VEND;

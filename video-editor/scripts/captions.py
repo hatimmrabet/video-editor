@@ -4,10 +4,11 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""يبني توقيتات الكابشن على التايم-لاين الجديد.  python3 captions.py <workdir>
-يقرأ: build/cut-plan.json · build/transcript-raw.json (وِسبر) · build/transcript-fixes.json
-  ← {"fix":[[كلمات الجملة 0],...], "hot":[كلمات تُظلَّل]}
-عدد كلمات كل جملة في fix لازم يساوي عدد كلمات وِسبر لنفس الجملة (عشان التوقيتات تبقى مضبوطة)."""
+"""Builds caption timings on the new (post-cut) timeline.  python3 captions.py <workdir>
+Reads: build/cut-plan.json · build/transcript-raw.json (Whisper) · build/transcript-fixes.json
+  ← {"fix":[[words of sentence 0],...], "hot":[highlighted words]}
+The word count of each sentence in fix must equal Whisper's word count for that sentence
+(so the timings stay accurate)."""
 import json, sys, os
 W=os.path.abspath(sys.argv[1])
 os.makedirs(os.path.join(W,"build"),exist_ok=True)
@@ -32,7 +33,7 @@ cards=[]
 for i,seg in enumerate(tr["segments"]):
     ws=seg.get("words",[]); f=FIX[i]
     if len(ws)!=len(f):
-        sys.exit(f"❌ الجملة {i}: وِسبر {len(ws)} كلمة، fixes.json {len(f)} — لازم يتساوون")
+        sys.exit(f"❌ sentence {i}: Whisper has {len(ws)} words, transcript-fixes.json has {len(f)} — they must match")
     si=seg_of((ws[0]["start"]+ws[-1]["end"])/2)
     o=[]
     for w,txt in zip(ws,f):
@@ -46,5 +47,5 @@ for i,seg in enumerate(tr["segments"]):
 for i in range(len(cards)-1):
     if cards[i]["e"]>cards[i+1]["s"]: cards[i]["e"]=round(cards[i+1]["s"]-0.02,3)
 json.dump({"total":round(acc,3),"cards":cards},open(os.path.join(W,"build","captions.json"),"w"),ensure_ascii=False,indent=1)
-print("كروت:",len(cards)," المدة:",round(acc,2))
+print("cards:",len(cards)," duration:",round(acc,2))
 for c in cards: print(f"{c['s']:6.2f}-{c['e']:6.2f}  "+" ".join(x['t'] for x in c['w']))

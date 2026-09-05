@@ -1,5 +1,5 @@
 #!/bin/bash
-# ./encode.sh <workdir> [اسم_الملف]   → يجمّع الفريمات + الصوت + المؤثرات
+# ./encode.sh <workdir> [filename]   → muxes the frames + audio + sound effects
 set -e
 . "$(dirname "$0")/lib/platform.sh"
 W="$(vevo_abspath "$1")"; OUT="${2:-$W/build/video-raw.mp4}"
