@@ -5,7 +5,7 @@
 > The light-engine compositor. Loads `<work>/compose.html` in headless Chrome via
 > Puppeteer, calls `window.init(...)` / `window.setFrame(...)` / `window.draw(t)` /
 > `window.shot(q)` for every frame, and writes JPEGs. Supports resume, a time window, and
-> preview stills. Overlays the person cutout if `behind.json` exists.
+> preview stills. Overlays the person cutout if `build/person-cutout.json` exists.
 
 ## CLI
 
@@ -13,7 +13,7 @@
 node render_frames.js <work> all              # render all, resume (skip files > 2000 bytes)
 node render_frames.js <work> all --force      # re-render everything
 node render_frames.js <work> range <from> <to># re-render a time window (always overwrites)
-node render_frames.js <work> preview <t1> <t2> ...  # write prev/tNN.NN.jpg stills
+node render_frames.js <work> preview <t1> <t2> ...  # write build/prev/tNN.NN.jpg stills
 ```
 
 ## Inputs (in `<work>`)
@@ -21,19 +21,19 @@ node render_frames.js <work> preview <t1> <t2> ...  # write prev/tNN.NN.jpg stil
 | File | Role | Required |
 |---|---|---|
 | `compose.html` | the drawing surface | yes |
-| `caps.json` | caption cards, passed into `window.init` | yes |
-| `sfx.json` | `.outro` → frame count | yes |
+| `build/captions.json` | caption cards, passed into `window.init` | yes |
+| `build/sound-cues.json` | `.outro` → frame count | yes |
 | `config/project.config.json` (via [`lib/config.js`](lib-config.md)'s `load()`) | `theme` (font, colors), `crop.faceAnchor` | optional |
-| `behind.json` | person-cutout ranges/faces | optional |
-| `vfr/*.jpg` | source frames | yes |
-| `bt/person/*.png` | per-frame cutout PNGs | optional |
+| `build/person-cutout.json` | person-cutout ranges/faces | optional |
+| `build/frames-source/*.jpg` | source frames | yes |
+| `build/person-cutout/person/*.png` | per-frame cutout PNGs | optional |
 
 ## Outputs
 
 | File | Shape |
 |---|---|
-| `out/%05d.jpg` | composited frames, q ≈ 0.95. Count = `round((caps.total + sfx.outro) * 30)` |
-| `prev/*.jpg` | preview stills (`preview` mode), q ≈ 0.9 |
+| `build/frames-composited/%05d.jpg` | composited frames, q ≈ 0.95. Count = `round((caps.total + sfx.outro) * 30)` |
+| `build/prev/*.jpg` | preview stills (`preview` mode), q ≈ 0.9 |
 
 ## How it runs
 
@@ -43,8 +43,9 @@ node render_frames.js <work> preview <t1> <t2> ...  # write prev/tNN.NN.jpg stil
 3. `window.init({ cards, total, outro, theme, behind })`.
 4. **After `init`**, wait for the theme font (weights 400/600/700/800/900) — the non-Cairo
    font `<link>` is injected inside `init`.
-5. Per frame: pick `vfr/` index `round(t*30)+1`; `setFrame` (with `decode()`); if
-   `behind.json` covers the frame, `setPerson`; `draw(t)`; `shot(q)` → write JPEG.
+5. Per frame: pick `build/frames-source/` index `round(t*30)+1`; `setFrame` (with
+   `decode()`); if `build/person-cutout.json` covers the frame, `setPerson`; `draw(t)`;
+   `shot(q)` → write JPEG.
 6. `all` skips frames already `> 2000 bytes` unless `--force`. After a non-`range` run it
    counts missing frames and warns before `encode.sh`.
 
@@ -70,6 +71,8 @@ The Remotion engine (`remotion.sh render`) replaces this stage entirely.
 - **Migrated to `config.load()` (issue #55, 2026-09-05)** — no longer reads `theme.json`
   directly; same treatment as `reframe.py` (#8) and `safe_check.js` (#56). No
   `project.config.json` yet? Falls back to `defaults.config.json`, same numbers as before.
+- **Migrated to the `build/` layout (issue #59, 2026-09-05)** — `vfr`/`out`/`prev`/
+  `behind.json`/`bt/` all moved under `build/`.
 - A missing frame = a broken mux — the script's "⚠️ ناقص N فريماً" warning must be zero
   before `encode.sh`.
 - Bugs #1–#4 in [../invariants.md](../invariants.md) all live at this boundary

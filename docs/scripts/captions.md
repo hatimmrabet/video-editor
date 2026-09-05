@@ -4,8 +4,8 @@
 
 > Builds caption card timings on the **new (post-cut) timeline**. For each Whisper
 > segment it maps the original word times through the kept segments to the compressed
-> timeline, substitutes the human-corrected text from `fixes.json`, marks "hot" words, and
-> produces caption cards with lead-in / lead-out padding and de-overlap.
+> timeline, substitutes the human-corrected text from `build/transcript-fixes.json`, marks
+> "hot" words, and produces caption cards with lead-in / lead-out padding and de-overlap.
 
 ## CLI
 
@@ -17,9 +17,9 @@ uv run scripts/captions.py <work>
 
 | File | Shape | Required |
 |---|---|---|
-| `<work>/cut.json` | `.keep` | yes |
-| `<work>/a.json` | Whisper segments | yes |
-| `<work>/fixes.json` | `{ "fix": [[words per segment]], "hot": [words] }` | yes |
+| `<work>/build/cut-plan.json` | `.keep` | yes |
+| `<work>/build/transcript-raw.json` | Whisper segments | yes |
+| `<work>/build/transcript-fixes.json` | `{ "fix": [[words per segment]], "hot": [words] }` | yes |
 
 **Hard constraint:** `len(fix[i])` must equal the number of Whisper words in segment `i`,
 or the script exits with an error — the per-word timings are taken from Whisper positionally.
@@ -28,7 +28,7 @@ or the script exits with an error — the per-word timings are taken from Whispe
 
 | File | Shape |
 |---|---|
-| `<work>/caps.json` | `{ "total": float, "cards": [{s, e, w:[{t,s,e,hot}]}] }` — see [data-contracts.md](../data-contracts.md#capsjson--caption-card-timings-the-central-contract) |
+| `<work>/build/captions.json` | `{ "total": float, "cards": [{s, e, w:[{t,s,e,hot}]}] }` — see [data-contracts.md](../data-contracts.md#buildcaptionsjson--caption-card-timings-the-central-contract) |
 
 ## How the timeline mapping works
 
@@ -51,13 +51,13 @@ skill — pass a Windows-style path.
 
 ## Place in the flow
 
-Stage 5, after the human corrects the transcript and writes `fixes.json`. Output consumed
-by `sound_fx.py`, `render_frames.js`, `safe_check.js`, `subtitles.py`, `fx/behind_text.js`
-and Remotion. Mutated later by `edit_script.py`.
+Stage 5, after the human corrects the transcript and writes `build/transcript-fixes.json`.
+Output consumed by `sound_fx.py`, `render_frames.js`, `safe_check.js`, `subtitles.py`,
+`fx/behind_text.js` and Remotion. Mutated later by `edit_script.py`.
 
 ## Gotchas
 
-- `caps.json` is the central contract — save it (and `cut.json`); later edits never need
-  re-transcription.
+- `build/captions.json` is the central contract — save it (and `build/cut-plan.json`);
+  later edits never need re-transcription.
 - The word count constraint is the most common failure — when correcting a sentence you
   must keep the same number of tokens Whisper produced (split/join to match).

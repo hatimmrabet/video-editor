@@ -6,7 +6,8 @@ except Exception:
     pass
 """وضع المونتاج — مجموعة مقاطع بلا كلام → مونتاج واحد.
 
-  python3 montage_mode.py <work> scan <مجلد_المقاطع> [--shot 1.5] [--fps 4]
+  python3 montage_mode.py <work> scan [مجلد_المقاطع] [--shot 1.5] [--fps 4]
+                                       (افتراضي: <work>/rush — حط المقاطع فيه أولاً)
   python3 montage_mode.py <work> show
   python3 montage_mode.py <work> sheet [out.jpg] [--cols 6]
   python3 montage_mode.py <work> drop 3 7      |  keep 1 2 5   |  undo
@@ -73,15 +74,20 @@ def probe(path):
     return {"dur": dur, "w": w, "h": h, "fps": round(fps, 3), "audio": has_a}
 
 
+def mpath(W):
+    os.makedirs(os.path.join(W, "build"), exist_ok=True)
+    return os.path.join(W, "build", "montage-plan.json")
+
+
 def load(W):
-    p = os.path.join(W, "montage.json")
+    p = mpath(W)
     if not os.path.exists(p):
-        die("ما فيه montage.json — شغّل `scan <مجلد_المقاطع>` أولاً.")
+        die("ما فيه build/montage-plan.json — شغّل `scan` أولاً.")
     return json.load(open(p))
 
 
 def save(W, d):
-    json.dump(d, open(os.path.join(W, "montage.json"), "w"), ensure_ascii=False, indent=1)
+    json.dump(d, open(mpath(W), "w"), ensure_ascii=False, indent=1)
 
 
 def flag(args, name, default, cast=float):
@@ -195,18 +201,24 @@ def windows(rows, dur, shot, fps, margin=0.30):
 
 
 def cmd_scan(W, args):
-    if not args:
-        die("عطني مجلد المقاطع: `scan <مجلد>`")
-    src = os.path.abspath(args[0])
+    # لازم نتجاهل قيمة كل علم (--shot 1.0) مو بس العلم نفسه، وإلا "1.0" تنقرا كمجلد
+    flag_names = {"--shot", "--fps"}
+    folder_args, skip = [], False
+    for a in args:
+        if skip: skip = False; continue
+        if a in flag_names: skip = True; continue
+        if a.startswith("--"): continue
+        folder_args.append(a)
+    src = os.path.abspath(folder_args[0]) if folder_args else os.path.join(W, "rush")
     if not os.path.isdir(src):
-        die(f"ما لقيت المجلد {src}")
+        die(f"ما لقيت المجلد {src} — حط المقاطع بـ<work>/rush أو عطني مجلداً: `scan <مجلد>`")
     shot = flag(args, "--shot", 1.5)
     fps = flag(args, "--fps", 4.0)
     files = sorted((f for f in os.listdir(src)
                     if f.lower().endswith(VID_EXT) and not f.startswith(".")), key=natkey)
     if not files:
         die("المجلد ما فيه مقاطع فيديو.")
-    tmp = os.path.join(W, ".mscan")
+    tmp = os.path.join(W, "build", ".mscan")
     os.makedirs(tmp, exist_ok=True)
 
     print(f"📼 {len(files)} مقطعاً — أفحصها (أربعة بنفس الوقت)…")
@@ -270,7 +282,7 @@ def cmd_scan(W, args):
 
     shutil.rmtree(tmp, ignore_errors=True)
     save(W, {"src": src, "shot": shot, "clips": clips})
-    print(f"\n✅ montage.json — {len(clips)} مقطعاً، أحلى لحظة بكل واحد مختارة.")
+    print(f"\n✅ build/montage-plan.json — {len(clips)} مقطعاً، أحلى لحظة بكل واحد مختارة.")
     cmd_show(W, [])
 
 
@@ -295,7 +307,7 @@ def cmd_pick(W, args, mode):
     nums = {int(a) for a in args if a.isdigit()}
     if not nums:
         die("عطني أرقام المقاطع.")
-    bak = os.path.join(W, "montage.json.bak")
+    bak = mpath(W) + ".bak"
     json.dump(d, open(bak, "w"), ensure_ascii=False, indent=1)
     for c in d["clips"]:
         c["skip"] = (c["i"] in nums) if mode == "drop" else (c["i"] not in nums)
@@ -306,10 +318,10 @@ def cmd_pick(W, args, mode):
 
 
 def cmd_undo(W, args):
-    bak = os.path.join(W, "montage.json.bak")
+    bak = mpath(W) + ".bak"
     if not os.path.exists(bak):
         die("ما فيه تراجع محفوظ.")
-    shutil.copy(bak, os.path.join(W, "montage.json"))
+    shutil.copy(bak, mpath(W))
     print("↩️  رجّعت الحالة السابقة.")
     cmd_show(W, [])
 
@@ -335,7 +347,7 @@ def _font(px):
 
 def cmd_sheet(W, args):
     d = load(W)
-    out = args[0] if args and not args[0].startswith("--") else os.path.join(W, "montage-sheet.jpg")
+    out = args[0] if args and not args[0].startswith("--") else os.path.join(W, "build", "montage-contact-sheet.jpg")
     cols = int(flag(args, "--cols", 6))
     live = [c for c in d["clips"] if not c.get("skip")]
     if not live:
@@ -345,7 +357,8 @@ def cmd_sheet(W, args):
     ar = ars[len(ars) // 2] if ars else 0.5625
     CH = 300
     CW = max(150, min(540, int(round(CH * ar / 2) * 2)))
-    tmp = os.path.join(W, ".msheet")
+    os.makedirs(os.path.join(W, "build"), exist_ok=True)
+    tmp = os.path.join(W, "build", ".msheet")
     shutil.rmtree(tmp, ignore_errors=True)
     os.makedirs(tmp)
 
@@ -468,7 +481,8 @@ def cmd_build(W, args):
         cmd_plan(W, args)
         d = load(W)
     plan = d["plan"]
-    out = args[0] if args and not args[0].startswith("--") else os.path.join(W, "montage.mp4")
+    os.makedirs(os.path.join(W, "build"), exist_ok=True)
+    out = args[0] if args and not args[0].startswith("--") else os.path.join(W, "build", "montage-raw.mp4")
     ar = "9:16"
     if "--ar" in args:
         i = args.index("--ar")
@@ -549,7 +563,7 @@ def cmd_build(W, args):
     print(run(["ffprobe", "-v", "error", "-show_entries", "format=duration,size",
                "-show_entries", "stream=width,height", "-of", "default=nw=1", out]).stdout.strip())
     print(f"↩︎ بعدها: bash scripts/master_audio.sh {W} {out} "
-          f"{os.path.join(W, 'montage-master.mp4')}")
+          f"{os.path.join(W, 'video-final.mp4')}")
 
 
 # ───────────────────────── الموجّه ─────────────────────────

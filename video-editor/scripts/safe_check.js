@@ -7,16 +7,16 @@
 
    شلون: نرسم الشريحة نفسها بس نبدّل صورة الفيديو بلون مسطّح — فكل ما تبقّى = رسمك أنت.
    نعدّ بكسلات رسمك داخل كل منطقة خطرة.
-   الحدود تتعدّل بملف <work>/safe.json إذا احتجت.                                             */
+   الحدود تتعدّل بملف <work>/config/safe.json إذا احتجت.                                       */
 const path=require('path'), fs=require('fs');
 const {fileUrl,launchOptions,resolvePuppeteer}=require('./lib/platform');
 const {load:loadConfig}=require('./lib/config');
 const W=path.resolve(process.argv[2])+path.sep;
 const SHOT=process.argv.includes('--shot');
-const CFG=JSON.parse(fs.readFileSync(W+'sfx.json','utf8'));
+const CFG=JSON.parse(fs.readFileSync(W+'build/sound-cues.json','utf8'));
 const PCFG=loadConfig(W);   // project.config.json — راجع docs/design/project-config.md
 const THEME=Object.assign({},PCFG.theme||{},{faceAnchor:(PCFG.crop||{}).faceAnchor});
-const caps=JSON.parse(fs.readFileSync(W+'caps.json','utf8'));
+const caps=JSON.parse(fs.readFileSync(W+'build/captions.json','utf8'));
 const FPS=30, OUT_D=CFG.outro, DUR=caps.total+OUT_D;
 
 /* المناطق الخطرة — نسبة الحبر المسموحة داخل كل وحدة */
@@ -29,7 +29,7 @@ const DEF={
   ],
   hook_max:0.5            // أول كابشن لازم يظهر بأول نصف ثانية
 };
-const SAFE=fs.existsSync(W+'safe.json')?{...DEF,...JSON.parse(fs.readFileSync(W+'safe.json','utf8'))}:DEF;
+const SAFE=fs.existsSync(W+'config/safe.json')?{...DEF,...JSON.parse(fs.readFileSync(W+'config/safe.json','utf8'))}:DEF;
 
 /* بكسلان مصمتان (أحمر وأخضر) يحلّان محل صورة الفيديو.
    نرسم كل لحظة مرتين: البكسل اللي يتغيّر بينهما = مكان الفيديو، واللي يثبت = رسمك أنت.
@@ -48,7 +48,7 @@ const FLAT_B='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2
     console.log(hookOK?`✅ أول كابشن عند ${hook.toFixed(2)} ثانية`
       :`❌ أول كابشن عند ${hook.toFixed(2)} ثانية — لازم قبل ${SAFE.hook_max}`);
     console.log('ℹ️  ما فيه compose.html — فحص البكسل للمحرّك الخفيف بس.');
-    console.log('   بريموشن: خلّ "guides": true بـsafe.json ثم remotion/remotion.sh <work> studio — تشوف المناطق الحمراء حيّة.');
+    console.log('   بريموشن: خلّ "guides": true بـconfig/safe.json ثم remotion/remotion.sh <work> studio — تشوف المناطق الحمراء حيّة.');
     process.exit(hookOK?0:3);
   }
 
@@ -139,11 +139,11 @@ const FLAT_B='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2
   }
   const worst=zones.slice().sort((a,b)=>(b.worst/b.max)-(a.worst/a.max))[0];
 
-  if(SHOT&&worst){        /* لقطة حقيقية وفوقها المناطق بالأحمر */
-    if(fs.existsSync(W+'vfr')){
-      const NVF=fs.readdirSync(W+'vfr').filter(f=>f.endsWith('.jpg')).length;
+  if(SHOT&&worst&&bad.length){   /* لقطة حقيقية وفوقها المناطق بالأحمر — فقط لو فيه مخالفة فعلية */
+    if(fs.existsSync(W+'build/frames-source')){
+      const NVF=fs.readdirSync(W+'build/frames-source').filter(f=>f.endsWith('.jpg')).length;
       const i=Math.min(NVF,Math.max(1,Math.round(worst.at*FPS)+1));
-      await p.evaluate(s=>window.setFrame(s),fileUrl(W+'vfr/'+String(i).padStart(5,'0')+'.jpg'));
+      await p.evaluate(s=>window.setFrame(s),fileUrl(W+'build/frames-source/'+String(i).padStart(5,'0')+'.jpg'));
     }else{ await p.evaluate(s=>window.setFrame(s),FLAT_A); }   // بلا فريمات: اللون المسطّح يكفي للمعاينة
     const d=await p.evaluate((t,zones)=>{
       window.draw(t);
@@ -156,8 +156,9 @@ const FLAT_B='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2
       X.restore();
       return document.getElementById('cv').toDataURL('image/jpeg',0.9);
     },worst.at,SAFE.zones);
-    fs.writeFileSync(W+'safe.jpg',Buffer.from(d.split(',')[1],'base64'));
-    console.log('🖼  '+W+'safe.jpg — اللقطة عند '+worst.at.toFixed(2)+'ث والمناطق الحمراء يغطيها انستقرام');
+    fs.mkdirSync(W+'build',{recursive:true});
+    fs.writeFileSync(W+'build/safe-zone-check.jpg',Buffer.from(d.split(',')[1],'base64'));
+    console.log('🖼  '+W+'build/safe-zone-check.jpg — اللقطة عند '+worst.at.toFixed(2)+'ث والمناطق الحمراء يغطيها انستقرام');
   }
   await b.close();
 

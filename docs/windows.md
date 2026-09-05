@@ -77,14 +77,14 @@ needs a real bash, not a minimal shell. Same for the heredoc Python blocks in
 / `headout`, SKILL.md 7.5 / 7.6) are **macOS only**. On Windows `swiftc` is absent →
 `behind_text.js` prints `xcode-select --install` and exits code 4. The rest of the
 pipeline is unaffected: `render_frames.js` only activates the person overlay when
-`behind.json` exists.
+`build/person-cutout.json` exists.
 
 ## Minor
 
 - `sound_fx.py` hardcodes `os.path.abspath(sys.argv[1]) + "/"` — harmless, Python on
   Windows accepts forward slashes.
-- `fx/behind_text.js` builds `<work>/bt/personmask` with no `.exe` suffix — irrelevant on
-  Windows (it exits early), but note it if anyone ports the effect.
+- `fx/behind_text.js` builds `<work>/build/person-cutout/personmask` with no `.exe` suffix
+  — irrelevant on Windows (it exits early), but note it if anyone ports the effect.
 
 ## How Windows support was added (reference)
 

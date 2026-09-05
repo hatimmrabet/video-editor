@@ -4,14 +4,14 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""تفريغ الكلام بتوقيت كل كلمة → <work>/a.json  (نفس صيغة openai-whisper).
+"""تفريغ الكلام بتوقيت كل كلمة → <work>/build/transcript-raw.json  (نفس صيغة openai-whisper).
 
   python3 transcribe.py <work> [--language ar] [--model large-v3]
                                [--engine auto|faster-whisper|whisper]
                                [--device auto|cuda|cpu] [--hard-dialect]
 
-يقرأ  : <work>/a.wav
-يكتب  : <work>/a.json  = {"text":..., "segments":[{id,start,end,text,words:[{word,start,end}]}], "language":...}
+يقرأ  : <work>/build/transcribe-input.wav
+يكتب  : <work>/build/transcript-raw.json  = {"text":..., "segments":[{id,start,end,text,words:[{word,start,end}]}], "language":...}
 
 المحرّكات (auto = يجرّب الأسرع أولاً):
   faster-whisper على GPU  ← الأسرع (يحتاج CUDA + الحزم nvidia-cublas-cu12 / nvidia-cudnn-cu12)
@@ -126,14 +126,15 @@ def main():
     ap.add_argument("--engine", default="auto", choices=["auto", "faster-whisper", "whisper"])
     ap.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu"])
     ap.add_argument("--hard-dialect", action="store_true")
-    ap.add_argument("--wav", help="ملف صوتي بديل (افتراضي <work>/a.wav)")
-    ap.add_argument("--out", help="ملف خرج بديل (افتراضي <work>/a.json)")
+    ap.add_argument("--wav", help="ملف صوتي بديل (افتراضي <work>/build/transcribe-input.wav)")
+    ap.add_argument("--out", help="ملف خرج بديل (افتراضي <work>/build/transcript-raw.json)")
     args = ap.parse_args()
 
     W = os.path.abspath(args.work)
-    wav = os.path.abspath(args.wav) if args.wav else os.path.join(W, "a.wav")
+    os.makedirs(os.path.join(W, "build"), exist_ok=True)
+    wav = os.path.abspath(args.wav) if args.wav else os.path.join(W, "build", "transcribe-input.wav")
     if not os.path.exists(wav):
-        _sys.exit(f"❌ ما لقيت {wav} — استخرجه أول: ffmpeg -i src.mov -vn -ac 1 -ar 16000 a.wav")
+        _sys.exit(f"❌ ما لقيت {wav} — استخرجه أول: ffmpeg -i <rush source> -vn -ac 1 -ar 16000 {wav}")
 
     lang = args.language.lower()
     hard = args.hard_dialect or lang in HARD_DIALECTS
@@ -152,7 +153,7 @@ def main():
     if device == "auto":
         device = "cuda" if (engine == "faster-whisper" and cuda_available()) else "cpu"
 
-    out = os.path.abspath(args.out) if args.out else os.path.join(W, "a.json")
+    out = os.path.abspath(args.out) if args.out else os.path.join(W, "build", "transcript-raw.json")
     try:
         if engine == "faster-whisper":
             if not have("faster_whisper"):

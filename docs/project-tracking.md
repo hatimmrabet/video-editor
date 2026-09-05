@@ -95,8 +95,8 @@ Milestone #8. Implemented by **PR #37**. See [design/execution.md](design/execut
 
 ### Pass 2 — Config
 
-**Done** (2026-09-05) — content side complete via PRs #54 and #57; physical file layout
-is a separate, explicitly scheduled follow-up (#59, below). No back-compat was built (see
+**Done** (2026-09-05) — content side via PRs #54 and #57; physical file layout (#59) closes
+it out. No back-compat was built (see
 [design/project-config.md](design/project-config.md#migration--direct-no-bridge)) — the
 originally-planned reverse-compat issue was closed as not-planned instead of implemented.
 
@@ -110,8 +110,9 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | config: migrate `render_frames.js` to `config.load()` | `area:config` | ✅ #55 (not originally tracked) |
 | config: migrate `safe_check.js` to `config.load()` | `area:config` | ✅ #56 (not originally tracked) |
 | config: `SKILL.md` step 1 writes `project.config.json` | `area:config` `area:docs` | ✅ #10 |
-| chore: apply the `rush`/`config`/`build` physical path migration | `area:config` `type:chore` | #59 — lands before Pass 3 |
+| chore: apply the `rush`/`config`/`build` physical path migration | `area:config` `type:chore` | ✅ #59 |
 | chore: remove emojis from `SKILL.md` markdown | `type:chore` `area:docs` | #58 — not blocking, pick up whenever |
+| chore: translate Arabic logs/printf/comments to English across scripts | `type:chore` | #61 — not blocking, pick up whenever |
 
 ### Pass 3 — Transitions
 

@@ -29,9 +29,9 @@ hardcoded scenes; the scrubber shows something different from the render.
 }
 ```
 
-- `ref` binds the scene to a sentence (so timings follow `caps.json` automatically — an
+- `ref` binds the scene to a sentence (so timings follow `build/captions.json` automatically — an
   `edit_script.py` drop no longer breaks it) or to an explicit time range.
-- `layout` is the rect mode for the scene's span (feeds `stage.json` / `SCENES`).
+- `layout` is the rect mode for the scene's span (feeds `config/stage.json` / `SCENES`).
 - `motif` + `params` select and configure a reusable component.
 - `timing` describes enter/hold/exit; `hold: "words"` means the motif advances one step per
   spoken word of the ref sentence, using that word's start time.
@@ -49,7 +49,7 @@ starter set:
 | `counter` | `price` | `to`, `from`, `prefix`, `suffix`, `settle` |
 | `card-stack` | `chips`, `cardStack` | `items[]`, `columns`, `checkmark` |
 | `checklist` | `solved` | `items[]`, `tickPerWord` |
-| `transcript-panel` | `transcript` | `lines[]` (or pull from `caps.json`) |
+| `transcript-panel` | `transcript` | `lines[]` (or pull from `build/captions.json`) |
 | `file-merge` | `fileToCloud`, `oneFile` | `sources[]`, `targetLabel` |
 | `glitch` | `glitch` | `intensity`, `slices` — a `VideoOverlay` motif (drawn on the video) |
 | `stamp` | `stamp` | `text`, `rotation` |
@@ -96,5 +96,5 @@ same list and stops carrying its own copy.
 - How much layout logic belongs to the motif vs the scene? (`R_DOWN` flex `gb` is
   currently computed from "graphic bottom" — a motif would need to report its bottom.)
 - Do we need a small expression language for `params` (e.g. `to: "$sentence.number"`), or
-  is authoring them from `caps.json` in the agent enough?
+  is authoring them from `build/captions.json` in the agent enough?
 - Motif versioning — if a motif's look changes, old projects re-render differently.

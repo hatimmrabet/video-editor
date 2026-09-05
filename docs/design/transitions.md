@@ -51,15 +51,15 @@ Each row documents which side is **native** and which is an **approximation**.
 - **Scene ↔ scene:** an optional `transition` on a `layout.schedule` entry (or on a scene
   in [scenes-as-data.md](scenes-as-data.md)). Default: `rect-morph` 0.42 `eio` (today's behavior).
 - **Scene enter/exit:** in the scene's `timing`, defaulting to today's caption-style fade.
-- **Montage:** `build --transition push:0.3:up` (or a per-cut list in `montage.json.plan`),
-  replacing the current single `--xfade` float.
+- **Montage:** `build --transition push:0.3:up` (or a per-cut list in
+  `build/montage-plan.json`'s `plan`), replacing the current single `--xfade` float.
 
 ## Why this is safe
 
 - Defaults reproduce exactly what happens today — adopting the vocabulary changes nothing
   until someone picks a non-default.
 - Sound stays coupled: a transition can carry a `sfx` cue name so the whoosh lands with the
-  move (today the cue times are authored separately in `sfx.json`).
+  move (today the cue times are authored separately in `build/sound-cues.json`).
 - The safe-zone check is unaffected — transitions move existing elements, they don't add text.
 
 ## Open questions
@@ -67,5 +67,5 @@ Each row documents which side is **native** and which is an **approximation**.
 - Do we expose all ~50 ffmpeg `xfade` names for montage, or curate a dozen that read well?
 - Motion blur on canvas is expensive per frame — is `whip-pan` worth it, or fake it with a
   short streak overlay?
-- Per-cut transitions in montage need the plan to carry them — extend `montage.json.plan`
-  entries with an optional `transition`.
+- Per-cut transitions in montage need the plan to carry them — extend
+  `build/montage-plan.json`'s `plan` entries with an optional `transition`.

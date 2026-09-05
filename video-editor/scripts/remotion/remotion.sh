@@ -21,38 +21,38 @@ sync_all(){
   # المشاهد: تُنسخ مرة وحدة بس — شغلك ما ينمسح
   [ -f "$R/src/Scenes.tsx" ] || cp "$TPL/src/Scenes.tsx" "$R/src/Scenes.tsx"
 
-  cp "$W/caps.json" "$R/src/caps.json"
+  cp "$W/build/captions.json" "$R/src/caps.json"
   "${VEVO_PY[@]}" - "$W" "$R" <<'PY'
 import json, os, sys
 sys.path.insert(0, os.path.join(os.environ["VEVO_SKILL_DIR"], "scripts"))
 from lib import config as cfg   # project.config.json — راجع docs/design/project-config.md
 W, R = sys.argv[1], sys.argv[2]
-def rd(name, dflt):
-    p = os.path.join(W, name)
+def rd(rel, dflt):
+    p = os.path.join(W, rel)
     return json.load(open(p, encoding="utf-8-sig")) if os.path.exists(p) else dflt
-caps  = json.load(open(os.path.join(W, "caps.json"), encoding="utf-8-sig"))
+caps  = json.load(open(os.path.join(W, "build", "captions.json"), encoding="utf-8-sig"))
 theme = cfg.load(W).get("theme", {})   # ما عاد من theme.json — نفس هجرة reframe.py (#8)
-sfx   = rd("sfx.json", {})
+sfx   = rd(os.path.join("build", "sound-cues.json"), {})
 proj = {
   "theme": {k: theme.get(k) for k in ("bg","ink","acc","clay","mut","font","handle") if theme.get(k)},
   "total": round(caps["total"], 3),
   "outro": float(sfx.get("outro", 5.0)),
-  "sfx":   os.path.exists(os.path.join(W, "sfx.wav")),
-  "stage": rd("stage.json", [{"s":0, "e":9999, "m":"FULL"}]),
-  "outro_copy": rd("outro.json", {"line":"", "recap":[], "cta_top":"", "cta_word":"", "tail":""}),
-  "guides": bool(rd("safe.json", {}).get("guides", False)),   # true → أدلّة المنطقة الآمنة بالاستوديو
+  "sfx":   os.path.exists(os.path.join(W, "build", "sound-effects.wav")),
+  "stage": rd(os.path.join("config", "stage.json"), [{"s":0, "e":9999, "m":"FULL"}]),
+  "outro_copy": rd(os.path.join("config", "outro.json"), {"line":"", "recap":[], "cta_top":"", "cta_word":"", "tail":""}),
+  "guides": bool(rd(os.path.join("config", "safe.json"), {}).get("guides", False)),   # true → أدلّة المنطقة الآمنة بالاستوديو
 }
 json.dump(proj, open(os.path.join(R, "src", "project.json"), "w"), ensure_ascii=False, indent=1)
 print("project.json → المدة", proj["total"], "+ ختام", proj["outro"], "· مؤثرات:", "نعم" if proj["sfx"] else "لا")
 PY
-  [ -f "$W/cutz.mp4" ] && cp "$W/cutz.mp4" "$R/public/video.mp4"
-  [ -f "$W/sfx.wav" ]  && cp "$W/sfx.wav"  "$R/public/sfx.wav"
+  [ -f "$W/build/video-reframed.mp4" ] && cp "$W/build/video-reframed.mp4" "$R/public/video.mp4"
+  [ -f "$W/build/sound-effects.wav" ]  && cp "$W/build/sound-effects.wav"  "$R/public/sfx.wav"
   LOGO="$("${VEVO_PY[@]}" -c "import os,sys
 sys.path.insert(0, os.path.join(os.environ['VEVO_SKILL_DIR'],'scripts'))
 from lib import config as cfg
-print(cfg.load('$W').get('theme',{}).get('logo','logo.png'))")"
+print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
   [ -f "$W/$LOGO" ] && cp "$W/$LOGO" "$R/public/logo.png"
-  [ -f "$R/public/logo.png" ] || echo "⚠️  ما فيه شعار بـ$W — حط logo.png"
+  [ -f "$R/public/logo.png" ] || echo "⚠️  ما فيه شعار بـ$W — حط config/logo.png"
   echo "✅ البيانات والأصول محدّثة بـ$R"
 }
 
@@ -70,9 +70,10 @@ case "$CMD" in
     echo "🎬 الاستوديو على http://localhost:$PORT"
     ( cd "$R" && npx remotion studio --port "$PORT" ) ;;
   render)
-    sync_all; OUT="${ARG:-$W/ad-final.mp4}"
+    sync_all; OUT="${ARG:-$W/build/video-raw.mp4}"
+    mkdir -p "$(dirname "$OUT")"
     grep -q '"guides": true' "$R/src/project.json" && \
-      echo "⚠️  أدلّة المنطقة الآمنة شغّالة — تنطبع بالفيديو. شيل guides من safe.json قبل التسليم." 
+      echo "⚠️  أدلّة المنطقة الآمنة شغّالة — تنطبع بالفيديو. شيل guides من config/safe.json قبل التسليم."
     ( cd "$R" && npx remotion render Ad "$OUT" --codec h264 --crf 21 --jpeg-quality 95 )
     echo "✅ $OUT"
     ffprobe -v error -show_entries format=duration,size -show_entries stream=width,height -of default=nw=1 "$OUT" ;;

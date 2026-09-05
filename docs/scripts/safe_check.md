@@ -12,7 +12,7 @@
 
 ```
 node safe_check.js <work>          # check and print
-node safe_check.js <work> --shot   # also write safe.jpg (worst frame with zones in red)
+node safe_check.js <work> --shot   # also write build/safe-zone-check.jpg IF there's a violation (worst frame with zones in red)
 ```
 
 **Exit code 3** on any hard-zone violation or a late hook.
@@ -21,18 +21,18 @@ node safe_check.js <work> --shot   # also write safe.jpg (worst frame with zones
 
 | File | Role | Required |
 |---|---|---|
-| `sfx.json` | `.outro` | yes |
-| `caps.json` | cards + hook time | yes |
+| `build/sound-cues.json` | `.outro` | yes |
+| `build/captions.json` | cards + hook time | yes |
 | `config/project.config.json` (via [`lib/config.js`](lib-config.md)'s `load()`) | `theme.bg` (flat-fill background reference), `theme.font`, `crop.faceAnchor` | optional |
-| `safe.json` | zone / `hook_max` / `guides` overrides, merged over `DEF` | optional |
+| `config/safe.json` | zone / `hook_max` / `guides` overrides, merged over `DEF` — rare, same rects reused for every short-form platform by default | optional |
 | `compose.html` | the drawing surface — **if absent, only the hook check runs** | for the pixel check |
-| `vfr/*.jpg` | for the `--shot` output | for `--shot` |
+| `build/frames-source/*.jpg` | for the `--shot` output | for `--shot` |
 
 ## Outputs
 
 | File | When |
 |---|---|
-| `<work>/safe.jpg` | `--shot` only — the worst frame with all zones overlaid in red |
+| `<work>/build/safe-zone-check.jpg` | `--shot` **and** a violation was found — never written on a clean pass (issue #59) |
 
 ## Default zones (`DEF`)
 
@@ -69,14 +69,19 @@ Uses `lib/platform.js`. Windows-capable. `setCacheEnabled(false)`.
 - **Migrated to `config.load()` (issue #56, 2026-09-05)** — no longer reads `theme.json`
   directly. Same pattern as `render_frames.js` (issue #55): no `project.config.json` yet?
   Falls back to `defaults.config.json`, same numbers as before.
+- **Migrated to the `build`/`config` layout (issue #59, 2026-09-05)** — `safe.json` moved
+  to `config/safe.json`; the diagnostic image is only written on an actual violation now
+  (previously unconditional whenever `--shot` was passed).
 
 ## Place in the flow
 
 Mandatory pre-delivery check 0. For the Remotion engine there is no pixel check — set
-`"guides": true` in `safe.json` and open the studio to see the red zones live.
+`"guides": true` in `config/safe.json` and open the studio to see the red zones live.
 
 ## Gotchas
 
-- Widen the zones via `safe.json` for other platforms (e.g. a TikTok cut with a tighter
-  bottom).
+- `config/safe.json` is a rare, per-project exception now — the default zones are reused
+  for every short-form platform (Instagram, TikTok, YouTube Shorts) rather than set per
+  platform (see [design/file-layout.md](../design/file-layout.md)); only widen them if a
+  real post surfaces an actual problem.
 - A late hook loses half the viewers — this is a hard failure, not a warning.

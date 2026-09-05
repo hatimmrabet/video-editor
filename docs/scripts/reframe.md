@@ -2,7 +2,7 @@
 
 `video-editor/scripts/reframe.py` · python · shared
 
-> Cuts the silences (per `cut.json`), reframes to vertical 9:16, applies a per-segment
+> Cuts the silences (per `build/cut-plan.json`), reframes to vertical 9:16, applies a per-segment
 > zoom cycle, optionally colour-grades, and — critically — re-tags colour primaries as
 > bt709 so iPhone HDR/HLG footage doesn't render orange. Vertical sources pass through
 > unchanged; landscape (16:9) sources are centre-cropped to a 9:16 frame first.
@@ -17,20 +17,20 @@ uv run scripts/reframe.py <work>
 
 | File | Shape | Required |
 |---|---|---|
-| `<work>/src.mov` | source video | yes |
-| `<work>/cut.json` | `.keep` | yes |
+| `<work>/rush/<name>` | source video, resolved by [`lib/rush.py`](lib-rush.md)'s `find_source()` | yes |
+| `<work>/build/cut-plan.json` | `.keep` | yes |
 | `<work>/config/project.config.json` (via [`lib/config.py`](lib-config.md)'s `load()`) | `grade` (bool, default false), `crop.xAnchor` (0–1, default 0.5), `crop.yAnchor` (0–1, default 0.30) | optional |
 
 ## Outputs
 
 | File | Shape |
 |---|---|
-| `<work>/cutz.mp4` | 1080×1920, `libx264 -preset medium -crf 16`, `aac 192k`, `+faststart`, 30 fps, `dynaudnorm` audio, `afade` in 0.06 s |
+| `<work>/build/video-reframed.mp4` | 1080×1920, `libx264 -preset medium -crf 16`, `aac 192k`, `+faststart`, 30 fps, `dynaudnorm` audio, `afade` in 0.06 s |
 
 Then extract source frames for the compositor:
 
 ```
-mkdir -p <work>/vfr && ffmpeg -v error -i <work>/cutz.mp4 -vf fps=30 -q:v 3 -y <work>/vfr/%05d.jpg
+mkdir -p <work>/build/frames-source && ffmpeg -v error -i <work>/build/video-reframed.mp4 -vf fps=30 -q:v 3 -y <work>/build/frames-source/%05d.jpg
 ```
 
 ## Reframe logic
@@ -59,8 +59,8 @@ directly by the skill — pass a Windows-style path.
 ## Place in the flow
 
 Stage 6, after `edit_script.py`. Re-run it (and re-extract frames) after any
-`edit_script.py drop`. Its `cutz.mp4` is the video source for both engines
-(`public/video.mp4` in Remotion) and for `vfr/` frame extraction.
+`edit_script.py drop`. Its `build/video-reframed.mp4` is the video source for both engines
+(`public/video.mp4` in Remotion) and for `build/frames-source/` frame extraction.
 
 ## Gotchas
 
@@ -74,3 +74,5 @@ Stage 6, after `edit_script.py`. Re-run it (and re-extract frames) after any
   directly. No `project.config.json` yet? `config.load()` falls back to the skill's
   `defaults.config.json` (`grade:false`, `xAnchor:0.5`, `yAnchor:0.30`) — same numbers as
   before, just sourced differently. No back-compat read of the old `theme.json` is kept.
+- **Migrated to `lib/rush.py` + the `build/` layout (issue #59, 2026-09-05)** — no longer
+  hardcodes `src.mov`/`cut.json`/`cutz.mp4`.

@@ -1,6 +1,6 @@
 /* ═══ الكلام يمرّ ورا الشخص (كشيدة عربية) ═══
    node fx/behind_text.js <work> plan            → يرشّح الجُمل المناسبة
-   node fx/behind_text.js <work> build 1 9       → يجهّز قصّ الشخص لهالجُمل ويكتب behind.json
+   node fx/behind_text.js <work> build 1 9       → يجهّز قصّ الشخص لهالجُمل ويكتب build/person-cutout.json
    node fx/behind_text.js <work> build 2:6-8     → كلمات بعينها داخل جملة
    node fx/behind_text.js <work> cutout 23.8-26.6 → «واقف قدام اللوحة»: بلا كرت، أنت العنصر
    node fx/behind_text.js <work> headout 23.8-26.6 → «راسك برّا المستطيل»: الفيديو بكرت وراسك يطلع فوق حافته
@@ -12,11 +12,11 @@
 const path=require('path'), fs=require('fs'), cp=require('child_process');
 const W=path.resolve(process.argv[2])+path.sep, MODE=process.argv[3]||'plan';
 const SC=path.dirname(path.resolve(process.argv[1]))+path.sep;
-const caps=JSON.parse(fs.readFileSync(W+'caps.json','utf8'));
+const caps=JSON.parse(fs.readFileSync(W+'build/captions.json','utf8'));
 const FPS=30, MAXW=4, MINDUR=0.85;
 
 const words=c=>c.w.map(w=>w.t).join(' ');
-if(MODE==='off'){ try{fs.unlinkSync(W+'behind.json');}catch(e){} console.log('انلغى التأثير.'); process.exit(0); }
+if(MODE==='off'){ try{fs.unlinkSync(W+'build/person-cutout.json');}catch(e){} console.log('انلغى التأثير.'); process.exit(0); }
 
 if(MODE==='plan'){
   console.log('الجُمل اللي تنفع يمرّ كلامها ورا الشخص (قصيرة وواضحة):');
@@ -39,32 +39,32 @@ if(MODE==='cutout'||MODE==='headout'){
   if(!m){ console.log('عطني مدى بالثواني: cutout 23.8-26.6'); process.exit(2); }
   const a=Math.max(0,parseFloat(m[1])), b=Math.min(caps.total,parseFloat(m[2]));
   if(!(b>a)){ console.log('مدى غير صالح'); process.exit(2); }
-  if(!fs.existsSync(W+'vfr')){ console.log('❌ ما فيه مجلد vfr'); process.exit(3); }
-  const NVF2=fs.readdirSync(W+'vfr').filter(f=>f.endsWith('.jpg')).length;
+  if(!fs.existsSync(W+'build/frames-source')){ console.log('❌ ما فيه مجلد build/frames-source'); process.exit(3); }
+  const NVF2=fs.readdirSync(W+'build/frames-source').filter(f=>f.endsWith('.jpg')).length;
   const f0=Math.max(1,Math.floor(a*FPS)+1), f1=Math.min(NVF2,Math.ceil(b*FPS)+1);
-  fs.mkdirSync(W+'bt/src',{recursive:true}); fs.mkdirSync(W+'bt/mask',{recursive:true}); fs.mkdirSync(W+'bt/person',{recursive:true});
-  const BIN2=W+'bt/personmask';
+  fs.mkdirSync(W+'build/person-cutout/src',{recursive:true}); fs.mkdirSync(W+'build/person-cutout/mask',{recursive:true}); fs.mkdirSync(W+'build/person-cutout/person',{recursive:true});
+  const BIN2=W+'build/person-cutout/personmask';
   if(!fs.existsSync(BIN2)){
     try{ cp.execSync('swiftc -O -o '+JSON.stringify(BIN2)+' '+JSON.stringify(SC+'personmask.swift'),{stdio:'pipe'}); }
     catch(e){ console.log('❌ تحتاج أدوات Xcode: xcode-select --install'); process.exit(4); }
   }
   let n=0;
   for(let f=f0;f<=f1;f++){ const id=String(f).padStart(5,'0');
-    if(fs.existsSync(W+'vfr/'+id+'.jpg')){ fs.copyFileSync(W+'vfr/'+id+'.jpg', W+'bt/src/'+id+'.jpg'); n++; } }
+    if(fs.existsSync(W+'build/frames-source/'+id+'.jpg')){ fs.copyFileSync(W+'build/frames-source/'+id+'.jpg', W+'build/person-cutout/src/'+id+'.jpg'); n++; } }
   console.log('فريمات القصّ:',n,'— أقصّك من الخلفية…');
-  cp.execSync(JSON.stringify(BIN2)+' '+JSON.stringify(W+'bt/src')+' '+JSON.stringify(W+'bt/mask')+' accurate 2.5',{stdio:'inherit'});
-  cp.execSync('ffmpeg -v error -start_number '+f0+' -i '+JSON.stringify(W+'bt/src/%05d.jpg')+
-    ' -start_number '+f0+' -i '+JSON.stringify(W+'bt/mask/%05d.png')+' -frames:v '+(f1-f0+1)+
+  cp.execSync(JSON.stringify(BIN2)+' '+JSON.stringify(W+'build/person-cutout/src')+' '+JSON.stringify(W+'build/person-cutout/mask')+' accurate 2.5',{stdio:'inherit'});
+  cp.execSync('ffmpeg -v error -start_number '+f0+' -i '+JSON.stringify(W+'build/person-cutout/src/%05d.jpg')+
+    ' -start_number '+f0+' -i '+JSON.stringify(W+'build/person-cutout/mask/%05d.png')+' -frames:v '+(f1-f0+1)+
     ' -filter_complex "[1:v]format=gray,scale=1080:1920[a];[0:v][a]alphamerge,format=rgba"'+
-    ' -start_number '+f0+' -y '+JSON.stringify(W+'bt/person/%05d.png'),{stdio:'pipe'});
-  const prev=fs.existsSync(W+'behind.json')?JSON.parse(fs.readFileSync(W+'behind.json','utf8')):{lines:[],ranges:[],faces:{}};
+    ' -start_number '+f0+' -y '+JSON.stringify(W+'build/person-cutout/person/%05d.png'),{stdio:'pipe'});
+  const prev=fs.existsSync(W+'build/person-cutout.json')?JSON.parse(fs.readFileSync(W+'build/person-cutout.json','utf8')):{lines:[],ranges:[],faces:{}};
   const key=MODE==='headout'?'headouts':'cutouts';
   prev[key]=(prev[key]||[]).concat([[a,b]]);
   prev.ranges=(prev.ranges||[]).concat([[f0,f1]]);
-  const meta=JSON.parse(fs.readFileSync(W+'bt/mask/meta.json','utf8'));
+  const meta=JSON.parse(fs.readFileSync(W+'build/person-cutout/mask/meta.json','utf8'));
   prev.faces=prev.faces||{};
   for(const mm of meta) if(mm.face) prev.faces[parseInt(mm.f,10)]=mm.face;
-  fs.writeFileSync(W+'behind.json',JSON.stringify(prev,null,1));
+  fs.writeFileSync(W+'build/person-cutout.json',JSON.stringify(prev,null,1));
   console.log('✅ '+(MODE==='headout'?'«راسك برّا المستطيل»':'«واقف قدام اللوحة»')+' جاهز من',a,'إلى',b,'ثانية.');
   console.log('   ارسم: node render_frames.js '+W+' range '+a+' '+b);
   process.exit(0);
@@ -78,18 +78,18 @@ const pick=process.argv.slice(4).map(a=>{
   return {i, from:m[2]?Math.max(0,parseInt(m[2],10)-1):0, to:m[3]?Math.min(n-1,parseInt(m[3],10)-1):n-1};
 }).filter(Boolean);
 if(!pick.length){ console.log('عطني أرقام الجُمل: build 1 9   أو   build 2:6-8'); process.exit(2); }
-if(!fs.existsSync(W+'vfr')){ console.log('❌ ما فيه مجلد vfr — استخرج الفريمات أول'); process.exit(3); }
+if(!fs.existsSync(W+'build/frames-source')){ console.log('❌ ما فيه مجلد build/frames-source — استخرج الفريمات أول'); process.exit(3); }
 
 /* 1) بناء أداة القصّ مرة وحدة */
-const BIN=W+'bt/personmask';
-fs.mkdirSync(W+'bt/src',{recursive:true}); fs.mkdirSync(W+'bt/mask',{recursive:true}); fs.mkdirSync(W+'bt/person',{recursive:true});
+const BIN=W+'build/person-cutout/personmask';
+fs.mkdirSync(W+'build/person-cutout/src',{recursive:true}); fs.mkdirSync(W+'build/person-cutout/mask',{recursive:true}); fs.mkdirSync(W+'build/person-cutout/person',{recursive:true});
 if(!fs.existsSync(BIN)){
   try{ cp.execSync('swiftc -O -o '+JSON.stringify(BIN)+' '+JSON.stringify(SC+'personmask.swift'),{stdio:'pipe'}); }
   catch(e){ console.log('❌ ما قدرت أبني أداة القصّ — تحتاج أدوات Xcode: xcode-select --install'); process.exit(4); }
 }
 
 /* 2) الفريمات المطلوبة فقط (مو الفيديو كله) */
-const NVF=fs.readdirSync(W+'vfr').filter(f=>f.endsWith('.jpg')).length;
+const NVF=fs.readdirSync(W+'build/frames-source').filter(f=>f.endsWith('.jpg')).length;
 const lines=[], ranges=[];
 for(const sel of pick){
   const c=caps.cards[sel.i];
@@ -102,25 +102,25 @@ for(const sel of pick){
 let copied=0;
 for(const [f0,f1] of ranges) for(let f=f0;f<=f1;f++){
   const id=String(f).padStart(5,'0');
-  if(fs.existsSync(W+'vfr/'+id+'.jpg')){ fs.copyFileSync(W+'vfr/'+id+'.jpg', W+'bt/src/'+id+'.jpg'); copied++; }
+  if(fs.existsSync(W+'build/frames-source/'+id+'.jpg')){ fs.copyFileSync(W+'build/frames-source/'+id+'.jpg', W+'build/person-cutout/src/'+id+'.jpg'); copied++; }
 }
 console.log('فريمات التأثير:',copied,'— أقصّ الشخص فيها…');
 
 /* 3) القصّ + بيانات الوجه */
-cp.execSync(JSON.stringify(BIN)+' '+JSON.stringify(W+'bt/src')+' '+JSON.stringify(W+'bt/mask')+' accurate 2.5',{stdio:'inherit'});
+cp.execSync(JSON.stringify(BIN)+' '+JSON.stringify(W+'build/person-cutout/src')+' '+JSON.stringify(W+'build/person-cutout/mask')+' accurate 2.5',{stdio:'inherit'});
 
 /* 4) دمج القناع كشفافية → صورة الشخص وحده (كل مدى على حدة) */
 for(const [f0,f1] of ranges){
-  cp.execSync('ffmpeg -v error -start_number '+f0+' -i '+JSON.stringify(W+'bt/src/%05d.jpg')+
-    ' -start_number '+f0+' -i '+JSON.stringify(W+'bt/mask/%05d.png')+
+  cp.execSync('ffmpeg -v error -start_number '+f0+' -i '+JSON.stringify(W+'build/person-cutout/src/%05d.jpg')+
+    ' -start_number '+f0+' -i '+JSON.stringify(W+'build/person-cutout/mask/%05d.png')+
     ' -frames:v '+(f1-f0+1)+
     ' -filter_complex "[1:v]format=gray,scale=1080:1920[a];[0:v][a]alphamerge,format=rgba"'+
-    ' -start_number '+f0+' -y '+JSON.stringify(W+'bt/person/%05d.png'),{stdio:'pipe'});
+    ' -start_number '+f0+' -y '+JSON.stringify(W+'build/person-cutout/person/%05d.png'),{stdio:'pipe'});
 }
 
-const meta=JSON.parse(fs.readFileSync(W+'bt/mask/meta.json','utf8'));
+const meta=JSON.parse(fs.readFileSync(W+'build/person-cutout/mask/meta.json','utf8'));
 const faces={};
 for(const m of meta) if(m.face) faces[parseInt(m.f,10)]=m.face;
-fs.writeFileSync(W+'behind.json',JSON.stringify({lines,ranges,faces},null,1));
-console.log('✅ behind.json جاهز —',lines.length,'جملة يمرّ كلامها ورا الشخص.');
+fs.writeFileSync(W+'build/person-cutout.json',JSON.stringify({lines,ranges,faces},null,1));
+console.log('✅ build/person-cutout.json جاهز —',lines.length,'جملة يمرّ كلامها ورا الشخص.');
 console.log('   الحين ارسم: node render_frames.js '+W+' all --force');

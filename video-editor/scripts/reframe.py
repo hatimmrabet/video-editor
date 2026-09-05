@@ -14,9 +14,10 @@ project.config.json (اختياري): crop.xAnchor (0-1، أفقي · افترا
 crop.yAnchor (0-1، عمودي · افتراضي 0.30) · grade (bool · افتراضي false)
 """
 import json, subprocess, sys, os
-from lib import config as _cfg
-W=os.path.abspath(sys.argv[1]); SRC=os.path.join(W,"src.mov")
-k=json.load(open(os.path.join(W,"cut.json")))["keep"]
+from lib import config as _cfg, rush as _rush
+W=os.path.abspath(sys.argv[1]); SRC=_rush.find_source(W)
+os.makedirs(os.path.join(W,"build"),exist_ok=True)
+k=json.load(open(os.path.join(W,"build","cut-plan.json")))["keep"]
 _cfg_data=_cfg.load(W)
 GRADE=_cfg_data.get("grade",False)
 _crop=_cfg_data.get("crop",{})
@@ -56,4 +57,4 @@ print("التدرّج اللوني:", "مفعّل" if GRADE else "مطفي (أل
 fc.append("[ac]afade=t=in:st=0:d=0.06,dynaudnorm=f=200:g=5:p=0.9[ao]")
 sys.exit(subprocess.call(["ffmpeg","-v","error","-stats","-i",SRC,"-filter_complex",";".join(fc),
  "-map","[vo]","-map","[ao]","-c:v","libx264","-preset","medium","-crf","16",
- "-c:a","aac","-b:a","192k","-movflags","+faststart","-y",os.path.join(W,"cutz.mp4")]))
+ "-c:a","aac","-b:a","192k","-movflags","+faststart","-y",os.path.join(W,"build","video-reframed.mp4")]))

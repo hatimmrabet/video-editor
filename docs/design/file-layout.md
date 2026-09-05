@@ -1,8 +1,8 @@
 # File layout — `rush` / `config` / `build`
 
-**Sketch only**, decided in a design session with @hatimmrabet (2026-09-05). Depends on
-[project-config.md](project-config.md) (Pass 2) for the config file itself; this document
-covers the *directory* structure around it.
+**Implemented** (issue #59, 2026-09-05) — decided in a design session with @hatimmrabet
+the same day. Depends on [project-config.md](project-config.md) (Pass 2) for the config
+file itself; this document covers the *directory* structure around it.
 
 ## Problem
 

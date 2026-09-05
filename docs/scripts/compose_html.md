@@ -59,14 +59,14 @@ one reference video (`stamp`, `chips`, `fileToCloud`, `transcript`, `cardStack`,
 dispatches them all through `safe(fn, t, name)`.
 
 **Per video:** copy the file, rewrite `SCENES`, delete the reference scene functions and
-write new ones (one per sentence, timed to `wordsOf(i)` from `caps.json`), update the
-`draw(t)` dispatch list and the `RECAP` array + outro copy.
+write new ones (one per sentence, timed to `wordsOf(i)` from `build/captions.json`),
+update the `draw(t)` dispatch list and the `RECAP` array + outro copy.
 
 ## macOS effects (compositing side)
 
 `behindText(t)` (kashida word behind the head), `personStage(t)` (cutout — speaker in
 front of the design), `headOut(t)` (video in a card, head above the edge). Data from
-`behind.json`; the cutout PNGs come from `setPerson`. All full-screen-only.
+`build/person-cutout.json`; the cutout PNGs come from `setPerson`. All full-screen-only.
 
 ## B-roll (optional)
 
@@ -87,3 +87,5 @@ subtitles from Anthropic-stock footage.
   `draw()` state reset, and `decode()` in `setFrame`/`setPerson`.
 - Don't read this file whole for a small change — `grep -n` the function you need.
 - Everything derives from the theme — never write a literal colour or `rgba()`.
+- **Migrated to the `build`/`config` layout (issue #59, 2026-09-05)** — the hardcoded
+  `<img id="LOGO" src="...">` default is now `config/logo.png`, not `logo.png`.
