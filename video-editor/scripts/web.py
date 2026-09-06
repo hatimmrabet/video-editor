@@ -18,12 +18,14 @@ Endpoints (issues #97 / #98; the SPA is #99):
   GET  /                              the SPA (scripts/web/index.html) or a placeholder
   GET  /health
   GET  /projects                      list
-  POST /projects            {name}    create -> {id}
+  POST /projects       {name, format} create -> {id}  (format:"long" seeds long-form)
   POST /projects/<id>/rush            raw body + X-Filename header -> rush/<filename>
   GET  /projects/<id>/config          merged config (lib.config.load)
   PUT  /projects/<id>/config {...}    write config/project.config.json
   PUT  /projects/<id>/decision/<name> write a decision file (allow-listed)
   POST /projects/<id>/edit  {op, sentences}   -> shells edit_script.py
+  POST /projects/<id>/montage {op, clips}      -> shells montage_mode.py drop/keep/undo
+  POST /projects/<id>/tighten {apply}          -> shells tighten.py [apply]  (long-form)
   POST /projects/<id>/preview {times}          -> render_frames.js preview -> {files}
   GET  /motifs                        scripts/motifs/index.json (for the scenes screen)
   GET  /projects/<id>/state           parsed `run.py --json`
@@ -205,6 +207,13 @@ class H(BaseHTTPRequestHandler):
                 for f in ("compose.reference.html", "studio.html"):
                     dst = os.path.join(w, "compose.html" if f.startswith("compose") else f)
                     shutil.copyfile(os.path.join(SCRIPTS, f), dst)
+                # the project-type picker: long-form is the config.format switch (reframe.py
+                # etc. read it); montage is inferred from rush/ once the clips land, so it
+                # seeds nothing here.
+                if b.get("format") == "long":
+                    with open(os.path.join(w, "config", "project.config.json"),
+                              "w", encoding="utf-8") as f:
+                        json.dump({"format": "long"}, f, ensure_ascii=False, indent=1)
                 return self._send(201, {"id": pid})
             return self._err(405, method)
 
@@ -217,12 +226,15 @@ class H(BaseHTTPRequestHandler):
         sub = m.group(2) or ""
 
         if sub == "/rush" and method == "POST":
-            fn = os.path.basename(self.headers.get("X-Filename") or "")
-            if not fn:
+            raw = (self.headers.get("X-Filename") or "").replace("\\", "/").strip("/")
+            # a plain filename, or a file in the one allowed subdir (rush/broll/ for long-form cutaways)
+            fn = ("broll/" + os.path.basename(raw)) if raw.startswith("broll/") else os.path.basename(raw)
+            if not fn or fn == "broll/":
                 return self._err(400, "X-Filename header required")
             dst = _jailed(os.path.join(work, "rush"), fn)
             if not dst:
                 return self._err(400, "bad filename")
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
             with open(dst, "wb") as f:
                 remaining = int(self.headers.get("Content-Length") or 0)
                 while remaining > 0:
@@ -268,6 +280,25 @@ class H(BaseHTTPRequestHandler):
                 return self._err(400, "op must be drop / keep / undo")
             nums = [str(int(x)) for x in b.get("sentences", [])]
             r = subprocess.run(["uv", "run", "scripts/edit_script.py", work, op, *nums],
+                               cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
+            return self._send(200 if r.returncode == 0 else 400,
+                              {"exit": r.returncode, "output": (r.stdout or "") + (r.stderr or "")})
+
+        if sub == "/montage" and method == "POST":   # the montage `pick` checkpoint
+            b = self._json_body() or {}
+            op = b.get("op", "drop")
+            if op not in ("drop", "keep", "undo"):
+                return self._err(400, "op must be drop / keep / undo")
+            nums = [str(int(x)) for x in b.get("clips", [])]
+            r = subprocess.run(["uv", "run", "scripts/montage_mode.py", work, op, *nums],
+                               cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
+            return self._send(200 if r.returncode == 0 else 400,
+                              {"exit": r.returncode, "output": (r.stdout or "") + (r.stderr or "")})
+
+        if sub == "/tighten" and method == "POST":   # the long-form `tighten` checkpoint
+            b = self._json_body() or {}
+            args = ["apply"] if b.get("apply") else []
+            r = subprocess.run(["uv", "run", "scripts/tighten.py", work, *args],
                                cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
             return self._send(200 if r.returncode == 0 else 400,
                               {"exit": r.returncode, "output": (r.stdout or "") + (r.stderr or "")})
