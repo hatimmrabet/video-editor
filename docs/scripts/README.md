@@ -7,6 +7,7 @@ One page per script. Each follows [`_template.md`](_template.md).
 | [`run.py`](run.md) | shared | config-driven conductor — runs the stages below, pausing at decisions |
 | [`join_takes.py`](join_takes.md) | long-form | join the `rush/` recording take(s) → `build/source-joined.mp4` |
 | [`tighten.py`](tighten.md) | long-form | jump-cut + filler pass (word-level cuts from `captions.json`) |
+| [`assemble_longform.py`](assemble_longform.md) | long-form | B-roll overlays → `build/video-raw.mp4` (the long-form `encode.sh`) |
 | [`lib/timeline.py`](lib-timeline.md) | shared | timeline surgery shared by `edit_script.py` + `tighten.py` |
 | [`setup.sh`](setup.md) | shared | check / install tools |
 | [`lib/platform.sh` + `.js`](lib-platform.md) | shared | cross-platform helpers (paths, Chrome, OS) |

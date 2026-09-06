@@ -33,6 +33,7 @@ const COVERAGE = [
   ['run',                 ['run.py']],
   ['join_takes',          ['join_takes.py']],
   ['tighten',             ['tighten.py']],
+  ['assemble_longform',   ['assemble_longform.py']],
   ['lib-timeline',        ['lib/timeline.py']],
   ['render_frames',       ['render_frames.js']],
   ['safe_check',          ['safe_check.js']],

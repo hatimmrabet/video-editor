@@ -1,10 +1,9 @@
 # `long-form` — the YouTube world
 
-Status: **in progress (Pass 6).** Built: #84 world switch (`format:"long"` → `long-form`,
-`scripts/pipeline/long-form.json`, `join_takes.py`, the `longform` config block), #85
-`tighten.py` + `scripts/fillers.json` (jump-cut + filler pass, sharing `lib/timeline.py`
-with `edit_script.py`), #86 `reframe.py` 16:9 branch. Remaining: `assemble_longform.py`
-(#87), chapters (#88), the `SKILL.md` section (#89).
+Status: **in progress (Pass 6) — the pipeline runs end to end.** Built: #84 world switch,
+#85 `tighten.py` + `scripts/fillers.json`, #86 `reframe.py` 16:9 branch, #87
+`assemble_longform.py` (B-roll overlays / remux → `build/video-raw.mp4`). Remaining:
+chapters output (#88 — advisory, doesn't block a run) and the `SKILL.md` section (#89).
 
 This page is the spec + implementation plan for roadmap Pass 6. It builds on
 [worlds.md](worlds.md#long-form--new-youtube) and resolves that section's three open
@@ -203,8 +202,11 @@ mode we can add once the world exists.
    = 16/9`; the crop logic generalizes (source wider/taller than target). `-filter_complex`
    spills to a file above ~90 kB. Short-video output byte-identical. Verified 1080×1920
    (short) / 1920×1080 (long) on real fixtures.
-4. **`assemble_longform.py`** (#87) — cut list → video, `config/broll.json` overlays. Doc
-   page. *(area:pipeline)*
+4. ✅ **`assemble_longform.py`** (#87) — no `config/broll.json` → stream-copy remux;
+   with it → one ffmpeg `overlay`+`fade` graph, each cutaway trimmed/shifted/cover-scaled
+   over the speaker (audio untouched). `config/broll.json` = `[{ref, clip, at?,
+   transition?, crop?}]`. Verified: remux + a real overlay (the picture swaps during the
+   span) + the short-clip edge.
 5. **Chapters** (#88) — `config/chapters.json` contract + `subtitles.py` emits
    `video-final.chapters.txt`. *(area:pipeline area:docs)*
 6. **`SKILL.md` — the `long-form` flow** (#89) — a new top-level section (like "Montage

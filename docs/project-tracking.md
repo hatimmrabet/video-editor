@@ -151,7 +151,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | long-form: `format:"long"` world switch + `scripts/pipeline/long-form.json` | `area:orchestrator` | ✅ #84 — `run.py` checks `config.format`; 13-stage manifest; `join_takes.py` + `lib/rush.find_source()` prefers `build/source-joined.mp4`; `defaults.config.json` `longform` block. Verified `join`(1+2 takes)→`cut`→`audio` |
 | long-form: `tighten.py` (jump-cut + filler pass) + `scripts/fillers.json` | `area:pipeline` | ✅ #85 — word-level gap + filler cuts from `captions.json`; `apply` folds into `cut-plan.json` + `captions.json` via new `lib/timeline.py` (shared with `edit_script.py`, output byte-identical after the extraction). `build/tighten-plan.json` for review. |
 | long-form: `reframe.py` 16:9 branch | `area:pipeline` | ✅ #86 — `format:"long"` → 1920×1080, `TARGET=16/9`; crop logic generalized; `-filter_complex` spills to a file above ~90 kB. Short output byte-identical. |
-| long-form: `assemble_longform.py` (cut list + B-roll overlays) | `area:pipeline` | #87 |
+| long-form: `assemble_longform.py` (cut list + B-roll overlays) | `area:pipeline` | ✅ #87 — no `config/broll.json` → remux; with it → ffmpeg `overlay`+`fade` graph. `config/broll.json` contract. Verified remux + real overlay + short-clip edge. **Long-form pipeline now runs end to end.** |
 | long-form: chapters — `config/chapters.json` + `subtitles.py` markers | `area:pipeline` `area:docs` | #88 |
 | long-form: `SKILL.md` long-form flow section | `area:docs` | #89 |
 
