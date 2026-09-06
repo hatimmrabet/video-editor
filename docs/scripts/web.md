@@ -75,13 +75,24 @@ by `web.py` at `/`, `/app.js`, `/app.css`.
     (the `implemented` names from `GET /motifs`), a params JSON field (a template appears
     when you pick a motif). "Save + preview" writes `config/scenes.json` and renders a
     still per sentence via `POST /preview`. "Continue (captions only)" is a valid choice.
-  - `sound` / `tighten` / `chapters` / `broll` — a note + Continue + re-check (screen #102;
-    the rest handled in the terminal).
+  - **Sound** (`sound-cues`) — an end-card-length field and a `<canvas>` waveform (decoded
+    from `build/transcribe-input.wav`, sentence boundaries drawn in); click to drop a
+    `whoosh_up` / `whoosh_down` / `thud` / `tap` cue, click a chip to remove it →
+    `build/sound-cues.json`.
+  - `tighten` / `chapters` / `broll` — a note + Continue + re-check (the rest handled in
+    the terminal).
 
 An advisory checkpoint (`script-review`, `scenes`) re-appears every refresh — the SPA
-tracks a client-side "passed" set so it doesn't block once you've continued past it.
-- **Result** — when every stage is `SKIP`: a `<video>` of `video-final.mp4` + download
-  links, served through the path-jailed `file/` endpoint.
+tracks a client-side "passed" set so it doesn't block once you've continued past it. A
+runnable stage that writes no file (`safe` — a verification gate) is always `RUN` in
+`run.py`'s view; the SPA steps past it rather than stalling on it (the full-pipeline Run
+button and the Result "Re-run" both still execute it, and a genuine failure there keeps
+`master` / `subs` at `RUN`, so a broken cut never reaches the Result screen).
+
+- **Result** — once the deliverable stages are `SKIP` (`safe` may still show `RUN`): a
+  `<video>` of `video-final.mp4`, its size (via a `HEAD`, flagged over 30 MB), download
+  links (`.srt`, post caption, `.chapters.txt` for long-form), and a "Re-run" button — all
+  through the path-jailed `file/` endpoint.
 
 ## Place in the flow
 
