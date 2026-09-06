@@ -1,6 +1,8 @@
 # Web interface — a local UI over `run.py`
 
-Status: **design (issue #24)** — nothing built. Spec + implementation plan for roadmap
+Status: **in progress (Pass 7).** Design locked (#24). Built: #96 (`run.py --dry --json`).
+Remaining: #97–#103 (the server, streaming, the SPA, the checkpoint screens, the montage /
+long-form flows). Spec + implementation plan for roadmap
 Pass 7, the capstone. It assumes Pass 5 ([`run.py`](orchestrator.md)) and, ideally, Pass 4
 (`config/scenes.json`) exist — both do.
 
@@ -125,21 +127,19 @@ is an alternative front end, not a replacement).
 
 ## Implementation tickets (Pass 7 milestone)
 
-1. **`run.py --dry --json`** — machine-readable verdict output for `/state`.
-   *(area:orchestrator)*
-2. **`scripts/web.py`** — the server: router, project CRUD, config + decision file
+1. ✅ **`run.py --dry --json`** (#96) — one JSON line `{ world, engine, stages:[{id,
+   title, verdict, checkpoint, note?, block?, makes?}], next }`; `next` = first stage not
+   up to date. Implies `--dry`. Text output unchanged without the flag.
+2. **`scripts/web.py`** (#97) — the server: router, project CRUD, config + decision file
    endpoints, path-jailed file serving. Doc page. *(area:web)*
-3. **`POST /run` streaming** — subprocess `run.py` with SSE stdout + exit code.
-   *(area:web)*
-4. **The SPA shell** — drop zone, project list, the config form, the state-driven screen
-   router. *(area:web)*
-5. **Checkpoint screens: transcript + trim** — the two blocking text decisions.
-   *(area:web)*
-6. **Checkpoint screen: scenes** — motif dropdown + params form + per-window preview.
-   *(area:web area:scenes)*
-7. **Checkpoint screen: sound + Result** — cue placement, then the deliverable view.
-   *(area:web)*
-8. **`broll-montage` + `long-form` flows** — the two shorter front ends. *(area:web)*
+3. **`POST /run` streaming** (#98) — subprocess `run.py` with SSE stdout + exit code.
+4. **The SPA shell** (#99) — drop zone, project list, the config form, the state-driven
+   screen router.
+5. **Checkpoint screens: transcript + trim** (#100) — the two blocking text decisions.
+6. **Checkpoint screen: scenes** (#101) — motif dropdown + params form + per-window
+   preview. *(+ area:scenes)*
+7. **Checkpoint screen: sound + Result** (#102) — cue placement, then the deliverable view.
+8. **`broll-montage` + `long-form` flows** (#103) — the two shorter front ends.
 
 Ship 1–7 for `reel-speech` end to end first (drop a real video → download a reel without
 touching a terminal); 8 follows.

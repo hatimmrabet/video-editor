@@ -130,7 +130,8 @@ def main():
         raise SystemExit(0 if argv else 3)
     work = os.path.abspath(argv[0])
     opt = argv[1:]
-    dry = "--dry" in opt
+    as_json = "--json" in opt        # machine-readable plan for the web UI (implies --dry)
+    dry = "--dry" in opt or as_json
     force = "--force" in opt
     if not os.path.isdir(os.path.join(work, "rush")):
         die("no rush/ in " + work + " - put the source file(s) there first")
@@ -175,6 +176,28 @@ def main():
 
     ctx = {"work": work, "skill": SKILL, "source": source,
            "language": cfg.get("language")}
+
+    if as_json:
+        out, nxt = [], None
+        for s in stages:
+            if s["id"] not in sel:
+                continue
+            v = verdict(s, work, source)
+            if force and "run" in s and v == "SKIP":
+                v = "RUN"
+            e = {"id": s["id"], "title": s["title"], "verdict": v,
+                 "checkpoint": "run" not in s}
+            if s.get("note"):
+                e["note"] = s["note"]
+            if s.get("block"):
+                e["block"] = True
+            if s.get("makes"):
+                e["makes"] = s["makes"]
+            out.append(e)
+            if nxt is None and v != "SKIP":
+                nxt = s["id"]   # the first stage not up to date — the screen the UI shows
+        print(json.dumps({"world": world, "engine": engine, "stages": out, "next": nxt}))
+        raise SystemExit(0)
 
     print("world: %s | engine: %s | %d stage(s)%s"
           % (world, engine, len(sel), "  [dry run]" if dry else ""))
