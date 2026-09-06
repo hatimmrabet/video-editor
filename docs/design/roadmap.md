@@ -20,7 +20,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 | 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | ✅ done (PRs #54, #57, issues #10, #59) |
 | 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | ✅ done (#11 schema · #12 light · #13 Remotion · #14 montage) |
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | ✅ done (#15 schema · #16 registry · #17 light · #18 Remotion · #19 11 motifs · #20 studio) |
-| 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | 🚧 #21 done (`run.py` + stage manifests) · #22 subagents |
+| 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | ✅ done (#21 `run.py` + stage manifests · #22 subagent design) |
 | 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | — |
 | 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | — |
 
@@ -166,9 +166,18 @@ to English — both cosmetic cleanup, pick up whenever.)*
   (sentence trim, scenes), `when` gate for the Remotion path. Decisions locked in
   [orchestrator.md](orchestrator.md); tested through `cut`+`audio` on a real clip and the
   full plan via `--dry`.
-- **Subagent split** (#22) — transcript-fixer, scene-designer, reviewer. Design only.
+- ✅ **Subagent split** (#22, design) — spec in [orchestrator.md](orchestrator.md). The
+  honest conclusion: only **reviewer** is a clean win (mechanical pre-delivery checks, no
+  user input, keeps images/ffmpeg dumps off the main thread); **scene-designer** is worth
+  it as a *draft* generator that the main agent then refines with the user;
+  **transcript-fixer stays inline** (correcting colloquial Arabic is a conversation, so a
+  subagent saves little). Turning the two into `video-editor/agents/*.md` templates is a
+  follow-up implementation ticket if wanted — not built.
 - **Done when:** `run.py <work>` takes a config + source to a finished reel, pausing only
-  for the genuine decisions.
+  for the genuine decisions. The conductor + both stage manifests are complete and every
+  branch (`--dry`, resume-past-halt, `--force`, `--engine remotion`, error paths) is
+  verified, plus a real `cut`+`audio` run; a full sandbox reel run needs Whisper + a real
+  scene-design pass, not done here.
 
 ## Pass 6 — Long-form
 
