@@ -28,6 +28,8 @@ remotion.sh <work> render [out.mp4] # npx remotion render Ad <out> --codec h264 
 | `config/outro.json` | → `project.json.outro_copy` |
 | `config/safe.json` | `.guides` → `project.json.guides` |
 | `scripts/transitions.json` (via [`lib/transitions.py`](lib-transitions.md)'s `load()`) | `["defaults"]` → `project.json.transitions` (issue #13) |
+| `config/scenes.json` (via [`lib/scenes.py`](lib-scenes.md)'s `load()`) | when present: `scenes` → `project.json.scenes`, and the derived `schedule` **replaces** `project.json.stage` (issue #18) |
+| `scripts/motifs/remotion/*.tsx` | copied to `<work>/remotion/src/motifs/` — always refreshed |
 
 **Migrated to `config.load()` (issue #9, 2026-09-05)** — the inline Python in `sync_all`
 no longer reads `theme.json` directly for the theme subset or the logo filename; both come
@@ -49,9 +51,11 @@ see [project-config.md](../design/project-config.md)) but now live in `config/`.
 - `mkdir -p <work>/remotion/src <work>/remotion/public`
 - Always overwrites: `package.json tsconfig.json remotion.config.ts .gitignore README.md`
   and `index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts util.tsx Chrome.tsx Captions.tsx
-  Outro.tsx Guides.tsx`
-- **`src/Scenes.tsx` copied once only** — the operator's scene work is never wiped
-- inline Python generates `project.json`
+  Outro.tsx Guides.tsx SceneList.tsx`, plus `src/motifs/*.tsx` (issue #18)
+- **`src/Scenes.tsx` copied once only** — a project's hand-written scene components are
+  never wiped. With `config/scenes.json` the scenes are data and `SceneList.tsx` dispatches
+  motifs instead (`Ad.tsx` renders one or the other)
+- inline Python generates `project.json` (now including `scenes` when `config/scenes.json` exists)
 - copies the assets listed above
 
 ## External tools

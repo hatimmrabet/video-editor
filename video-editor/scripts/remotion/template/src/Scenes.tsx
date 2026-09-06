@@ -54,8 +54,9 @@ const Chips = ({t, seg=1, labels=[] as string[], from=0, to=0}:
 /** over the video itself (inside the card) */
 export const VideoOverlay = ({t}:{t:number}) => (<></>);
 
-/** over everything */
+/** over everything. Empty by default — either author scenes here (no config/scenes.json),
+    or write config/scenes.json and let SceneList dispatch motifs (Ad.tsx picks one). */
 export const Scenes = ({t}:{t:number}) => (<>
-  <Stamp t={t}/>
+  {/* <Stamp t={t} at={[2.45,3.30]} text="handmade"/> */}
   {/* <Chips t={t} seg={1} labels={['A','B','C','D']} from={3.3} to={8.0}/> */}
 </>);

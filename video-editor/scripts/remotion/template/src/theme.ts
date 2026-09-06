@@ -19,6 +19,9 @@ export const DUR_F = Math.round((VEND + OUTRO) * FPS);
 export const HAS_SFX = !!P.sfx;
 export const OUTRO_COPY = P.outro_copy || {recap:[]};
 export const STAGE = P.stage || [{s:0,e:1e9,m:'FULL'}];
+/* config/scenes.json resolved by remotion.sh (issue #18); null when the file is absent —
+   Ad.tsx then renders the hand-written Scenes.tsx instead. */
+export const SCENES = ((P as any).scenes as any[] | undefined) || null;
 /* Transition defaults from scripts/transitions.json (remotion.sh copies them into
    project.json). Fallback = today's exact values, so nothing changes without a project
    setting a non-default. Full vocabulary: docs/design/transitions.md */

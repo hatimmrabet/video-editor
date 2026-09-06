@@ -16,10 +16,15 @@ sync_all(){
   # Structural files: always updated, except what the user edits
   for f in package.json tsconfig.json remotion.config.ts .gitignore README.md; do
     [ -f "$TPL/$f" ] && cp "$TPL/$f" "$R/$f"; done
-  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts util.tsx Chrome.tsx Captions.tsx Outro.tsx Guides.tsx; do
+  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts util.tsx Chrome.tsx Captions.tsx Outro.tsx Guides.tsx SceneList.tsx; do
     cp "$TPL/src/$f" "$R/src/$f"; done
-  # Scenes: copied once only — your work is never wiped
+  # Scenes.tsx: copied once only — a project's hand-written scene components are never wiped
+  # (with config/scenes.json the scenes are data and SceneList.tsx dispatches them instead)
   [ -f "$R/src/Scenes.tsx" ] || cp "$TPL/src/Scenes.tsx" "$R/src/Scenes.tsx"
+  # Motifs: the shared per-engine components — always refreshed (issue #18)
+  mkdir -p "$R/src/motifs"
+  for f in "$(cd "$(dirname "$0")/../motifs/remotion" && pwd)"/*.tsx; do
+    [ -f "$f" ] && cp "$f" "$R/src/motifs/"; done
 
   cp "$W/build/captions.json" "$R/src/caps.json"
   "${VEVO_PY[@]}" - "$W" "$R" <<'PY'
@@ -27,6 +32,7 @@ import json, os, sys
 sys.path.insert(0, os.path.join(os.environ["VEVO_SKILL_DIR"], "scripts"))
 from lib import config as cfg          # project.config.json — see docs/design/project-config.md
 from lib import transitions as trans   # scripts/transitions.json — see docs/design/transitions.md
+from lib import scenes as scn          # config/scenes.json — see docs/design/scenes-as-data.md
 W, R = sys.argv[1], sys.argv[2]
 def rd(rel, dflt):
     p = os.path.join(W, rel)
@@ -44,8 +50,13 @@ proj = {
   "guides": bool(rd(os.path.join("config", "safe.json"), {}).get("guides", False)),   # true → live safe-zone guides in the studio
   "transitions": trans.load()["defaults"],   # resolved transition defaults — the engine falls back to today's values without this
 }
+_scn = scn.load(W)   # config/scenes.json (issue #18) — None when the file is absent
+if _scn["scenes"] is not None:
+    proj["scenes"] = _scn["scenes"]
+    proj["stage"] = _scn["schedule"]   # the rect schedule is derived from the scenes' layout
 json.dump(proj, open(os.path.join(R, "src", "project.json"), "w"), ensure_ascii=False, indent=1)
-print("project.json → duration", proj["total"], "+ outro", proj["outro"], "· sfx:", "yes" if proj["sfx"] else "no")
+print("project.json → duration", proj["total"], "+ outro", proj["outro"], "· sfx:", "yes" if proj["sfx"] else "no",
+      "· scenes:", len(proj["scenes"]) if "scenes" in proj else "inline")
 PY
   [ -f "$W/build/video-reframed.mp4" ] && cp "$W/build/video-reframed.mp4" "$R/public/video.mp4"
   [ -f "$W/build/sound-effects.wav" ]  && cp "$W/build/sound-effects.wav"  "$R/public/sfx.wav"
