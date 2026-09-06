@@ -2,9 +2,9 @@
 
 **The biggest lift in the roadmap.** Everything else is tidying; this is the structural change.
 
-Status: **schema (#15) + registry (#16) + both engine interpreters (#17 light, #18
-Remotion) done.** This page is the spec for `config/scenes.json` and the motif registry.
-Remaining: #19 (port the reference functions to motifs), #20 (`studio.html`).
+Status: **#15–#19 done** — schema, registry, both engine interpreters, and all 11 motifs
+ported. This page is the spec for `config/scenes.json` and the motif registry. Remaining:
+#20 (`studio.html` reads the scene list).
 
 ## Problem
 
@@ -97,21 +97,25 @@ A **motif** is a parameterized scene type, implemented **once per engine** and s
 name. Generalize the ~15 reference scene functions in `compose.reference.html` into a
 starter set:
 
-The authoritative list + status is [`scripts/motifs/index.json`](../../video-editor/scripts/motifs/index.json).
+**All 11 are implemented (canvas + Remotion).** The authoritative list + params is
+[`scripts/motifs/index.json`](../../video-editor/scripts/motifs/index.json).
 
-| Motif | Generalized from | Status | Params |
+| Motif | Generalized from | kind | Key params |
 |---|---|---|---|
-| `stamp` | `stamp` | ✅ #16 | `text`, `lead`, `rotation`, `ring` |
-| `counter` | `price` | ✅ #19 | `title`, `from`, `to`, `prefix`, `suffix`, `decimals`, `settleAt`, `scramble` |
-| `quote` | `titleChip` | ✅ #19 | `text`, `accent`, `y` |
-| `checklist` | `rtlFix` row reveal | ✅ #19 | `title`, `items[]`, `tick` (`even`\|`words`), `y` |
-| `card-stack` | `chips`, `cardStack` | planned | `items[]`, `columns`, `checkmark` |
-| `transcript-panel` | `transcript` | planned | `lines[]` (or pull from `build/captions.json`) |
-| `file-merge` | `fileToCloud`, `oneFile` | planned | `sources[]`, `targetLabel` |
-| `glitch` | `glitch` | planned | `intensity`, `slices` — an `overlay` motif (drawn on the video) |
-| `comment-box` | `commentBox` | planned | `word`, `avatar` |
-| `sync-viz` | `syncViz` | planned | — |
-| `suspense` | `suspense` | planned | — |
+| `stamp` | `stamp` | scene | `text`, `lead`, `rotation`, `ring` |
+| `counter` | `price` | scene | `title`, `from`, `to`, `prefix`, `suffix`, `decimals`, `settleAt`, `scramble` |
+| `quote` | `titleChip` | scene | `text`, `accent`, `y` |
+| `checklist` | `rtlFix` row reveal | scene | `title`, `items[]`, `tick` (`even`\|`words`), `y` |
+| `card-stack` | `chips`, `cardStack` | scene | `items[]`, `columns`, `checkmark`, `flipAt` |
+| `transcript-panel` | `transcript` | scene | `title`, `lines[]` (default = the ref sentence's words) |
+| `file-merge` | `fileToCloud`, `oneFile` | scene | `sources[]`, `targetLabel`, `note`, `done` |
+| `glitch` | `glitch` | overlay | `intensity`, `slices` (video-independent slice-bar version — same on both engines) |
+| `comment-box` | `commentBox` | scene | `word`, `placeholder` |
+| `sync-viz` | `syncViz` | scene | `title`, `bars`, `markers[]` |
+| `suspense` | `suspense` | overlay | `rings`, `x`, `y` |
+
+An **`overlay`** motif gets no container `rise` from the interpreter — it owns its whole
+appearance via `prog` / `enter` / `exit` (`lib/scenes` carries `kind` through).
 
 Registry shape:
 
@@ -179,10 +183,10 @@ must change incompatibly gets a new name.
    `SCENES`; `Ad.tsx` renders `<SceneList>` (the dispatcher — mirror of `drawScenes`) when
    `SCENES` is set, else the hand-written `Scenes.tsx`. Timing math verified equal to the
    light engine's.
-3. 🟡 #19 ports the reference scene functions to motifs one at a time (canvas + Remotion +
-   a 3-way visual diff). Done: `counter`, `quote`, `checklist` (`stamp` was #16). Remaining:
-   `card-stack`, `transcript-panel`, `file-merge`, `glitch`, `comment-box`, `sync-viz`,
-   `suspense`.
+3. ✅ #19 — all 11 reference functions generalized into motifs (canvas + Remotion). Canvas
+   side verified via `drawScenes` on a headless canvas (each draws, no throw, no warning).
+   The Remotion side needs a real render pass for the visual diff (the ~500 MB install
+   isn't in the sandbox).
 4. #20 points `studio.html` at the interpreter and drops its private drawing copy.
 5. Once the starter set is covered, `config/scenes.json` becomes the documented default and
    the inline reference functions move to `scripts/motifs/` history.

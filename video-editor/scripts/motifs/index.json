@@ -16,12 +16,12 @@
       "from": "price",
       "params": { "title": "string", "from": "number", "to": "number", "prefix": "string", "suffix": "string", "decimals": "number", "settleAt": "number", "scramble": "boolean" }
     },
-    "card-stack": {
-      "status": "planned",
+    "quote": {
+      "status": "implemented",
       "kind": "scene",
-      "bottom": 560,
-      "from": "chips, cardStack",
-      "params": { "items": "string[]", "columns": "number", "checkmark": "boolean" }
+      "bottom": 260,
+      "from": "titleChip",
+      "params": { "text": "string", "accent": "boolean", "y": "number" }
     },
     "checklist": {
       "status": "implemented",
@@ -30,54 +30,54 @@
       "from": "rtlFix (row reveal)",
       "params": { "title": "string", "items": "string[]", "tick": "string", "y": "number" }
     },
+    "card-stack": {
+      "status": "implemented",
+      "kind": "scene",
+      "bottom": 520,
+      "from": "chips, cardStack",
+      "params": { "items": "string[]", "columns": "number", "checkmark": "boolean", "flipAt": "number" }
+    },
     "transcript-panel": {
-      "status": "planned",
+      "status": "implemented",
       "kind": "scene",
       "bottom": 600,
       "from": "transcript",
-      "params": { "lines": "string[]" }
+      "params": { "title": "string", "lines": "string[]" }
     },
     "file-merge": {
-      "status": "planned",
+      "status": "implemented",
       "kind": "scene",
-      "bottom": 520,
+      "bottom": 580,
       "from": "fileToCloud, oneFile",
-      "params": { "sources": "string[]", "targetLabel": "string" }
+      "params": { "sources": "string[]", "targetLabel": "string", "note": "string", "done": "string" }
     },
     "glitch": {
-      "status": "planned",
+      "status": "implemented",
       "kind": "overlay",
       "bottom": 0,
       "from": "glitch",
       "params": { "intensity": "number", "slices": "number" }
     },
-    "quote": {
+    "comment-box": {
       "status": "implemented",
       "kind": "scene",
-      "bottom": 260,
-      "from": "titleChip",
-      "params": { "text": "string", "accent": "boolean", "y": "number" }
-    },
-    "comment-box": {
-      "status": "planned",
-      "kind": "scene",
-      "bottom": 480,
+      "bottom": 1244,
       "from": "commentBox",
-      "params": { "word": "string", "avatar": "boolean" }
+      "params": { "word": "string", "placeholder": "string" }
     },
     "sync-viz": {
-      "status": "planned",
+      "status": "implemented",
       "kind": "scene",
-      "bottom": 560,
+      "bottom": 1260,
       "from": "syncViz",
-      "params": {}
+      "params": { "title": "string", "bars": "number", "markers": "number[]" }
     },
     "suspense": {
-      "status": "planned",
-      "kind": "scene",
-      "bottom": 500,
+      "status": "implemented",
+      "kind": "overlay",
+      "bottom": 0,
       "from": "suspense",
-      "params": {}
+      "params": { "rings": "number", "x": "number", "y": "number" }
     }
   }
 }
