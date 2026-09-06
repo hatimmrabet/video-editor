@@ -109,6 +109,57 @@ JSON Schema — the scene author fills concrete literals in `config/scenes.json`
 
 ---
 
+## `scripts/pipeline/<world>.json` — the stage manifest (static skill file)
+
+**W** hand-edited, versioned with the skill (one file per world: `reel-speech.json`,
+`broll-montage.json`) · **R** [`scripts/run.py`](scripts/run.md). The canonical pipeline
+order — `docs/pipeline.md`'s stage table and `SKILL.md`'s steps are the prose mirror. See
+[design/orchestrator.md](design/orchestrator.md).
+
+```jsonc
+{
+  "world": "reel-speech",
+  "stages": [
+    {
+      "id":    "cut",                                       // slice key (--from/--to/--only); unique
+      "title": "Cut plan - measure the silences",
+      "run":   ["uv","run","scripts/plan_cuts.py","{work}"], // argv, cwd = skill dir; omit => checkpoint
+      "needs": ["{source}", "config/project.config.json"],   // work-relative; {source} = the rush file
+      "makes": ["build/cut-plan.json"]                       // work-relative; trailing "/" = non-empty dir
+    },
+    {
+      "id":    "transcript-fix",                             // no "run" => checkpoint
+      "title": "Correct the transcript",
+      "block": true,                                         // halt run.py until `makes` exists
+      "needs": ["build/transcript-raw.json"],
+      "makes": ["build/transcript-fixes.json"],
+      "note":  "Read build/transcript-raw.json and correct every sentence …"
+    },
+    {
+      "id":    "render",
+      "when":  { "engine": "light" },                        // gate: skip unless config.engine == "light"
+      "run":   ["node","scripts/render_frames.js","{work}","all"],
+      "needs": ["compose.html","build/frames-source/","build/captions.json"],
+      "makes": ["build/frames-composited/"]
+    }
+    // … full list in the file
+  ]
+}
+```
+
+- **Placeholders** in `run`: `{work}` · `{source}` (`lib.rush.find_source`) · `{language}`
+  (`config.load()["language"]`; a stage needing it with none set fails, pointing at
+  `SKILL.md` step 1) · `{skill}`.
+- **Checkpoint** = no `run`. `block:true` → `run.py` halts (exit 2) while `makes` is
+  absent. A checkpoint with **no `makes`** is advisory — its `note` reprints every run,
+  never blocks (`script-review`, `scenes`).
+- **`when`** — every key must match (`engine` = the effective engine, else `config.load()`)
+  or the stage is filtered out. Swaps `render`+`encode` for `render-remotion`.
+- A runnable stage with **no `makes`** always runs (montage `plan` rewrites its file in
+  place).
+
+---
+
 ## `theme.json` — retired (2026-09-05, issue #10)
 
 Superseded by `project.config.json` above. Nothing writes or reads it anymore. Kept here

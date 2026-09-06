@@ -135,12 +135,17 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | scenes: port reference functions → motifs (one issue per motif) | `area:scenes` | ✅ #19 — all 11 motifs (canvas + Remotion); canvas verified headlessly, Remotion visual diff pending a real render |
 | scenes: `studio.html` renders the scene list, drop its drawing copy | `area:scenes` `type:chore` | ✅ #20 — `render_frames.js` stages `build/scenes.json` + `build/motifs/`; studio runs `drawScenes`. (Deleting all 3 inline copies waits for a real project through the new path.) |
 
-### Pass 5 / 6 / 7
+### Pass 5 — Orchestrator
+
+| Title | Labels | Status |
+|---|---|---|
+| orchestrator: `scripts/run.py` design | `area:orchestrator` `type:design` | ✅ #21 — `run.py` + `scripts/pipeline/{reel-speech,broll-montage}.json`; timestamp skip, blocking/advisory checkpoints, `when` engine gate. Decisions locked in [orchestrator.md](design/orchestrator.md) |
+| orchestrator: subagent split (transcript-fixer / scene-designer / reviewer) | `area:orchestrator` `type:design` | #22 |
+
+### Pass 6 / 7
 
 | Title | Labels | Milestone |
 |---|---|---|
-| orchestrator: `scripts/run.py` design | `area:orchestrator` `type:design` | Pass 5 |
-| orchestrator: subagent split (transcript-fixer / scene-designer / reviewer) | `area:orchestrator` `type:design` | Pass 5 |
 | long-form: world design doc → plan | `type:design` | Pass 6 |
 | web: UI design doc → plan | `type:design` | Pass 7 |
 

@@ -1,0 +1,128 @@
+{
+  "_doc": "Canonical stage list for the reel-speech world (one talking-head video -> one 9:16 captioned ad). Read by scripts/run.py; mirrors docs/pipeline.md's stage table and SKILL.md steps 3-11. `run` is the argv to spawn (cwd = skill dir), with {work} {source} {language} {skill} substituted. A stage with no `run` is a checkpoint: `block:true` halts run.py until `makes` exists (a genuine human decision); a checkpoint with no `makes` is advisory - printed once, never blocks. A stage runs when any `makes` path is missing or older than any `needs` path; else it is skipped. `needs`/`makes` are work-relative; a trailing / means 'non-empty directory'; {source} is the rush/ source file. `when` gates a stage on a config value.",
+  "world": "reel-speech",
+  "stages": [
+    {
+      "id": "cut",
+      "title": "Cut plan - measure the silences",
+      "run": ["uv", "run", "scripts/plan_cuts.py", "{work}"],
+      "needs": ["{source}", "config/project.config.json"],
+      "makes": ["build/cut-plan.json"]
+    },
+    {
+      "id": "audio",
+      "title": "Extract the speech audio",
+      "run": ["ffmpeg", "-v", "error", "-i", "{source}", "-vn", "-ac", "1", "-ar", "16000", "-y", "{work}/build/transcribe-input.wav"],
+      "needs": ["{source}"],
+      "makes": ["build/transcribe-input.wav"]
+    },
+    {
+      "id": "transcribe",
+      "title": "Transcribe with per-word timing",
+      "run": ["uv", "run", "scripts/transcribe.py", "{work}", "--language", "{language}", "--model", "large-v3"],
+      "needs": ["build/transcribe-input.wav"],
+      "makes": ["build/transcript-raw.json"]
+    },
+    {
+      "id": "transcript-fix",
+      "title": "Correct the transcript",
+      "block": true,
+      "needs": ["build/transcript-raw.json"],
+      "makes": ["build/transcript-fixes.json"],
+      "note": "Read build/transcript-raw.json and correct every sentence with the user (rule #5 - Whisper errs badly in colloquial Arabic). Write build/transcript-fixes.json ({fix:[[...]], hot:[...]}). Each sentence's word count must equal Whisper's for that sentence. See SKILL.md step 5."
+    },
+    {
+      "id": "captions",
+      "title": "Build the caption timings",
+      "run": ["uv", "run", "scripts/captions.py", "{work}"],
+      "needs": ["build/cut-plan.json", "build/transcript-raw.json", "build/transcript-fixes.json"],
+      "makes": ["build/captions.json"]
+    },
+    {
+      "id": "script-review",
+      "title": "Review the script, drop sentences",
+      "needs": ["build/captions.json"],
+      "note": "Run `edit_script.py show`, show the user the numbered script, and drop any repeated or unwanted sentence NOW - before scene design, because a drop shifts every downstream timestamp. `edit_script.py dupes` flags rephrased pairs. Nothing to cut -> continue."
+    },
+    {
+      "id": "reframe",
+      "title": "Cut + 9:16 reframe",
+      "run": ["uv", "run", "scripts/reframe.py", "{work}"],
+      "needs": ["{source}", "build/cut-plan.json"],
+      "makes": ["build/video-reframed.mp4"]
+    },
+    {
+      "id": "frames",
+      "title": "Extract source frames (30 fps)",
+      "run": ["ffmpeg", "-v", "error", "-i", "{work}/build/video-reframed.mp4", "-vf", "fps=30", "-q:v", "3", "-y", "{work}/build/frames-source/%05d.jpg"],
+      "needs": ["build/video-reframed.mp4"],
+      "makes": ["build/frames-source/"]
+    },
+    {
+      "id": "scenes",
+      "title": "Design the scenes",
+      "needs": ["build/captions.json"],
+      "note": "The core creative step. Either author config/scenes.json (motif names from scripts/motifs/index.json, params bound to build/captions.json) or rewrite the scene functions in <work>/compose.html. A scenes-less project renders with captions only - that is a valid choice, not a skip. See SKILL.md step 7."
+    },
+    {
+      "id": "sound-cues",
+      "title": "Place the sound cues",
+      "block": true,
+      "needs": ["build/captions.json"],
+      "makes": ["build/sound-cues.json"],
+      "note": "Author build/sound-cues.json - at minimum {\"outro\": <end-card seconds>}, plus whoosh/thud/tap arrays at meaningful moments (<= 15 events/min, rule #1). See SKILL.md step 8."
+    },
+    {
+      "id": "sound",
+      "title": "Synthesize the sound bed",
+      "run": ["uv", "run", "scripts/sound_fx.py", "{work}"],
+      "needs": ["build/sound-cues.json"],
+      "makes": ["build/sound-effects.wav"]
+    },
+    {
+      "id": "render",
+      "title": "Render the frames (light engine)",
+      "when": { "engine": "light" },
+      "run": ["node", "scripts/render_frames.js", "{work}", "all"],
+      "needs": ["compose.html", "build/frames-source/", "build/captions.json"],
+      "makes": ["build/frames-composited/"]
+    },
+    {
+      "id": "encode",
+      "title": "Assemble frames + audio",
+      "when": { "engine": "light" },
+      "run": ["bash", "scripts/encode.sh", "{work}", "{work}/build/video-raw.mp4"],
+      "needs": ["build/frames-composited/", "build/video-reframed.mp4", "build/sound-effects.wav"],
+      "makes": ["build/video-raw.mp4"]
+    },
+    {
+      "id": "render-remotion",
+      "title": "Render (Remotion engine)",
+      "when": { "engine": "remotion" },
+      "run": ["bash", "scripts/remotion/remotion.sh", "{work}", "render", "{work}/build/video-raw.mp4"],
+      "needs": ["build/captions.json", "build/video-reframed.mp4", "build/sound-effects.wav"],
+      "makes": ["build/video-raw.mp4"]
+    },
+    {
+      "id": "safe",
+      "title": "Safe zone + hook check",
+      "run": ["node", "scripts/safe_check.js", "{work}", "--shot"],
+      "needs": ["build/video-raw.mp4", "build/captions.json", "build/sound-cues.json"],
+      "makes": []
+    },
+    {
+      "id": "master",
+      "title": "Audio mastering (-14 LUFS)",
+      "run": ["bash", "scripts/master_audio.sh", "{work}", "{work}/build/video-raw.mp4", "{work}/video-final.mp4"],
+      "needs": ["build/video-raw.mp4"],
+      "makes": ["video-final.mp4"]
+    },
+    {
+      "id": "subs",
+      "title": "Subtitle file + post caption",
+      "run": ["uv", "run", "scripts/subtitles.py", "{work}"],
+      "needs": ["build/captions.json"],
+      "makes": ["video-final.srt", "post-caption.txt"]
+    }
+  ]
+}

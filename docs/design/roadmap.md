@@ -20,7 +20,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 | 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | ✅ done (PRs #54, #57, issues #10, #59) |
 | 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | ✅ done (#11 schema · #12 light · #13 Remotion · #14 montage) |
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | ✅ done (#15 schema · #16 registry · #17 light · #18 Remotion · #19 11 motifs · #20 studio) |
-| 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | — |
+| 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | 🚧 #21 done (`run.py` + stage manifests) · #22 subagents |
 | 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | — |
 | 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | — |
 
@@ -158,9 +158,15 @@ to English — both cosmetic cleanup, pick up whenever.)*
 
 ## Pass 5 — Orchestrator
 
-- `scripts/run.py <work> [--from] [--to] [--dry]`, stage list from `world`.
-- Timestamp-based skip; pause at decision points (`fixes.json`, sentence trim, `scenes`).
-- Optional subagent split (transcript-fixer, scene-designer, reviewer).
+- ✅ **`scripts/run.py`** (#21) — `run.py <work> [--from ID] [--to ID] [--only ID]
+  [--world] [--engine] [--dry] [--force] [--list]`. World inferred from `rush/`; stage
+  list from [`scripts/pipeline/<world>.json`](../../video-editor/scripts/pipeline/).
+  Timestamp-based skip (no state file), blocking checkpoints for the real decisions
+  (`transcript-fixes.json`, `sound-cues.json`) and advisory ones for the optional steps
+  (sentence trim, scenes), `when` gate for the Remotion path. Decisions locked in
+  [orchestrator.md](orchestrator.md); tested through `cut`+`audio` on a real clip and the
+  full plan via `--dry`.
+- **Subagent split** (#22) — transcript-fixer, scene-designer, reviewer. Design only.
 - **Done when:** `run.py <work>` takes a config + source to a finished reel, pausing only
   for the genuine decisions.
 

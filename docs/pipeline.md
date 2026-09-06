@@ -11,6 +11,13 @@ steps as `bash scripts/<name>.sh`. See [design/execution.md](design/execution.md
 
 `scripts/PIPELINE.md` is a thin pointer to this document.
 
+**The stage order is also data.** [`scripts/pipeline/reel-speech.json`](../video-editor/scripts/pipeline/reel-speech.json)
+and `broll-montage.json` hold the same order in machine-readable form;
+[`scripts/run.py`](scripts/run.md) reads them to run the mechanical stages and stop at the
+human decision points (transcript correction, sentence trimming, scene design, sound
+cues). This table and `SKILL.md` are the prose mirror — keep the three in sync. See
+[design/orchestrator.md](design/orchestrator.md).
+
 ## Speech-ad mode (default)
 
 ### Diagram
