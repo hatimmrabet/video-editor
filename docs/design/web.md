@@ -1,9 +1,9 @@
 # Web interface — a local UI over `run.py`
 
-Status: **in progress (Pass 7).** Built: #96 (`run.py --dry --json`), #97 (`scripts/web.py`
-+ all endpoints), #98 (`POST /run` SSE), #99 (the SPA shell), #100 (the transcript + trim
-checkpoint screens). Remaining: #101 (scenes screen), #102 (sound + Result), #103 (montage
-/ long-form flows). Spec + implementation plan for roadmap
+Status: **in progress (Pass 7).** Built: #96–#101 — `run.py --dry --json`, `scripts/web.py`
++ all endpoints, `POST /run` SSE, the SPA shell, the transcript + trim screens, the scenes
+screen. Remaining: #102 (sound + Result), #103 (montage / long-form flows). Spec +
+implementation plan for roadmap
 Pass 7, the capstone. It assumes Pass 5 ([`run.py`](orchestrator.md)) and, ideally, Pass 4
 (`config/scenes.json`) exist — both do.
 
@@ -148,8 +148,11 @@ is an alternative front end, not a replacement).
    Whisper sentence, `edited / Whisper` count guard, hot-words field → `transcript-fixes.json`.
    trim: keep/drop checkboxes, client-side restatement flag → `POST /edit` (1-indexed).
    Verified headless: prefill, typo fix + save, dupe flag, drop → captions rewritten.
-6. **Checkpoint screen: scenes** (#101) — motif dropdown + params form + per-window
-   preview. *(+ area:scenes)*
+6. ✅ **Checkpoint screen: scenes** (#101) — one card per sentence: layout + motif
+   `<select>` (from `GET /motifs`) + params JSON (templated from the motif's shape hint).
+   "Save + preview" → `config/scenes.json` + `POST /preview` stills. `run.py --json`'s
+   `next` was made client-authoritative (a "passed" set) so advisory checkpoints don't
+   loop. Verified headless.
 7. **Checkpoint screen: sound + Result** (#102) — cue placement, then the deliverable view.
 8. **`broll-montage` + `long-form` flows** (#103) — the two shorter front ends.
 
