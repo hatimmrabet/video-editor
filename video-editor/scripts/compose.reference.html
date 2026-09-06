@@ -255,7 +255,7 @@ window.__helpers={rr,sh,nsh,card,T,pr,ease,eio,back,lerp,cl};
 
 /* ---------- scenes-as-data interpreter (issue #17) ---------- */
 /* The helper bag every motif gets as ctx.fx — see scripts/motifs/README.md */
-const FX={rr,sh,nsh,T,rgba,lum,onACC:h=>lum(h||ACC)>0.45?INK:'#FFFFFF',pr,ease,eio,back,lerp,cl,ez};
+const FX={rr,sh,nsh,card,iCheck,T,rgba,lum,onACC:h=>lum(h||ACC)>0.45?INK:'#FFFFFF',pr,ease,eio,back,lerp,cl,ez};
 const _tdur=(v,d)=>typeof v==='number'?v:(v&&typeof v.duration==='number'?v.duration:d);
 const _teas=(v,d)=>(v&&v.easing)||d;
 function drawScenes(t){
@@ -273,11 +273,13 @@ function drawScenes(t){
       if(tm.hold==='words'&&words.length) wordIndex=words.reduce((n,w)=>t>=w.s?n+1:n,-1);
       else if(typeof tm.hold==='number') hold=cl((t-sc.s-inD)/Math.max(0.001,tm.hold),0,1);
       const eA=ez(_teas(tm.in,'ease'))(enter), xA=ez(_teas(tm.out,'linear'))(exit);
-      const riseY=(1-eA)*((tm.in&&typeof tm.in.y==='number')?tm.in.y:TX.sceneEnter.params.y);
       const prog=cl((t-sc.s)/Math.max(0.001,sc.e-sc.s),0,1);
+      const overlay=sc.kind==='overlay';
       X.save();
-      X.globalAlpha*=eA*(1-xA);
-      X.translate(0,riseY);
+      if(!overlay){
+        X.globalAlpha*=eA*(1-xA);
+        X.translate(0,(1-eA)*((tm.in&&typeof tm.in.y==='number')?tm.in.y:TX.sceneEnter.params.y));
+      }
       fn({X,t,prog,enter,exit,hold,words,wordIndex,rect:vrect(t),
           theme:{bg:BG,ink:INK,acc:ACC,clay:CLAY,mut:MUT,font:FONT,handle:HANDLE},
           params:sc.params||{},fx:FX});

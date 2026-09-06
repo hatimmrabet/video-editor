@@ -31,10 +31,10 @@ Full schema — [data-contracts.md](../data-contracts.md#scriptsmotifsindexjson-
 
 ## Status
 
-`stamp` (#16), `counter` and `quote` (#19) are implemented (canvas + Remotion). The other
-eight (`card-stack`, `checklist`, `transcript-panel`, `file-merge`, `glitch`, `comment-box`,
-`sync-viz`, `suspense`) are declared in `index.json` with `status: "planned"` and get
-ported one at a time, still under **#19**.
+**All 11 motifs are implemented** (canvas + Remotion) as of #19 — `stamp`, `counter`,
+`quote`, `checklist`, `card-stack`, `transcript-panel`, `file-merge`, `glitch`,
+`comment-box`, `sync-viz`, `suspense`. The canvas side is verified via `drawScenes` on a
+headless canvas; the Remotion side wants a real render pass for the 3-way visual diff.
 
 ## The `ctx` contract
 

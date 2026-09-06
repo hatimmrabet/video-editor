@@ -8,8 +8,20 @@ import {vrect} from './stage';
 import Stamp from './motifs/Stamp';       // one static import per implemented motif
 import Counter from './motifs/Counter';
 import Quote from './motifs/Quote';
+import Checklist from './motifs/Checklist';
+import CardStack from './motifs/CardStack';
+import TranscriptPanel from './motifs/TranscriptPanel';
+import FileMerge from './motifs/FileMerge';
+import Glitch from './motifs/Glitch';
+import CommentBox from './motifs/CommentBox';
+import SyncViz from './motifs/SyncViz';
+import Suspense from './motifs/Suspense';
 
-const MOTIFS: Record<string, React.FC<any>> = {stamp: Stamp, counter: Counter, quote: Quote};
+const MOTIFS: Record<string, React.FC<any>> = {
+  stamp: Stamp, counter: Counter, quote: Quote, checklist: Checklist, 'card-stack': CardStack,
+  'transcript-panel': TranscriptPanel, 'file-merge': FileMerge, glitch: Glitch,
+  'comment-box': CommentBox, 'sync-viz': SyncViz, suspense: Suspense,
+};
 
 /* the four named easings — same curves as compose.html / transitions.json */
 const linear = (k: number) => k;
@@ -45,9 +57,11 @@ export const SceneList: React.FC<{t: number}> = ({t}) => {
         const xA = ez((tm.out && tm.out.easing) || 'linear')(exit);
         const riseY = (1 - eA) * (tm.in && typeof tm.in.y === 'number' ? tm.in.y : 28);
         const prog = cl((t - sc.s) / Math.max(0.001, sc.e - sc.s));
+        const overlay = sc.kind === 'overlay';
+        const wrap = overlay ? {} : {opacity: eA * (1 - xA), transform: `translateY(${riseY}px)`};
 
         return (
-          <div key={i} style={{position: 'absolute', inset: 0, opacity: eA * (1 - xA), transform: `translateY(${riseY}px)`}}>
+          <div key={i} style={{position: 'absolute', inset: 0, ...wrap}}>
             <M t={t} prog={prog} enter={enter} exit={exit} hold={hold} words={words} wordIndex={wordIndex}
                rect={vrect(t)} theme={T} params={sc.params || {}} />
           </div>

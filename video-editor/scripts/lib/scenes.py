@@ -137,6 +137,7 @@ def load(work):
             "s": round(s, 3), "e": round(e, 3),
             "mode": mode, "transition": transition, "gb": gb,
             "motif": motif,
+            "kind": mdef.get("kind", "scene"),   # "scene" | "overlay" (no container rise)
             "params": sc.get("params", {}) if isinstance(sc.get("params"), dict) else {},
             "timing": sc.get("timing", {}) if isinstance(sc.get("timing"), dict) else {},
             "words": _ref_words(sc.get("ref", {}), cards),

@@ -47,9 +47,10 @@ X.restore();
 | `words` | `{t,s,e,hot}[]` | the ref sentence's words with timings (`[]` for a `range` ref) |
 | `wordIndex` | number | current word index for `hold:"words"`, else `-1` |
 | `rect` | `{x,y,w,h,r}` | the resolved video rect at this frame |
+| *(kind)* | — | for `kind:"overlay"` motifs the interpreter applies **no** container `rise` (no alpha, no translate) — the motif owns its whole appearance via `prog` / `enter` / `exit` |
 | `theme` | `{bg,ink,acc,clay,mut,font,handle}` | raw theme values |
 | `params` | object | the scene's `params`, with this motif's `index.json` keys as defaults |
-| `fx` | object | helpers: `rr, sh, nsh, T, rgba, lum, onACC, pr, ease, eio, back, lerp, cl, ez` |
+| `fx` | object | helpers: `rr, sh, nsh, card, iCheck, T, rgba, lum, onACC, pr, ease, eio, back, lerp, cl, ez` |
 
 A Remotion motif is a React component taking `{ t, prog, enter, exit, hold, words,
 wordIndex, rect, theme, params }` as props (no `X`, no `fx` — it uses JSX; small helpers

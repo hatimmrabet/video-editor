@@ -19,7 +19,9 @@
 
 - `scenes` is `None` / `null` when `config/scenes.json` is absent — the engines then behave
   exactly as today (inline `SCENES`, `config/stage.json`).
-- each resolved scene: `{ s, e, mode, transition, gb, motif, params, timing, words, bottom }`.
+- each resolved scene: `{ s, e, mode, transition, gb, motif, kind, params, timing, words, bottom }`
+  (`kind` is `"scene"` | `"overlay"` from `motifs/index.json` — `overlay` motifs get no
+  container `rise`).
   - `ref` (`{sentence:N}` / `{sentence:N,words:[a,b]}` / `{range:[t0,t1]}`) → `[s, e]` against
     `build/captions.json`. A scene whose sentence doesn't exist is **dropped** (invariant #2).
   - `motif` is nulled when it isn't `status:"implemented"` in `scripts/motifs/index.json` —
