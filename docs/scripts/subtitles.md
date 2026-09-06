@@ -5,6 +5,7 @@
 > Emits an `.srt` subtitle file and a plain `.txt` full transcript from
 > `build/captions.json` — the same timings that were rendered, so sync is guaranteed.
 > Word-wraps to ≤ 42 chars, ≤ 2 lines; clamps each cue so it doesn't overlap the next.
+> If `config/chapters.json` exists (long-form), also emits `video-final.chapters.txt`.
 
 ## CLI
 
@@ -21,6 +22,7 @@ caller-chosen base name (issue #59 dropped the `[basename]` argument, since `.sr
 | File | Shape | Required |
 |---|---|---|
 | `<work>/build/captions.json` | `.cards` | yes |
+| `<work>/config/chapters.json` | `[{ ref, title }]` — `ref` via [`lib/scenes`](lib-scenes.md)'s `_resolve_ref` | optional (long-form) |
 
 ## Outputs
 
@@ -28,6 +30,7 @@ caller-chosen base name (issue #59 dropped the `[basename]` argument, since `.sr
 |---|---|
 | `<work>/video-final.srt` | standard SRT — YouTube and LinkedIn read it, Instagram accepts it on upload |
 | `<work>/post-caption.txt` | one line per caption card — the full speech text, ready for the post caption |
+| `<work>/video-final.chapters.txt` | `MM:SS Title` (or `H:MM:SS` past an hour) per line, sorted, first forced to `00:00` — the YouTube description chapter list. **Only when `config/chapters.json` exists.** Warns if < 3 chapters or any pair < 10 s apart (YouTube ignores those). |
 
 ## External tools
 
@@ -40,7 +43,8 @@ directly by the skill — pass a Windows-style path.
 
 ## Place in the flow
 
-Stage 13, the last step. Delivered alongside `video-final.mp4`.
+Stage 13 (reel) / the `subs` stage (long-form), the last step. Delivered alongside
+`video-final.mp4` (+ `video-final.chapters.txt` for long-form).
 
 ## Gotchas
 

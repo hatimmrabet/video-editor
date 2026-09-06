@@ -2,8 +2,9 @@
 
 Status: **in progress (Pass 6) — the pipeline runs end to end.** Built: #84 world switch,
 #85 `tighten.py` + `scripts/fillers.json`, #86 `reframe.py` 16:9 branch, #87
-`assemble_longform.py` (B-roll overlays / remux → `build/video-raw.mp4`). Remaining:
-chapters output (#88 — advisory, doesn't block a run) and the `SKILL.md` section (#89).
+`assemble_longform.py` (B-roll overlays / remux → `build/video-raw.mp4`), #88 chapters
+(`config/chapters.json` → `subtitles.py` → `video-final.chapters.txt`). Remaining: the
+`SKILL.md` long-form section (#89).
 
 This page is the spec + implementation plan for roadmap Pass 6. It builds on
 [worlds.md](worlds.md#long-form--new-youtube) and resolves that section's three open
@@ -207,8 +208,10 @@ mode we can add once the world exists.
    over the speaker (audio untouched). `config/broll.json` = `[{ref, clip, at?,
    transition?, crop?}]`. Verified: remux + a real overlay (the picture swaps during the
    span) + the short-clip edge.
-5. **Chapters** (#88) — `config/chapters.json` contract + `subtitles.py` emits
-   `video-final.chapters.txt`. *(area:pipeline area:docs)*
+5. ✅ **Chapters** (#88) — `config/chapters.json` (`[{ref, title}]`, `ref` via
+   `lib/scenes._resolve_ref`); `subtitles.py` sorts, forces the first to `00:00`, writes
+   `video-final.chapters.txt` (`MM:SS Title`), warns on < 3 or < 10 s apart. No file → no
+   change.
 6. **`SKILL.md` — the `long-form` flow** (#89) — a new top-level section (like "Montage
    mode"), the checkpoints, the "propose chapters / propose B-roll" conversation.
    *(area:docs)*

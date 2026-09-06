@@ -152,7 +152,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | long-form: `tighten.py` (jump-cut + filler pass) + `scripts/fillers.json` | `area:pipeline` | ✅ #85 — word-level gap + filler cuts from `captions.json`; `apply` folds into `cut-plan.json` + `captions.json` via new `lib/timeline.py` (shared with `edit_script.py`, output byte-identical after the extraction). `build/tighten-plan.json` for review. |
 | long-form: `reframe.py` 16:9 branch | `area:pipeline` | ✅ #86 — `format:"long"` → 1920×1080, `TARGET=16/9`; crop logic generalized; `-filter_complex` spills to a file above ~90 kB. Short output byte-identical. |
 | long-form: `assemble_longform.py` (cut list + B-roll overlays) | `area:pipeline` | ✅ #87 — no `config/broll.json` → remux; with it → ffmpeg `overlay`+`fade` graph. `config/broll.json` contract. Verified remux + real overlay + short-clip edge. **Long-form pipeline now runs end to end.** |
-| long-form: chapters — `config/chapters.json` + `subtitles.py` markers | `area:pipeline` `area:docs` | #88 |
+| long-form: chapters — `config/chapters.json` + `subtitles.py` markers | `area:pipeline` `area:docs` | ✅ #88 — `subtitles.py` reads `config/chapters.json`, emits `video-final.chapters.txt` (`MM:SS Title`, first → `00:00`, warns < 3 / < 10 s apart). No file → no change. |
 | long-form: `SKILL.md` long-form flow section | `area:docs` | #89 |
 
 ### Pass 7 — Web

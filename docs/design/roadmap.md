@@ -195,8 +195,8 @@ to English — both cosmetic cleanup, pick up whenever.)*
   `keep`-remap extracted to `lib/timeline.py` (shared with `edit_script.py`).
 - 🚧 **16:9 `reframe.py`** (#86) — `format:"long"` → 1920×1080; crop logic generalized.
 - 🚧 **`assemble_longform.py`** (#87) — B-roll `overlay` graph / remux → `video-raw.mp4`.
-  **The long-form pipeline now runs end to end.**
-- Remaining: chapters in `subtitles.py` (#88 — advisory), `SKILL.md` section (#89).
+- 🚧 **Chapters** (#88) — `config/chapters.json` → `subtitles.py` → `video-final.chapters.txt`.
+- **The long-form pipeline runs end to end.** Remaining: `SKILL.md` section (#89).
 - **Done when:** a ≥ 20-min recording → an edited 16:9 talk with chapters and B-roll.
 
 ## Pass 7 — Web

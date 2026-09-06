@@ -493,6 +493,26 @@ just remuxes). Audio always stays the speaker's.
 
 ---
 
+## `config/chapters.json` — long-form chapter markers (optional, hand-authored)
+
+**W** hand-authored (the agent proposes breaks from the transcript, the user confirms —
+no topic-shift heuristic) · **R** [`subtitles.py`](scripts/subtitles.md)
+
+```jsonc
+[
+  { "ref": { "sentence": 0 },  "title": "Intro" },
+  { "ref": { "sentence": 34 }, "title": "The three mistakes" },
+  { "ref": { "sentence": 88 }, "title": "How to fix it" }
+]
+```
+
+`ref` (same forms as `config/scenes.json`) → the chapter's start via
+`lib/scenes._resolve_ref` against `build/captions.json`. `subtitles.py` sorts them, forces
+the first to `00:00`, and writes `video-final.chapters.txt` (`MM:SS Title`). No file → no
+chapters.
+
+---
+
 ## `project.json` — generated Remotion config
 
 **W** `remotion.sh sync_all` (inline Python), into `<work>/remotion/src/` · **R** Remotion
@@ -559,7 +579,8 @@ exposure (absolute), color (relative). Sharpness × exposure × a frozen-clip pe
 | Path | When | Note |
 |---|---|---|
 | `video-final.mp4` | always | root-level, same name regardless of mode — see [design/file-layout.md](design/file-layout.md) |
-| `video-final.srt` | reel-speech only | |
-| `post-caption.txt` | reel-speech only | the speech's full text, meant to be pasted as the post's caption |
+| `video-final.srt` | reel-speech + long-form | |
+| `post-caption.txt` | reel-speech + long-form | the speech's full text, meant to be pasted as the post's caption |
+| `video-final.chapters.txt` | long-form, only if `config/chapters.json` exists | `MM:SS Title` list for the YouTube description |
 | `build/video-raw.mp4` | intermediate | before `master_audio.sh` — not the deliverable |
 | `build/safe-zone-check.jpg` | only if `safe_check.js --shot` finds a violation | |
