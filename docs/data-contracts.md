@@ -472,6 +472,27 @@ in `compose.html`.
 
 ---
 
+## `config/broll.json` — long-form B-roll cutaways (optional, hand-authored)
+
+**W** hand-authored · **R** [`assemble_longform.py`](scripts/assemble_longform.md) (long-form world)
+
+```jsonc
+[
+  {
+    "ref":        { "range": [72.0, 78.5] },   // OR {sentence:N} / {sentence:N,words:[a,b]} — build/captions.json timeline
+    "clip":       "screen-recording.mp4",      // a filename in rush/broll/
+    "at":         0.4,                          // seconds into the clip to start (default 0.4)
+    "transition": "dissolve:0.25",              // a Pass-3 spec; only its duration is used (alpha fade)
+    "crop":       "cover"                       // "cover" (default); "fit" reserved
+  }
+]
+```
+
+`ref` resolved by `lib/scenes._resolve_ref`. No file → no cutaways (`assemble_longform.py`
+just remuxes). Audio always stays the speaker's.
+
+---
+
 ## `project.json` — generated Remotion config
 
 **W** `remotion.sh sync_all` (inline Python), into `<work>/remotion/src/` · **R** Remotion
