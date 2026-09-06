@@ -17,11 +17,11 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 |---|---|---|---|---|
 | 0 | **Documentation** (this `docs/` tree) | `Pass 0 — Documentation` | — | ✅ done |
 | 1 | **Isolated execution & dependencies** | `Pass 1 — Execution & dependencies` | 0 | ✅ done (PR #37) |
-| 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | ✅ done (PRs #54, #57, issues #10, #59) |
+| 2 | **`project.config.json`** (direct migration, no adapter) | `Pass 2 — Config` | 0 | ✅ done (PRs #54, #57, issues #10, #59) |
 | 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | ✅ done (#11 schema · #12 light · #13 Remotion · #14 montage) |
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | ✅ done (#15 schema · #16 registry · #17 light · #18 Remotion · #19 11 motifs · #20 studio) |
 | 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | ✅ done (#21 `run.py` + stage manifests · #22 subagent design) |
-| 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | — |
+| 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | 🚧 design done (#23 — [long-form.md](long-form.md)) |
 | 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | — |
 
 ## Pass 1 — Execution & dependencies
@@ -181,11 +181,18 @@ to English — both cosmetic cleanup, pick up whenever.)*
 
 ## Pass 6 — Long-form
 
-- Jump-cut / filler-word engine (tight pause removal, per-language filler list).
-- Chapter detection (transcript topic shift or user outline).
-- B-roll cutaways reusing `montage_mode.py`'s scorer.
-- Lower-third caption style; 16:9 output; chapter markers.
-- **Done when:** a 20-min recording → an edited 16:9 talk with chapters and B-roll.
+- ✅ **World design + implementation plan** (#23) — [long-form.md](long-form.md). One
+  world (`format:"long"` switch, not inferred); its own 11-stage manifest; `tighten.py`
+  for the jump-cut + filler pass (curated `scripts/fillers.json`, not per-run model
+  choice); hand-authored `config/chapters.json` (agent proposes, no topic-shift
+  heuristic); B-roll via `config/broll.json` + the montage scorer; `assemble_longform.py`
+  (ffmpeg filter graph, no frame render); soft `.srt` captions (burned lower-third
+  reserved). No motif/scene/`safe_check`/`sound_fx` involvement. Six implementation
+  tickets listed in the doc.
+- Jump-cut / filler-word engine — `tighten.py` (#TBD).
+- 16:9 `reframe.py` branch · `assemble_longform.py` · chapters in `subtitles.py` · the
+  `SKILL.md` long-form section (#TBD).
+- **Done when:** a ≥ 20-min recording → an edited 16:9 talk with chapters and B-roll.
 
 ## Pass 7 — Web
 

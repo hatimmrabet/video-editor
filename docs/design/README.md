@@ -22,9 +22,10 @@ This is `FORK.md`'s roadmap, made concrete.
    human or an agent edits, not JavaScript hand-ported between three files.
 2. **One description, both engines.** The light engine and Remotion must render the *same*
    scene list. No more drift (see [../engines.md](../engines.md#drift)).
-3. **Backward compatible.** The existing per-file JSON contracts keep working. A new
-   `project.config.json` is a *superset*; an adapter emits the legacy files so scripts
-   migrate one at a time.
+3. **No back-compat bridges.** One user, no installed base — when a pass replaces a file
+   format, every consumer migrates in the same change and the old reading code is deleted.
+   No adapter, no reverse-compat shim (decided Pass 2, see
+   [project-config.md](project-config.md#migration--direct-no-bridge)).
 4. **The pipeline stays scriptable.** The orchestrator is a thin layer over the same
    scripts, not a rewrite. Any stage can still be run by hand.
 5. **Invariants hold.** Everything in [../invariants.md](../invariants.md) survives every
@@ -36,7 +37,7 @@ This is `FORK.md`'s roadmap, made concrete.
 | Stays | Changes |
 |---|---|
 | ffmpeg does the cutting/muxing/loudness | scene definitions become data, not inline JS/JSX |
-| Whisper transcription, per-word timing | `theme.json` + `stage.json` + `outro.json` + `safe.json` + sfx cues merge into `project.config.json` |
+| Whisper transcription, per-word timing | `theme.json` folds into `project.config.json`; `stage`/`outro`/`safe`/`scenes` stay as their own hand-authored `config/*.json` |
 | The work-dir model | a `scripts/run.py` orchestrator reads the config and runs stages |
 | Two engines (light default, Remotion opt-in) | both engines interpret one scene list via a shared motif registry |
 | `montage_mode.py` as an independent mode | montage becomes one "world" alongside `reel-speech` and a new `long-form` |
@@ -47,10 +48,11 @@ This is `FORK.md`'s roadmap, made concrete.
 | Doc | What it specifies |
 |---|---|
 | [execution.md](execution.md) | **built** — how dependencies are isolated (uv, bundled Chromium, the `VEVO_*` contract) |
-| [project-config.md](project-config.md) | the `project.config.json` schema + the legacy-emitting adapter |
+| [project-config.md](project-config.md) | the `project.config.json` schema (no adapter — direct migration) |
 | [file-layout.md](file-layout.md) | `rush`/`config`/`build` directory split, the full file rename, the engine and safe-zone decisions (2026-09-05 session) |
 | [scenes-as-data.md](scenes-as-data.md) | declarative scene schema + the shared motif registry (the biggest lift) |
 | [transitions.md](transitions.md) | a named/parameterized transition set for both engines + montage |
 | [worlds.md](worlds.md) | editing families — `reel-speech`, `broll-montage`, `long-form` |
-| [orchestrator.md](orchestrator.md) | the config-driven runner + skill/subagent structure (sketch) |
+| [long-form.md](long-form.md) | the `long-form` (YouTube) world — spec + Pass 6 implementation plan |
+| [orchestrator.md](orchestrator.md) | the config-driven runner (`run.py`, built) + the subagent split design |
 | [roadmap.md](roadmap.md) | the sequence of implementable passes = GitHub milestones |
