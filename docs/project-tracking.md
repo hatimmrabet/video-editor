@@ -140,7 +140,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | Title | Labels | Status |
 |---|---|---|
 | orchestrator: `scripts/run.py` design | `area:orchestrator` `type:design` | ✅ #21 — `run.py` + `scripts/pipeline/{reel-speech,broll-montage}.json`; timestamp skip, blocking/advisory checkpoints, `when` engine gate. Decisions locked in [orchestrator.md](design/orchestrator.md) |
-| orchestrator: subagent split (transcript-fixer / scene-designer / reviewer) | `area:orchestrator` `type:design` | #22 |
+| orchestrator: subagent split (transcript-fixer / scene-designer / reviewer) | `area:orchestrator` `type:design` | ✅ #22 — spec in [orchestrator.md](design/orchestrator.md). Only `reviewer` is a clean win; `scene-designer` = a draft generator; `transcript-fixer` stays inline. Bundled `agents/*.md` templates = a later impl ticket, not built. |
 
 ### Pass 6 / 7
 

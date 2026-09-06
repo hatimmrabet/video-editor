@@ -106,26 +106,65 @@ next one it needs.
 
 ## Skill / subagent structure
 
-*(Design only — issue #22.)*
+**Status: designed (issue #22), not built.** The templates below become
+`video-editor/agents/*.md` (prompt text the main agent passes to the Task tool) in a
+follow-up implementation ticket, if wanted.
 
 ```
 skill: video-editor  (the entry point — unchanged trigger phrases)
   │
-  ├─ mandatory config phase — reads/creates project.config.json with the user
-  ├─ subagent: transcript-fixer   (build/transcript-raw.json → proposes build/transcript-fixes.json)
-  ├─ subagent: scene-designer     (build/captions.json → proposes config/scenes.json)
-  ├─ subagent: reviewer           (runs safe_check.js + a contact sheet, reports)
-  └─ calls run.py between decision points
+  ├─ config phase — reads/creates project.config.json WITH THE USER   (never a subagent)
+  ├─ run.py <work> --to transcribe
+  ├─ transcript correction — first pass by a subagent, then WITH THE USER
+  ├─ run.py <work> --from captions --to frames
+  ├─ subagent: scene-designer    → a first config/scenes.json, then iterate WITH THE USER
+  ├─ run.py <work> --from sound
+  └─ subagent: reviewer          → safe zone + sync + loudness + one contact sheet, verdict
 ```
 
-Each subagent has a narrow job and a narrow tool set. The main skill stays the
-conversation and the judgment; `run.py` is the muscle.
+### Which steps are actually worth a subagent
 
-### The config phase — never skipped, never silent
+A subagent can't talk to the user and starts with none of the conversation's context, so
+it only pays off where the job is **self-contained, judgeable by a machine or a quick
+glance, and context-heavy enough to be worth isolating**. Against that bar:
+
+| Candidate | Verdict | Reason |
+|---|---|---|
+| **reviewer** | **build it** | Purely mechanical: run `safe_check.js --shot`, the sync re-transcribe, the loudness read, one `contact_sheet.sh`. No user input. Output is a short pass/fail table. Isolating it keeps a pile of image + ffmpeg output out of the main thread. |
+| **scene-designer** | **build it, as a *draft* generator** | The heaviest reading job (every sentence of `build/captions.json` against the `motifs/index.json` vocabulary). A subagent can produce a complete first `config/scenes.json` + preview stills; the main agent then refines it with the user's taste feedback. Not a one-shot — a starting point. |
+| **transcript-fixer** | **keep inline** | Correcting colloquial Arabic is a conversation with the user (`SKILL.md` step 5: "show them the full text to correct"). A subagent can only do an automated first pass, which the main agent must then re-review with the user anyway — the isolation saves little and adds a hand-off. Do the raw automated cleanup inline. |
+
+### `reviewer` — the one clean win
+
+| | |
+|---|---|
+| **Spawned** | after `run.py` reaches `master` / `subs` — i.e. right before delivery |
+| **Input** | `<work>` (reads `build/captions.json`, `video-final.mp4`, `build/sound-cues.json`) |
+| **Tools** | `Bash` (for `node`, `uv run`, `bash`, `ffmpeg`), `Read`, `Glob` — no `Edit`/`Write` |
+| **Does** | `safe_check.js <work> --shot` · re-transcribe the output and diff sentence starts vs `build/captions.json` (< 0.1 s) · read the printed LUFS/dBTP · one `contact_sheet.sh` at 6 timestamps, looked at once · file size < 30 MB |
+| **Returns** | a table: each check → PASS / FAIL + the number, and the `safe-zone-check.jpg` path if it failed. Nothing else — no screenshots back to the main thread. |
+| **Main agent then** | on any FAIL, fixes the cause (re-render a window, adjust a rect, re-master) and re-spawns; on all-PASS, delivers. |
+
+This is the "Verification before delivery (mandatory)" block of `SKILL.md`, moved into an
+agent so its images and ffmpeg dumps never enter the main conversation.
+
+### `scene-designer` — a draft, not an oracle
+
+| | |
+|---|---|
+| **Spawned** | at the `scenes` checkpoint, if the user wants scene graphics |
+| **Input** | `<work>` + a one-line brief of the video's angle |
+| **Tools** | `Read` (`build/captions.json`, `scripts/motifs/index.json`, `scripts/motifs/README.md`), `Write` (`config/scenes.json` only), `Bash` (`render_frames.js <work> preview …`) |
+| **Does** | for each sentence, pick a motif (or none) that is a **visual metaphor for what's said** (rule #10 + `SKILL.md` step 7's table), bind `params` to concrete values from `build/captions.json`, set `layout` per the layout rule, write `config/scenes.json`, render 4–6 preview stills |
+| **Returns** | the `config/scenes.json` it wrote + the preview paths + a one-line rationale per scene |
+| **Main agent then** | shows the user the previews, takes "more energy here / drop that one / wrong metaphor there" feedback, and edits `config/scenes.json` directly — it does **not** re-spawn the designer for small changes |
+
+### The config phase — never a subagent, never skipped, never silent
 
 Reading or building `project.config.json` is always the first thing that happens, and it
 always ends in an explicit confirmation before any pipeline stage runs — never an implicit
-"I picked X, moving on." (`SKILL.md` step 1 is the concrete version.)
+"I picked X, moving on." It is a conversation with the user by definition, so it stays in
+the main thread (`SKILL.md` step 1 is the concrete version).
 
 - **`config/project.config.json` exists** → read it, print a short recap (language, theme
   colors, handle, engine), ask "still good, or does something change?" before anything.
