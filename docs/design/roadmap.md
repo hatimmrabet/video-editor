@@ -19,7 +19,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 | 1 | **Isolated execution & dependencies** | `Pass 1 — Execution & dependencies` | 0 | ✅ done (PR #37) |
 | 2 | **`project.config.json` + adapter** | `Pass 2 — Config` | 0 | ✅ done (PRs #54, #57, issues #10, #59) |
 | 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | ✅ done (#11 schema · #12 light · #13 Remotion · #14 montage) |
-| 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | — |
+| 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | ✅ done (#15 schema · #16 registry · #17 light · #18 Remotion · #19 11 motifs · #20 studio) |
 | 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | — |
 | 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | — |
 | 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | — |
@@ -148,9 +148,13 @@ to English — both cosmetic cleanup, pick up whenever.)*
   verified via `drawScenes` on a headless canvas; the Remotion visual diff still wants a
   real render pass. `lib/scenes` now carries `kind` so `overlay` motifs (`glitch`,
   `suspense`) skip the container `rise`.
-- `studio.html` renders the scene list, drops its private drawing copy (#20).
-- **Done when:** a new video is authored as a `config/scenes.json` with zero inline JS/JSX,
-  and both engines match.
+- ✅ **`studio.html` reads the scene list** (#20) — `render_frames.js` stages
+  `build/scenes.json` + `build/motifs/<name>.js` (studio can't reach `scripts/`); the studio
+  runs the same `drawScenes(t)` and rebuilds its timeline chips from the scenes, so it
+  matches the render. Its own copy still serves scenes-less projects.
+- **Done** — a video can be authored as `config/scenes.json` with zero inline JS/JSX and
+  both engines + the studio interpret it. **Remaining (unnumbered):** delete all three
+  inline scene-code copies once a real project has shipped through the new path.
 
 ## Pass 5 — Orchestrator
 

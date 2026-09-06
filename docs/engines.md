@@ -201,8 +201,10 @@ Also:
 - **`config/stage.json` and `config/outro.json` are consumed only by Remotion.** The light
   engine hardcodes its `SCENES` array and `RECAP`/outro copy inline in `compose.html`. So
   the "config-driven staging" that exists today is Remotion-only.
-- Scene graphics are maintained **three times**: `compose.html` (imperative Canvas 2D),
-  `Scenes.tsx` (declarative JSX), `studio.html` (a third imperative copy).
+- Scene graphics: a project with `config/scenes.json` (Pass 4) is drawn from **one** motif
+  library (`scripts/motifs/`) by all three surfaces. A scenes-less project still runs three
+  hand-maintained copies — `compose.html`, `Scenes.tsx`, `studio.html` — which have drifted;
+  those go once every real project uses `config/scenes.json`.
 - No `.skill` distribution package is published yet — the old one (a stale snapshot from
   before the script rename) was removed. See [project-tracking.md](project-tracking.md).
 

@@ -2,9 +2,8 @@
 
 **The biggest lift in the roadmap.** Everything else is tidying; this is the structural change.
 
-Status: **#15–#19 done** — schema, registry, both engine interpreters, and all 11 motifs
-ported. This page is the spec for `config/scenes.json` and the motif registry. Remaining:
-#20 (`studio.html` reads the scene list).
+Status: **Pass 4 complete (#15–#20).** Schema, motif registry (11 motifs), both engine
+interpreters, and `studio.html` all read `config/scenes.json`. This page is the spec.
 
 ## Problem
 
@@ -187,9 +186,13 @@ must change incompatibly gets a new name.
    side verified via `drawScenes` on a headless canvas (each draws, no throw, no warning).
    The Remotion side needs a real render pass for the visual diff (the ~500 MB install
    isn't in the sandbox).
-4. #20 points `studio.html` at the interpreter and drops its private drawing copy.
-5. Once the starter set is covered, `config/scenes.json` becomes the documented default and
-   the inline reference functions move to `scripts/motifs/` history.
+4. ✅ #20 — `studio.html` runs the same `drawScenes(t)` interpreter for a scenes-driven
+   project (`render_frames.js` stages `build/scenes.json` + `build/motifs/<name>.js` since
+   studio can't reach `scripts/`). Its own copy still serves scenes-less projects.
+5. **Remaining:** once every real project is authored as `config/scenes.json`, make it the
+   documented default, delete the inline reference functions (all three copies), and move
+   them to `scripts/motifs/` history. Not a numbered issue yet — needs a real project to
+   have gone through the new path first.
 
 ## Resolved (were open questions)
 

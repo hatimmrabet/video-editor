@@ -33,8 +33,10 @@ Full schema — [data-contracts.md](../data-contracts.md#scriptsmotifsindexjson-
 
 **All 11 motifs are implemented** (canvas + Remotion) as of #19 — `stamp`, `counter`,
 `quote`, `checklist`, `card-stack`, `transcript-panel`, `file-merge`, `glitch`,
-`comment-box`, `sync-viz`, `suspense`. The canvas side is verified via `drawScenes` on a
-headless canvas; the Remotion side wants a real render pass for the 3-way visual diff.
+`comment-box`, `sync-viz`, `suspense`. Both engine interpreters (#17 `compose.html`, #18
+Remotion `SceneList`) and `studio.html` (#20) dispatch them. The canvas side is verified
+via `drawScenes` on a headless canvas; the Remotion side wants a real render pass for the
+3-way visual diff.
 
 ## The `ctx` contract
 

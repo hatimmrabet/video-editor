@@ -23,6 +23,10 @@ if(SCN.scenes){
     else console.log('WARN motif not found:',name,'— its scene will draw no graphic');
   }
   console.log('scenes: '+SCN.scenes.length+' from config/scenes.json · motifs: '+Object.keys(MOTIF_SRC).join(', '));
+  // studio.html can't reach scripts/ — leave it the resolved list + the used motif sources
+  fs.mkdirSync(W+'build/motifs',{recursive:true});
+  fs.writeFileSync(W+'build/scenes.json',JSON.stringify(SCN));
+  for(const name in MOTIF_SRC) fs.writeFileSync(W+'build/motifs/'+name+'.js',MOTIF_SRC[name]);
 }
 
 const BEHIND=fs.existsSync(W+'build/person-cutout.json')?JSON.parse(fs.readFileSync(W+'build/person-cutout.json','utf8')):null;  // speech behind the person
