@@ -21,7 +21,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 | 3 | **Transitions vocabulary** | `Pass 3 — Transitions` | 2 (declared in config) | ✅ done (#11 schema · #12 light · #13 Remotion · #14 montage) |
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | ✅ done (#15 schema · #16 registry · #17 light · #18 Remotion · #19 11 motifs · #20 studio) |
 | 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | ✅ done (#21 `run.py` + stage manifests · #22 subagent design) |
-| 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | 🚧 design done (#23 — [long-form.md](long-form.md)) |
+| 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | ✅ done (#23 design · #84–#89 impl) |
 | 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | 🚧 design done (#24 — [web.md](web.md)) |
 
 ## Pass 1 — Execution & dependencies
@@ -189,15 +189,17 @@ to English — both cosmetic cleanup, pick up whenever.)*
   (ffmpeg filter graph, no frame render); soft `.srt` captions (burned lower-third
   reserved). No motif/scene/`safe_check`/`sound_fx` involvement. Six implementation
   tickets listed in the doc.
-- 🚧 **World switch** (#84) — `run.py` checks `config.format=="long"`;
+- ✅ **World switch** (#84) — `run.py` checks `config.format=="long"`;
   `scripts/pipeline/long-form.json` (13 stages); `join_takes.py`; `longform` config block.
-- 🚧 **Jump-cut + filler engine** (#85) — `tighten.py` + `scripts/fillers.json`; the
+- ✅ **Jump-cut + filler engine** (#85) — `tighten.py` + `scripts/fillers.json`; the
   `keep`-remap extracted to `lib/timeline.py` (shared with `edit_script.py`).
-- 🚧 **16:9 `reframe.py`** (#86) — `format:"long"` → 1920×1080; crop logic generalized.
-- 🚧 **`assemble_longform.py`** (#87) — B-roll `overlay` graph / remux → `video-raw.mp4`.
-- 🚧 **Chapters** (#88) — `config/chapters.json` → `subtitles.py` → `video-final.chapters.txt`.
-- **The long-form pipeline runs end to end.** Remaining: `SKILL.md` section (#89).
+- ✅ **16:9 `reframe.py`** (#86) — `format:"long"` → 1920×1080; crop logic generalized.
+- ✅ **`assemble_longform.py`** (#87) — B-roll `overlay` graph / remux → `video-raw.mp4`.
+- ✅ **Chapters** (#88) — `config/chapters.json` → `subtitles.py` → `video-final.chapters.txt`.
+- ✅ **`SKILL.md` long-form section** (#89) — the 7 steps + the four checkpoints + the rules.
 - **Done when:** a ≥ 20-min recording → an edited 16:9 talk with chapters and B-roll.
+  **Pipeline complete** (#84–#89); the full real-recording run is still owed (each piece is
+  fixture-tested).
 
 ## Pass 7 — Web
 

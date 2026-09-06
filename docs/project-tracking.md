@@ -143,7 +143,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | orchestrator: `scripts/run.py` design | `area:orchestrator` `type:design` | ✅ #21 — `run.py` + `scripts/pipeline/{reel-speech,broll-montage}.json`; timestamp skip, blocking/advisory checkpoints, `when` engine gate. Decisions locked in [orchestrator.md](design/orchestrator.md) |
 | orchestrator: subagent split (transcript-fixer / scene-designer / reviewer) | `area:orchestrator` `type:design` | ✅ #22 — spec in [orchestrator.md](design/orchestrator.md). Only `reviewer` is a clean win; `scene-designer` = a draft generator; `transcript-fixer` stays inline. Bundled `agents/*.md` templates = a later impl ticket, not built. |
 
-### Pass 6 — Long-form
+### Pass 6 — Long-form — **complete** (2026-09-06)
 
 | Title | Labels | Status |
 |---|---|---|
@@ -153,7 +153,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | long-form: `reframe.py` 16:9 branch | `area:pipeline` | ✅ #86 — `format:"long"` → 1920×1080, `TARGET=16/9`; crop logic generalized; `-filter_complex` spills to a file above ~90 kB. Short output byte-identical. |
 | long-form: `assemble_longform.py` (cut list + B-roll overlays) | `area:pipeline` | ✅ #87 — no `config/broll.json` → remux; with it → ffmpeg `overlay`+`fade` graph. `config/broll.json` contract. Verified remux + real overlay + short-clip edge. **Long-form pipeline now runs end to end.** |
 | long-form: chapters — `config/chapters.json` + `subtitles.py` markers | `area:pipeline` `area:docs` | ✅ #88 — `subtitles.py` reads `config/chapters.json`, emits `video-final.chapters.txt` (`MM:SS Title`, first → `00:00`, warns < 3 / < 10 s apart). No file → no change. |
-| long-form: `SKILL.md` long-form flow section | `area:docs` | #89 |
+| long-form: `SKILL.md` long-form flow section | `area:docs` | ✅ #89 — "Long-form mode" section (7 steps + the four checkpoints + the rules); "Three modes" table; `format:"long"` triggers in the `description`; new scripts in the script map. **Pass 6 complete.** |
 
 ### Pass 7 — Web
 
