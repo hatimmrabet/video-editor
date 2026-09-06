@@ -1,10 +1,10 @@
 # `long-form` — the YouTube world
 
-Status: **in progress (Pass 6).** Built: the world switch (#84 — `format:"long"` →
-`long-form`, `scripts/pipeline/long-form.json`, `join_takes.py`, the `longform` config
-block) and `tighten.py` + `scripts/fillers.json` (#85 — the jump-cut + filler pass, sharing
-`lib/timeline.py` with `edit_script.py`). Remaining: `reframe.py` 16:9 branch (#86),
-`assemble_longform.py` (#87), chapters (#88), the `SKILL.md` section (#89).
+Status: **in progress (Pass 6).** Built: #84 world switch (`format:"long"` → `long-form`,
+`scripts/pipeline/long-form.json`, `join_takes.py`, the `longform` config block), #85
+`tighten.py` + `scripts/fillers.json` (jump-cut + filler pass, sharing `lib/timeline.py`
+with `edit_script.py`), #86 `reframe.py` 16:9 branch. Remaining: `assemble_longform.py`
+(#87), chapters (#88), the `SKILL.md` section (#89).
 
 This page is the spec + implementation plan for roadmap Pass 6. It builds on
 [worlds.md](worlds.md#long-form--new-youtube) and resolves that section's three open
@@ -199,8 +199,10 @@ mode we can add once the world exists.
    `apply`, sharing `lib/timeline.py` with `edit_script.py`. Verified: propose + apply on
    a fixture (fillers dropped, hot words kept, cards monotonic); `edit_script.py` output
    byte-identical after the extraction.
-3. **`reframe.py` 16:9 branch** (#86) — `format:"long"` keeps/produces 16:9 instead of
-   9:16. *(area:pipeline)*
+3. ✅ **`reframe.py` 16:9 branch** (#86) — `format:"long"` → `OW×OH = 1920×1080`, `TARGET
+   = 16/9`; the crop logic generalizes (source wider/taller than target). `-filter_complex`
+   spills to a file above ~90 kB. Short-video output byte-identical. Verified 1080×1920
+   (short) / 1920×1080 (long) on real fixtures.
 4. **`assemble_longform.py`** (#87) — cut list → video, `config/broll.json` overlays. Doc
    page. *(area:pipeline)*
 5. **Chapters** (#88) — `config/chapters.json` contract + `subtitles.py` emits

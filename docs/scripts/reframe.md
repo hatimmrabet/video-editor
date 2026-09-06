@@ -2,10 +2,12 @@
 
 `video-editor/scripts/reframe.py` · python · shared
 
-> Cuts the silences (per `build/cut-plan.json`), reframes to vertical 9:16, applies a per-segment
-> zoom cycle, optionally colour-grades, and — critically — re-tags colour primaries as
-> bt709 so iPhone HDR/HLG footage doesn't render orange. Vertical sources pass through
-> unchanged; landscape (16:9) sources are centre-cropped to a 9:16 frame first.
+> Cuts the silences (per `build/cut-plan.json`), reframes to the output aspect, applies a
+> per-segment zoom cycle, optionally colour-grades, and — critically — re-tags colour
+> primaries as bt709 so iPhone HDR/HLG footage doesn't render orange. Output aspect
+> follows `project.config.json` `format`: **`"short"` → 9:16 (1080×1920)**, **`"long"` →
+> 16:9 (1920×1080)** for the long-form world. The source is centre-cropped to whichever
+> aspect it isn't already.
 
 ## CLI
 
@@ -19,13 +21,13 @@ uv run scripts/reframe.py <work>
 |---|---|---|
 | `<work>/rush/<name>` | source video, resolved by [`lib/rush.py`](lib-rush.md)'s `find_source()` | yes |
 | `<work>/build/cut-plan.json` | `.keep` | yes |
-| `<work>/config/project.config.json` (via [`lib/config.py`](lib-config.md)'s `load()`) | `grade` (bool, default false), `crop.xAnchor` (0–1, default 0.5), `crop.yAnchor` (0–1, default 0.30) | optional |
+| `<work>/config/project.config.json` (via [`lib/config.py`](lib-config.md)'s `load()`) | `format` (`"short"`/`"long"` → 9:16 / 16:9), `grade` (bool, default false), `crop.xAnchor` (0–1, default 0.5), `crop.yAnchor` (0–1, default 0.30) | optional |
 
 ## Outputs
 
 | File | Shape |
 |---|---|
-| `<work>/build/video-reframed.mp4` | 1080×1920, `libx264 -preset medium -crf 16`, `aac 192k`, `+faststart`, 30 fps, `dynaudnorm` audio, `afade` in 0.06 s |
+| `<work>/build/video-reframed.mp4` | 1080×1920 (`short`) / 1920×1080 (`long`), `libx264 -preset medium -crf 16`, `aac 192k`, `+faststart`, 30 fps, `dynaudnorm` audio, `afade` in 0.06 s |
 
 Then extract source frames for the compositor:
 
@@ -35,21 +37,24 @@ mkdir -p <work>/build/frames-source && ffmpeg -v error -i <work>/build/video-ref
 
 ## Reframe logic
 
-- Probe source `WxH`. `TARGET = 9/16`.
-- **Landscape** (`SW/SH > TARGET`): base frame `BW = SH*TARGET`, `BH = SH`; crop anchored
-  by `xAnchor` horizontally, `yAnchor` vertically.
-- **Narrower than 9:16** (rare): crop horizontally instead.
-- **~9:16** (selfie): pass through unchanged — original behaviour.
-- Per-segment zoom `Z = [1.00, 1.08, 1.00, 1.06, …]` (14 values, cycled): each kept
-  segment is trimmed, cropped to `BW/z × BH/z`, scaled to 1080×1920 with lanczos, then all
-  segments are concatenated.
+- Probe source `WxH`. `TARGET = OW/OH` — `1080/1920` for `format:"short"`, `1920/1080`
+  for `format:"long"`.
+- **Source wider than target** (`SW/SH > TARGET`): base frame `BW = SH*TARGET`, `BH = SH`;
+  crop the sides, anchored by `xAnchor`.
+- **Source taller than target** (`SW/SH < TARGET`): crop top/bottom, anchored by `yAnchor`.
+- **Already the target aspect**: pass through unchanged.
+- Per-segment zoom `Z = [1.00, 1.08, 1.00, 1.06, …]` (14 values, cycled — this is also the
+  jump-cut aesthetic for long-form): each kept segment is trimmed, cropped to `BW/z ×
+  BH/z`, scaled to `OW×OH` with lanczos, then all segments are concatenated.
 - `fps=30`, optional `eq`/`colorbalance` grade, then
   `setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709`, `format=yuv420p`.
 
 ## External tools
 
 `ffprobe` (source `WxH`) · `ffmpeg` (one big `filter_complex`: per-segment
-trim/crop/scale/concat + fps + setparams + optional eq/colorbalance).
+trim/crop/scale/concat + fps + setparams + optional eq/colorbalance). When the graph
+exceeds ~90 kB (a long-form video tightened to many jump-cut segments) it's passed via
+ffmpeg's `/`-prefix file form instead of the command line.
 
 ## Cross-platform
 
@@ -58,9 +63,10 @@ directly by the skill — pass a Windows-style path.
 
 ## Place in the flow
 
-Stage 6, after `edit_script.py`. Re-run it (and re-extract frames) after any
-`edit_script.py drop`. Its `build/video-reframed.mp4` is the video source for both engines
-(`public/video.mp4` in Remotion) and for `build/frames-source/` frame extraction.
+Stage 6 (reel) / the `reframe` stage (long-form, after `tighten`). Re-run it (and
+re-extract frames) after any `edit_script.py drop` or `tighten.py apply`. Its
+`build/video-reframed.mp4` is the video source for both engines (`public/video.mp4` in
+Remotion), for `build/frames-source/` frame extraction, and for `assemble_longform.py`.
 
 ## Gotchas
 
