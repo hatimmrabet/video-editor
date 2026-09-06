@@ -144,7 +144,9 @@ to English — both cosmetic cleanup, pick up whenever.)*
   `SCENES`; new `SceneList.tsx` (mirror of `drawScenes`) is rendered by `Ad.tsx` when
   `SCENES` is set, else the hand-written `Scenes.tsx`. Timing math verified == the light
   engine's. `Scenes.tsx` examples now commented out by default.
-- Port the reference functions to motifs, one at a time, each with a 3-way visual diff (#19).
+- 🟡 Port the reference functions to motifs, one at a time, each with a 3-way visual diff
+  (#19). Done: `stamp` (#16), `counter` + `quote` (#19). 8 left (`card-stack`, `checklist`,
+  `transcript-panel`, `file-merge`, `glitch`, `comment-box`, `sync-viz`, `suspense`).
 - `studio.html` renders the scene list, drops its private drawing copy (#20).
 - **Done when:** a new video is authored as a `config/scenes.json` with zero inline JS/JSX,
   and both engines match.

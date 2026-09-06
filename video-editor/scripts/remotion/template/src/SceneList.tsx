@@ -5,9 +5,11 @@
    falls back to the hand-written Scenes.tsx. */
 import {T, SCENES} from './theme';
 import {vrect} from './stage';
-import Stamp from './motifs/Stamp';   // one static import per implemented motif — #19 adds more
+import Stamp from './motifs/Stamp';       // one static import per implemented motif
+import Counter from './motifs/Counter';
+import Quote from './motifs/Quote';
 
-const MOTIFS: Record<string, React.FC<any>> = {stamp: Stamp};
+const MOTIFS: Record<string, React.FC<any>> = {stamp: Stamp, counter: Counter, quote: Quote};
 
 /* the four named easings — same curves as compose.html / transitions.json */
 const linear = (k: number) => k;
@@ -42,10 +44,11 @@ export const SceneList: React.FC<{t: number}> = ({t}) => {
         const eA = ez((tm.in && tm.in.easing) || 'ease')(enter);
         const xA = ez((tm.out && tm.out.easing) || 'linear')(exit);
         const riseY = (1 - eA) * (tm.in && typeof tm.in.y === 'number' ? tm.in.y : 28);
+        const prog = cl((t - sc.s) / Math.max(0.001, sc.e - sc.s));
 
         return (
           <div key={i} style={{position: 'absolute', inset: 0, opacity: eA * (1 - xA), transform: `translateY(${riseY}px)`}}>
-            <M enter={enter} exit={exit} hold={hold} words={words} wordIndex={wordIndex}
+            <M t={t} prog={prog} enter={enter} exit={exit} hold={hold} words={words} wordIndex={wordIndex}
                rect={vrect(t)} theme={T} params={sc.params || {}} />
           </div>
         );

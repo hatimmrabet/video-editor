@@ -40,6 +40,7 @@ X.restore();
 |---|---|---|
 | `X` | `CanvasRenderingContext2D` | the frame's 2D context |
 | `t` | number | absolute seconds |
+| `prog` | number 0..1 | linear progress through the whole scene span (`(t − s) / (e − s)`) — for a motif's internal phases (a `counter` settling, a list revealing) |
 | `enter` | number 0..1 | **raw** linear progress over `timing.in` (motif eases it however it wants) |
 | `exit` | number 0..1 | raw linear progress over `timing.out` (1 = fully exited) |
 | `hold` | number 0..1 | raw linear progress over the hold window (`1` when `hold:"full"` and past `in`) |
@@ -50,8 +51,9 @@ X.restore();
 | `params` | object | the scene's `params`, with this motif's `index.json` keys as defaults |
 | `fx` | object | helpers: `rr, sh, nsh, T, rgba, lum, onACC, pr, ease, eio, back, lerp, cl, ez` |
 
-A Remotion motif is a React component taking `{ enter, exit, hold, words, wordIndex, rect,
-theme, params }` as props (no `X`, no `fx` — it uses JSX + `util.tsx`).
+A Remotion motif is a React component taking `{ t, prog, enter, exit, hold, words,
+wordIndex, rect, theme, params }` as props (no `X`, no `fx` — it uses JSX; small helpers
+are inlined per motif for now).
 
 ## Rules (same as the reference functions)
 
