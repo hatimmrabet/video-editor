@@ -465,6 +465,7 @@ uv run scripts/sound_fx.py <work>
 
 **Light:**
 ```bash
+node scripts/lint_compose.js <work>               # static check first — catches a broken wordsOf/SCENES/scene ref in <1 s (a full render is ~12 min)
 node scripts/render_frames.js <work> all          # resumes where it stopped — doesn't redo a finished frame
 bash scripts/encode.sh <work> <work>/build/video-raw.mp4
 ```
