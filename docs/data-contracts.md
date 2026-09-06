@@ -333,9 +333,11 @@ that file is present** (issue #15) — the schedule is then derived from the sce
 
 **W** hand-authored (the per-video design work) · **R** via
 [`lib/scenes`](scripts/lib-scenes.md): `render_frames.js` → `window.init` (resolved
-`scenes` + `schedule` + motif sources, issue #17); `safe_check.js` → `window.init`
-(`schedule` only); `remotion.sh` → `project.json.scenes` + `project.json.stage` (issue
-#18). Schema + rationale: [design/scenes-as-data.md](design/scenes-as-data.md).
+`scenes` + `schedule` + motif sources, #17), which also **stages `build/scenes.json` +
+`build/motifs/<name>.js`** so `studio.html` can read them (#20); `safe_check.js` →
+`window.init` (`schedule` only); `remotion.sh` → `project.json.scenes` +
+`project.json.stage` (#18). Schema + rationale:
+[design/scenes-as-data.md](design/scenes-as-data.md).
 
 ```jsonc
 [

@@ -25,7 +25,7 @@ node render_frames.js <work> preview <t1> <t2> ...  # write build/prev/tNN.NN.jp
 | `build/sound-cues.json` | `.outro` → frame count | yes |
 | `config/project.config.json` (via [`lib/config.js`](lib-config.md)'s `load()`) | `theme` (font, colors), `crop.faceAnchor` | optional |
 | `scripts/transitions.json` (via [`lib/transitions.js`](lib-transitions.md)'s `load()`) | `.defaults`, injected into `window.init` (issue #12) | static skill file |
-| `config/scenes.json` (via [`lib/scenes.js`](lib-scenes.md)'s `load()`) | resolved `scenes` + `schedule` + the used `motifs/canvas/*.js` sources, injected into `window.init` (issue #17) | optional |
+| `config/scenes.json` (via [`lib/scenes.js`](lib-scenes.md)'s `load()`) | resolved `scenes` + `schedule` + the used `motifs/canvas/*.js` sources, injected into `window.init` (#17). Also **staged to `build/scenes.json` + `build/motifs/<name>.js`** for `studio.html` (#20) | optional |
 | `build/person-cutout.json` | person-cutout ranges/faces | optional |
 | `build/frames-source/*.jpg` | source frames | yes |
 | `build/person-cutout/person/*.png` | per-frame cutout PNGs | optional |
@@ -36,6 +36,7 @@ node render_frames.js <work> preview <t1> <t2> ...  # write build/prev/tNN.NN.jp
 |---|---|
 | `build/frames-composited/%05d.jpg` | composited frames, q ≈ 0.95. Count = `round((caps.total + sfx.outro) * 30)` |
 | `build/prev/*.jpg` | preview stills (`preview` mode), q ≈ 0.9 |
+| `build/scenes.json` + `build/motifs/<name>.js` | staged for `studio.html` when `config/scenes.json` exists (#20) |
 
 ## How it runs
 

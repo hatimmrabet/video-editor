@@ -124,7 +124,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | transitions: Remotion parity | `area:transitions` `area:engine-remotion` | ✅ #13 — `theme.ts` `TX`, `stage.ts` `videoLayers`, `Ad.tsx` / `Captions.tsx` wired (no `@remotion/transitions` dep) |
 | transitions: `montage_mode.py build --transition` → ffmpeg `xfade` | `area:transitions` `area:montage` | ✅ #14 — `xfade_for()` map, `--xfade` removed, per-`plan[]` field |
 
-### Pass 4 — Scenes
+### Pass 4 — Scenes — **complete** (2026-09-06)
 
 | Title | Labels | Status |
 |---|---|---|
@@ -133,7 +133,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | scenes: light-engine interpreter (inside `safe()`) | `area:scenes` `area:engine-light` | ✅ #17 — `lib/scenes.{py,js}`, `render_frames.js` + `compose.html` `drawScenes(t)`, `safe_check.js` schedule |
 | scenes: Remotion `<Scene>` dispatcher | `area:scenes` `area:engine-remotion` | ✅ #18 — `SceneList.tsx`, `project.json.scenes`, `theme.ts` `SCENES`, `Ad.tsx` picks dispatcher vs `Scenes.tsx` |
 | scenes: port reference functions → motifs (one issue per motif) | `area:scenes` | ✅ #19 — all 11 motifs (canvas + Remotion); canvas verified headlessly, Remotion visual diff pending a real render |
-| scenes: `studio.html` renders the scene list, drop its drawing copy | `area:scenes` `type:chore` | #20 |
+| scenes: `studio.html` renders the scene list, drop its drawing copy | `area:scenes` `type:chore` | ✅ #20 — `render_frames.js` stages `build/scenes.json` + `build/motifs/`; studio runs `drawScenes`. (Deleting all 3 inline copies waits for a real project through the new path.) |
 
 ### Pass 5 / 6 / 7
 
