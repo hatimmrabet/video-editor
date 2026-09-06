@@ -34,6 +34,8 @@ deliverable) — a project made in the UI is fully usable from the CLI and vice-
 | `PUT /projects/<id>/config` `{…}` | write `config/project.config.json` |
 | `PUT /projects/<id>/decision/<name>` | write a decision file — `name` ∈ `transcript-fixes` · `sound-cues` · `scenes` · `chapters` · `broll` |
 | `POST /projects/<id>/edit` `{op, sentences}` | shell `edit_script.py` (`op` ∈ drop / keep / undo) |
+| `POST /projects/<id>/preview` `{times}` | `render_frames.js preview` → `{ files }` (paths under `build/prev/`) |
+| `GET /motifs` | `scripts/motifs/index.json` (the scenes screen's motif list) |
 | `GET /projects/<id>/state` | parsed `run.py <work> --json` |
 | `POST /projects/<id>/run` `?from=&to=&only=&force=` | spawn `run.py`, stream output as **SSE** — `event: line` per output line, `event: done` `{exit}` at the end. Closing the connection kills the run. |
 | `GET /projects/<id>/file/<path>` | serve a `build/` or root artifact, **path-jailed** to the work dir |
@@ -69,8 +71,15 @@ by `web.py` at `/`, `/app.js`, `/app.css`.
   - **Trim** (`script-review`) — a checkbox per caption sentence (checked = keep),
     restatement pairs flagged by a client-side shared-word ratio → `POST /edit` `{op:"drop"}`
     (1-indexed).
-  - `scenes` / `sound` / `tighten` / `chapters` / `broll` — a note + Continue + re-check
-    (screens #101–#102; the rest handled in the terminal).
+  - **Scenes** (`scenes`) — one card per sentence: a layout `<select>`, a motif `<select>`
+    (the `implemented` names from `GET /motifs`), a params JSON field (a template appears
+    when you pick a motif). "Save + preview" writes `config/scenes.json` and renders a
+    still per sentence via `POST /preview`. "Continue (captions only)" is a valid choice.
+  - `sound` / `tighten` / `chapters` / `broll` — a note + Continue + re-check (screen #102;
+    the rest handled in the terminal).
+
+An advisory checkpoint (`script-review`, `scenes`) re-appears every refresh — the SPA
+tracks a client-side "passed" set so it doesn't block once you've continued past it.
 - **Result** — when every stage is `SKIP`: a `<video>` of `video-final.mp4` + download
   links, served through the path-jailed `file/` endpoint.
 

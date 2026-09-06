@@ -24,6 +24,8 @@ Endpoints (issues #97 / #98; the SPA is #99):
   PUT  /projects/<id>/config {...}    write config/project.config.json
   PUT  /projects/<id>/decision/<name> write a decision file (allow-listed)
   POST /projects/<id>/edit  {op, sentences}   -> shells edit_script.py
+  POST /projects/<id>/preview {times}          -> render_frames.js preview -> {files}
+  GET  /motifs                        scripts/motifs/index.json (for the scenes screen)
   GET  /projects/<id>/state           parsed `run.py --json`
   POST /projects/<id>/run   ?from=&to=&only=&force=   run run.py, stream output as SSE
                                      (`event: line` per line, `event: done` {exit})
@@ -171,6 +173,8 @@ class H(BaseHTTPRequestHandler):
             return self._err(404, path)
         if path == "/health" and method == "GET":
             return self._send(200, {"ok": True, "projects_dir": ROOT})
+        if path == "/motifs" and method == "GET":   # the static motif manifest, for the scenes screen
+            return self._send(200, open(os.path.join(SCRIPTS, "motifs", "index.json"), "rb").read())
 
         if path == "/projects":
             if method == "GET":
@@ -267,6 +271,18 @@ class H(BaseHTTPRequestHandler):
                                cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
             return self._send(200 if r.returncode == 0 else 400,
                               {"exit": r.returncode, "output": (r.stdout or "") + (r.stderr or "")})
+
+        if sub == "/preview" and method == "POST":
+            b = self._json_body() or {}
+            times = [("%.2f" % float(t)) for t in b.get("times", [])][:8]
+            if not times:
+                return self._err(400, "times required")
+            r = subprocess.run(["node", "scripts/render_frames.js", work, "preview", *times],
+                               cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
+            files = ["build/prev/t%s.jpg" % t for t in times
+                     if os.path.exists(os.path.join(work, "build", "prev", "t%s.jpg" % t))]
+            return self._send(200 if files else 500,
+                              {"files": files, "output": (r.stdout or "") + (r.stderr or "")})
 
         if sub == "/state" and method == "GET":
             r = _run_py(work, "--json")

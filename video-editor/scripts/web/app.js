@@ -1,7 +1,7 @@
 "use strict";
 const app = document.getElementById("app");
 const crumb = document.getElementById("crumb");
-const S = { pid: null, state: null, cfg: null };
+const S = { pid: null, state: null, cfg: null, passed: new Set() };
 
 const el = (tag, attrs = {}, ...kids) => {
   const n = document.createElement(tag);
@@ -84,8 +84,17 @@ async function create() {
 
 /* ---------- one project ---------- */
 async function open(id) {
-  S.pid = id; crumb.textContent = "› " + id;
+  S.pid = id; S.passed = new Set(); crumb.textContent = "› " + id;
   await refresh();
+}
+/* the screen to show now: first stage that isn't done and hasn't been ticked past.
+   RUN / HALT always count; an advisory checkpoint only until the user continues past it. */
+function currentStep(stages) {
+  for (const s of stages) {
+    if (s.verdict === "SKIP") continue;
+    if (s.verdict === "RUN" || s.verdict === "HALT" || !S.passed.has(s.id)) return s;
+  }
+  return null;
 }
 async function refresh() {
   try {
@@ -116,17 +125,16 @@ function render() {
   }
 
   parts.push(stageList(stages));
-  const nextId = S.state.next;
-  const next = stages.find(s => s.id === nextId);
-  if (!nextId) {
+  const step = currentStep(stages);
+  if (!step) {
     parts.push(resultPanel());
-  } else if (next && next.checkpoint) {
+  } else if (step.checkpoint) {
     const holder = el("div", {}, el("p", { class: "muted" }, "loading…"));
     parts.push(holder);
-    Promise.resolve(checkpointPanel(next)).then(n => holder.replaceWith(n))
+    Promise.resolve(checkpointPanel(step)).then(n => holder.replaceWith(n))
       .catch(e => holder.replaceWith(el("p", { class: "err" }, String(e))));
   } else {
-    parts.push(runPanel(nextId, "Run the pipeline"));
+    parts.push(runPanel(step.id, "Run the pipeline"));
   }
   app.replaceChildren(...parts);
 }
@@ -182,11 +190,12 @@ async function saveConfig() {
 }
 
 function stageList(stages) {
+  const cur = (currentStep(stages) || {}).id;
   return el("div", {}, el("h3", {}, "pipeline"),
     el("div", { class: "stages" }, ...stages.map(s => {
-      const rows = [el("div", { class: "st " + s.verdict + (s.id === S.state.next ? " next" : "") },
+      const rows = [el("div", { class: "st " + s.verdict + (s.id === cur ? " next" : "") },
         el("span", { class: "v" }, s.verdict), el("span", {}, s.title))];
-      if (s.id === S.state.next && s.note) rows.push(el("div", { class: "note" }, s.note));
+      if (s.id === cur && s.note) rows.push(el("div", { class: "note" }, s.note));
       return rows;
     }).flat()));
 }
@@ -202,13 +211,15 @@ function runPanel(toId, label) {
   return el("div", {}, log, btn);
 }
 
-/* a Run-up-to-here button + live log, shared by the checkpoint panels */
-function runHere(label = "Continue") {
+/* a Run-up-to-here button + live log, shared by the checkpoint panels.
+   `cpId` (if given) is ticked off when the user continues, so an advisory
+   checkpoint doesn't re-open next refresh. */
+function runHere(label = "Continue", cpId) {
   const log = el("pre", { class: "log", style: "display:none" });
   const btn = el("button", { onclick: async () => {
     btn.disabled = true; log.style.display = "block"; log.textContent = "";
     await runStream("", t => { log.textContent += t + "\n"; log.scrollTop = log.scrollHeight; },
-      () => { btn.disabled = false; setTimeout(refresh, 300); });
+      () => { btn.disabled = false; if (cpId) S.passed.add(cpId); setTimeout(refresh, 300); });
   } }, label);
   return { log, btn, node: el("div", {}, el("div", { class: "row" }, btn,
     el("button", { class: "ghost", onclick: refresh }, "re-check")), log) };
@@ -217,14 +228,14 @@ function runHere(label = "Continue") {
 function checkpointPanel(cp) {
   if (cp.id === "transcript-fix") return transcriptPanel(cp);
   if (cp.id === "script-review") return trimPanel(cp);
+  if (cp.id === "scenes") return scenesPanel(cp);
   const hint = {
-    scenes: "author config/scenes.json (screen #101) — or Continue for a captions-only reel",
     "sound-cues": "write build/sound-cues.json — at least {\"outro\": <seconds>} (screen #102)",
     tighten: "run `tighten.py <work>` then `tighten.py <work> apply` in the terminal",
     chapters: "optional — write config/chapters.json in the terminal, or Continue",
     broll: "optional — put clips in rush/broll/ + config/broll.json, or Continue",
   }[cp.id] || "do this step, then Continue";
-  const r = runHere("Continue");
+  const r = runHere("Continue", cp.id);
   return el("div", {}, el("h3", {}, "next: " + cp.title),
     el("div", { class: "card" }, el("p", {}, cp.note || ""),
       el("p", { class: "muted" }, hint), r.node));
@@ -302,10 +313,76 @@ async function trimPanel(cp) {
     const drop = boxes.map((cb, i) => cb.checked ? 0 : i + 1).filter(Boolean);  // edit_script.py is 1-indexed
     apply.disabled = true;
     if (drop.length) await api("POST", `/projects/${S.pid}/edit`, { op: "drop", sentences: drop });
-    refresh();
+    S.passed.add("script-review"); refresh();
   } }, "Apply & continue");
-  const r = runHere("Continue (nothing to drop)");
+  const r = runHere("Continue (nothing to drop)", "script-review");
   box.append(el("div", { class: "row", style: "margin-top:12px" }, apply), r.node);
+  return box;
+}
+
+/* --- scene design (CHECKPOINT scenes) --- */
+async function scenesPanel(cp) {
+  const box = el("div", {}, el("h3", {}, "design the scenes"),
+    el("p", { class: "muted" }, "One row per sentence. Pick a motif (a visual metaphor for what's said) "
+      + "or leave it blank for a plain caption. Params are JSON — edit the template."));
+  const caps = await getFile("build/captions.json");
+  if (!caps || !caps.cards) {
+    box.append(el("p", { class: "muted" }, "waiting for build/captions.json."), runHere("Build captions").node);
+    return box;
+  }
+  const motifs = (await (await fetch("/motifs")).json().catch(() => ({}))).motifs || {};
+  const impl = Object.entries(motifs).filter(([, m]) => m.status === "implemented");
+  const existing = (await getFile("config/scenes.json")) || [];
+  const bySent = {};
+  for (const s of existing) if (s.ref && typeof s.ref.sentence === "number") bySent[s.ref.sentence] = s;
+
+  const tmpl = name => {
+    const m = motifs[name]; if (!m || !m.params) return "{}";
+    const o = {};
+    for (const [k, t] of Object.entries(m.params))
+      o[k] = t === "number" ? 0 : t === "boolean" ? false : /\[\]$/.test(t) ? [] : "";
+    return JSON.stringify(o);
+  };
+  const rows = caps.cards.map((c, i) => {
+    const pre = bySent[i] || {};
+    const lay = select("", ["FULL", "DOWN", "LOWER"], (typeof pre.layout === "string" ? pre.layout : pre.layout?.mode) || "FULL");
+    const mot = el("select", {});
+    mot.append(el("option", { value: "" }, "— none —"));
+    for (const [n] of impl) mot.append(el("option", { value: n, ...(pre.motif === n ? { selected: "" } : {}) }, n));
+    const par = el("input", { value: JSON.stringify(pre.params || {}) === "{}" ? "" : JSON.stringify(pre.params) });
+    mot.addEventListener("change", () => { if (mot.value && !par.value) par.value = tmpl(mot.value); });
+    box.append(el("div", { class: "card", style: "padding:10px" },
+      el("div", { class: "muted", style: "margin-bottom:6px" }, `${i + 1}. ${c.w.map(w => w.t).join(" ")}`),
+      el("div", { class: "row" },
+        el("div", {}, el("label", {}, "layout"), lay),
+        el("div", {}, el("label", {}, "motif"), mot),
+        el("div", { class: "grow" }, el("label", {}, "params (JSON)"), par))));
+    return { i, lay, mot, par, s: c.s, e: c.e };
+  });
+
+  const build = () => rows.filter(r => r.mot.value || r.lay.value !== "FULL").map(r => {
+    let params = {};
+    try { params = r.par.value ? JSON.parse(r.par.value) : {}; } catch { throw new Error(`row ${r.i + 1}: params is not valid JSON`); }
+    return { ref: { sentence: r.i }, layout: r.lay.value, motif: r.mot.value || null, params };
+  });
+  const err = el("p", { class: "err" });
+  const preview = el("div", { class: "row", style: "flex-wrap:wrap;gap:8px;margin-top:10px" });
+  const save = async () => { err.textContent = "";
+    try { await api("PUT", `/projects/${S.pid}/decision/scenes`, build()); return true; }
+    catch (e) { err.textContent = String(e.message || e); return false; } };
+  const saveBtn = el("button", { onclick: async () => { if (await save()) { S.passed.add("scenes"); refresh(); } } }, "Save & continue");
+  const prevBtn = el("button", { class: "ghost", onclick: async () => {
+    if (!(await save())) return;
+    prevBtn.disabled = true; preview.replaceChildren(el("span", { class: "muted" }, "rendering…"));
+    const times = rows.map(r => +((r.s + r.e) / 2).toFixed(2));
+    const res = await api("POST", `/projects/${S.pid}/preview`, { times }).catch(e => ({ files: [], output: String(e) }));
+    preview.replaceChildren(...(res.files || []).map(f =>
+      el("img", { src: `/projects/${S.pid}/file/${f}`, style: "width:150px;border-radius:6px;border:1px solid var(--line)" })));
+    if (!res.files?.length) preview.append(el("span", { class: "muted" }, "no preview — " + (res.output || "").slice(-200)));
+    prevBtn.disabled = false;
+  } }, "Save + preview");
+  const r = runHere("Continue (captions only)", "scenes");
+  box.append(el("div", { class: "row", style: "margin-top:14px" }, saveBtn, prevBtn), err, preview, r.node);
   return box;
 }
 
