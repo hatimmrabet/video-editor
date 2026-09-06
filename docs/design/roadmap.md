@@ -191,8 +191,10 @@ to English — both cosmetic cleanup, pick up whenever.)*
   tickets listed in the doc.
 - 🚧 **World switch** (#84) — `run.py` checks `config.format=="long"`;
   `scripts/pipeline/long-form.json` (13 stages); `join_takes.py`; `longform` config block.
-- Jump-cut / filler-word engine — `tighten.py` (#85). 16:9 `reframe.py` branch (#86).
-  `assemble_longform.py` (#87). Chapters in `subtitles.py` (#88). `SKILL.md` section (#89).
+- 🚧 **Jump-cut + filler engine** (#85) — `tighten.py` + `scripts/fillers.json`; the
+  `keep`-remap extracted to `lib/timeline.py` (shared with `edit_script.py`).
+- Remaining: 16:9 `reframe.py` branch (#86), `assemble_longform.py` (#87), chapters in
+  `subtitles.py` (#88), `SKILL.md` section (#89).
 - **Done when:** a ≥ 20-min recording → an edited 16:9 talk with chapters and B-roll.
 
 ## Pass 7 — Web

@@ -37,7 +37,7 @@ place**, keeping `.orig` (first run) and `.bak` (every run) beside each. `show` 
 
 | File | What changes |
 |---|---|
-| `build/cut-plan.json` | deleted ranges mapped back to the original timeline and removed from `keep`; `total` recomputed. Sub-`MIN_SEG` (0.20 s) fragments dropped |
+| `build/cut-plan.json` | deleted ranges mapped back to the original timeline and removed from `keep`; `total` recomputed. Sub-`MIN_SEG` (0.20 s) fragments dropped. The mapping + shift live in [`lib/timeline.py`](lib-timeline.md), shared with `tighten.py` |
 | `build/captions.json` | dropped cards removed; remaining card/word times shifted; de-overlapped; `total` = `min(theoretical, cut.total)` (so no extra frame) |
 | `build/sound-cues.json` | every timestamp in every list-valued key shifted; cues inside a deleted range removed |
 

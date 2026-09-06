@@ -117,8 +117,9 @@ A third world, selected by `project.config.json` `format: "long"` (not inferred 
 reframe → ⟨broll⟩ → assemble → master → subs` — see
 [`scripts/pipeline/long-form.json`](../video-editor/scripts/pipeline/long-form.json) and
 the full spec in [design/long-form.md](design/long-form.md). No motif/scene layer, no
-sound cues, no safe-zone check. **In progress (Pass 6)** — `tighten.py`,
-`assemble_longform.py` and the chapters output are not built yet.
+sound cues, no safe-zone check. **In progress (Pass 6)** — `join_takes.py` and
+[`tighten.py`](scripts/tighten.md) are built; `assemble_longform.py`, the `reframe.py`
+16:9 branch and the chapters output are not.
 
 ## Shared helpers
 

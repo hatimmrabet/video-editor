@@ -196,7 +196,7 @@ resolves through [`lib/rush.py`](scripts/lib-rush.md) rather than a hardcoded fi
 
 ## `build/cut-plan.json` — silence-cut plan
 
-**W** `plan_cuts.py` · **M** `edit_script.py` · **R** `captions.py`, `reframe.py`
+**W** `plan_cuts.py` · **M** `edit_script.py`, `tighten.py` (both via [`lib/timeline`](scripts/lib-timeline.md)) · **R** `captions.py`, `reframe.py`
 
 ```jsonc
 {
@@ -207,6 +207,41 @@ resolves through [`lib/rush.py`](scripts/lib-rush.md) rather than a hardcoded fi
 ```
 
 Segments are padded by `PAD=0.13 s`, gaps `< MERGE=0.20 s` merged, fragments `< 0.30 s` dropped.
+`edit_script.py` (sentence drops) and `tighten.py` (long-form gaps + fillers) both subtract
+their compressed-timeline deletions from `keep` — the mapping lives in `lib/timeline.py`.
+
+---
+
+## `scripts/fillers.json` — filler words per language (static skill file)
+
+**W** hand-edited, versioned · **R** [`tighten.py`](scripts/tighten.md) (long-form)
+
+```jsonc
+{ "ar": ["اه", "يعني", …], "fr": ["euh", "du coup", …], "en": ["um", "uh", "you know", …] }
+```
+
+Case-insensitive, punctuation-stripped; a multi-word entry matches a consecutive run of
+words. Kept **conservative** — `tighten.py` prints every proposed cut for review, and the
+agent hand-drops per project rather than adding an ambiguous word here.
+
+---
+
+## `build/tighten-plan.json` — long-form jump-cut + filler proposal
+
+**W** [`tighten.py`](scripts/tighten.md) · **R** `tighten.py apply`
+
+```jsonc
+{
+  "before": 1284.0, "after": 1052.3, "saved": 231.7,   // seconds
+  "language": "en", "pauseMs": 250, "keepMs": 90,
+  "gaps":    [ { "s": 41.2, "e": 43.0, "gap": 1.89 }, … ],   // trimmed inter-word pauses (compressed timeline)
+  "fillers": [ { "text": "um", "s": 51.0, "e": 51.4, "ctx": "…so um the point…" }, … ],
+  "cuts":    [ [41.29, 43.0], … ]                            // merged deletion list `apply` folds into cut-plan + captions
+}
+```
+
+`apply` is a terminal mutation (like `edit_script.py apply`) — don't re-run `captions.py`
+after it; rebuild with `reframe.py`. `.bak` files allow undo.
 
 ---
 

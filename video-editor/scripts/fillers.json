@@ -1,0 +1,6 @@
+{
+  "_doc": "Per-language filler words/phrases removed by tighten.py's automated pass (long-form world). Curated, NOT model-chosen — reproducible and inspectable. Matching is case-insensitive, punctuation-stripped; a multi-word entry matches a consecutive run of words. Keep it CONSERVATIVE: only tokens that are almost never real content. `tighten.py` prints every proposed cut in context so the agent + user review before `apply`; hand-drop anything the list misses per project rather than adding an ambiguous word here.",
+  "ar": ["اه", "أه", "ايه", "إيه", "امم", "اممم", "يعني", "يعني يعني"],
+  "fr": ["euh", "heu", "hein", "bah", "ben", "bin", "hmm", "hum", "du coup", "en fait", "tu vois", "voilà quoi"],
+  "en": ["um", "umm", "uh", "uhh", "uhm", "erm", "mm", "mmm", "hmm", "you know", "i mean", "sort of", "kind of like"]
+}
