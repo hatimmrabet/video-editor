@@ -27,12 +27,14 @@ const C=document.getElementById('cv'),X=C.getContext('2d');
 const LOGO=document.getElementById('LOGO'), VF=document.getElementById('VF');
 const W=1080,H=1920;
 let BG='#F3EFEA',INK='#1F1F1D',ACC='#D97757',CLAY='#BD5D3A',MUT='#8A847A',FONT='Cairo',HANDLE='@handle';
+let FACE_ANCH=0.30;   /* where the speaker's face sits inside the video card (project.config.json ← crop.faceAnchor) — mirror of compose.reference.html */
 let CAPS=[],VEND=0,OUTRO=0,DUR=0;
 function init(d){
   CAPS=d.cards;VEND=d.total;OUTRO=d.outro;DUR=VEND+OUTRO;
   const t=d.theme||{};
   BG=t.bg||BG; INK=t.ink||INK; ACC=t.acc||ACC; CLAY=t.clay||CLAY; MUT=t.mut||MUT;
   FONT=t.font||FONT; HANDLE=t.handle||HANDLE;
+  if(typeof t.faceAnchor==='number') FACE_ANCH=t.faceAnchor;
   if(t.logo){const L=document.getElementById('LOGO'); if(L.getAttribute('src')!==t.logo) L.src=t.logo;}
   if(FONT!=='Cairo'){const l=document.createElement('link');l.rel='stylesheet';
     l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(FONT)+':wght@400;600;700;800;900&display=swap';
@@ -69,12 +71,10 @@ function sh(b,y,a){X.shadowColor=cINK(a);X.shadowBlur=b;X.shadowOffsetY=y;}
 function nsh(){X.shadowColor='transparent';X.shadowBlur=0;X.shadowOffsetY=0;}
 function card(x,y,w,h,r,al){X.save();X.globalAlpha*=(al===undefined?1:al);sh(44,18,0.20);X.fillStyle=cBG(0.97);rr(x,y,w,h,r);X.fill();nsh();X.strokeStyle=cINK(0.09);X.lineWidth=2.5;rr(x,y,w,h,r);X.stroke();X.restore();}
 function T(s,x,y,f,c,al,dir){X.save();X.font=f;X.fillStyle=c;X.textAlign=al||'center';X.textBaseline='middle';if(dir)X.direction=dir;X.fillText(s,x,y);X.restore();}
-/* ---------- video staging ---------- */
+/* ---------- video staging (mirror of compose.reference.html) ---------- */
 const R_FULL={x:0,y:0,w:1080,h:1920,r:0};
-const R_STAGE={x:190,y:660,w:700,h:700,r:44};
-const R_SIDE={x:120,y:700,w:840,h:620,r:44};
 const R_LOWER={x:350,y:1370,w:380,h:520,r:32};
-const R_DOWN={x:214,y:760,w:652,h:1160,r:40};   /* the default for drawing moments: graphics on top ← caption ← face below */
+const R_DOWN={x:0,y:770,w:1080,h:1150,r:0};   /* full-width fallback; resolveScenes() replaces each entry with rDown(gb, caption-lines) */
 let SCENES=[
  {s:0.00,e:3.32,m:R_FULL},{s:3.32,e:8.00,m:R_DOWN},{s:8.00,e:11.45,m:R_FULL},
  {s:11.45,e:15.36,m:R_DOWN},{s:15.36,e:18.56,m:R_DOWN},{s:18.56,e:20.42,m:R_FULL},
@@ -87,6 +87,15 @@ let SCENES=[
 const MODES={FULL:R_FULL,DOWN:R_DOWN,LOWER:R_LOWER};
 let SCENELIST=null, MOTIFS={};
 let TR=0.42;   /* = TX.sceneToScene.duration */
+/* The flexible R_DOWN card — mirror of compose.reference.html: shrinks proportionally (9:16)
+   from the graphic bottom (gb) and the caption's line count, so nothing crowds anything. */
+const CAPH=l=>l*LH+PADY*2;
+function rDown(gb,lines){const top=gb+40+CAPH(lines)+50;return {x:0,y:top,w:1080,h:1920-top,r:0};}
+let _RES=false;
+function resolveScenes(){ if(_RES||!CAPS.length)return; _RES=true;
+  SCENES.forEach(s=>{ if(s.m!==R_DOWN)return; const gb=s.gb||500; let lines=1;
+    CAPS.forEach(c=>{ if(c.e>s.s&&c.s<s.e) lines=Math.max(lines,layout(c.w).length); });
+    s.m=rDown(gb,lines); }); }
 function vtrans(i){
   const d=TX.sceneToScene, o=(SCENES[i]&&SCENES[i].transition)||null;
   if(o&&typeof o==='object') return {type:o.type||d.type, dur:(o.duration!=null?o.duration:d.duration), easing:o.easing||d.easing};
@@ -94,6 +103,7 @@ function vtrans(i){
   return {type:d.type, dur:d.duration, easing:d.easing};
 }
 function vrect(t){
+  resolveScenes();
   let i=SCENES.findIndex(s=>t>=s.s&&t<s.e); if(i<0)i=SCENES.length-1;
   const tr=vtrans(i);
   let a=SCENES[i].m,b=a,k=1;
@@ -103,7 +113,7 @@ function vrect(t){
 function paintVideo(R,alpha){
   const sw=VF.naturalWidth||1080, shh=VF.naturalHeight||1920;
   const sc=Math.max(R.w/sw,R.h/shh), cw=R.w/sc, ch=R.h/sc;
-  const sx=(sw-cw)/2, sy=(shh-ch)*0.26;
+  const sx=(sw-cw)/2, sy=(shh-ch)*FACE_ANCH;
   X.save(); if(alpha!=null)X.globalAlpha*=alpha;
   if(R.r>0.5){sh(70,26,0.26);X.fillStyle='#000';rr(R.x,R.y,R.w,R.h,R.r);X.fill();nsh();}
   rr(R.x,R.y,R.w,R.h,R.r);X.clip();
@@ -164,7 +174,7 @@ function bar(t){let a=t>VEND-0.3?1-pr(t,VEND-0.3,VEND):1;if(a<=0)return;
   X.fillStyle=cINK(0.13);rr(0,y,W,h,h/2);X.fill();
   X.fillStyle=ACC;rr(0,y,W*cl(t/VEND,0,1),h,h/2);X.fill();X.restore();}
 /* ---------- captions ---------- */
-const FS=55,LH=79,MAXW=830,GAP=16,PADX=44,PADY=30;
+const FS=55,LH=79,MAXW=730,GAP=16,PADX=44,PADY=30;   /* 730: card ends before Instagram's button column — match compose.reference.html */
 function layout(ws){X.font='800 '+FS+'px '+FONT;
   const it=ws.map(w=>({...w,w:X.measureText(w.t).width}));const L=[];let c=[],cw=0;
   for(const i of it){const add=c.length?i.w+GAP:i.w;

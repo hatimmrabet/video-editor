@@ -12,6 +12,9 @@ export const T = {
   handle: P.theme.handle || '',
   badgeUntil: typeof P.theme.badgeUntil === 'number' ? P.theme.badgeUntil : 0,
 };
+/* where the speaker's face sits inside the video card (project.config.json ← crop.faceAnchor,
+   default 0.30) — the light engine's FACE_ANCH. remotion.sh writes it into project.json. */
+export const FACE_ANCHOR = typeof (P as any).faceAnchor === 'number' ? (P as any).faceAnchor : 0.30;
 export const FPS   = 30;
 export const VEND  = P.total;              // end of the video's speech
 export const OUTRO = P.outro;              // the end card's duration

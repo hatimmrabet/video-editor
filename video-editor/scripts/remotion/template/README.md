@@ -7,7 +7,7 @@ directory and fills in its data.
 |---|---|
 | `src/project.json` | Generated automatically: theme + duration + the video-rect schedule + end-card copy |
 | `src/Ad.tsx` | The composition: the video inside a moving card + every layer |
-| `src/stage.ts` | The display rects (FULL/STAGE/SIDE) and the transition — the schedule comes from project.json |
+| `src/stage.ts` | The display rects (FULL/DOWN/LOWER) and the transition — the schedule comes from project.json; DOWN flexes per caption lines |
 | `src/Scenes.tsx` | **Your part** — the scenes. Only two examples; invent your own |
 | `src/Captions.tsx` | The caption cards with the spoken word highlighted |
 | `src/Outro.tsx` | The end card — its copy comes from project.json |

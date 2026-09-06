@@ -171,13 +171,16 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 
 ### Bugs — engine drift
 
-| Title | Labels | Source |
+| Title | Labels | Status |
 |---|---|---|
-| bug: `R_DOWN` differs between `compose.reference.html` and `stage.ts` | `type:bug` `area:engine-light` `area:engine-remotion` | [engines.md](engines.md#drift) |
-| bug: `R_STAGE` / `R_SIDE` differ between engines | `type:bug` | same |
-| bug: caption max-width 730 (light) vs 918 (Remotion) | `type:bug` | same |
-| bug: video object-position — `faceAnchor` (light) vs hardcoded `50% 26%` (Remotion) | `type:bug` | same |
-| bug: `studio.html` rect values stale vs `compose.reference.html` | `type:bug` `area:engine-light` | [studio_html.md](scripts/studio_html.md) |
+| bug: `R_DOWN` differs between `compose.reference.html` and `stage.ts` | `type:bug` `area:engine-light` `area:engine-remotion` | ✅ #25 — `R_DOWN` flexes via `rDown(gb, lines)` in all three surfaces; parity-verified |
+| bug: `R_STAGE` / `R_SIDE` differ between engines | `type:bug` | ✅ #26 — deleted from `compose.html`, `studio.html`, `stage.ts` (out of the data path — no-back-compat) |
+| bug: caption max-width 730 (light) vs 918 (Remotion) | `type:bug` | ✅ #27 — `730` everywhere (`studio.html` was 830, `Captions.tsx` 918) |
+| bug: video object-position — `faceAnchor` (light) vs hardcoded `50% 26%` (Remotion) | `type:bug` | ✅ #28 — `remotion.sh` writes `faceAnchor` → `theme.ts` `FACE_ANCHOR` → `Ad.tsx`; `studio.html` reads `d.theme.faceAnchor` |
+| bug: `studio.html` rect values stale vs `compose.reference.html` | `type:bug` `area:engine-light` | ✅ #29 — video staging resynced (`R_*`, `rDown`, `FACE_ANCH`, `MAXW`); `vrect` matches `compose`. Caption position + `badge`/`bar` y still drift ([engines.md](engines.md#drift)) |
+
+Remotion side (#25/#27/#28) is verified by parity port only — a real render is still owed
+(sandbox has no Remotion install).
 
 ### Chores
 
