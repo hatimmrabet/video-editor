@@ -160,12 +160,15 @@ class H(BaseHTTPRequestHandler):
             self._err(500, "%s: %s" % (type(e).__name__, e))
 
     def _dispatch(self, method, path, q):
-        if path == "/" and method == "GET":
-            spa = os.path.join(SCRIPTS, "web", "index.html")
-            if os.path.exists(spa):
-                return self._send(200, open(spa, "rb").read(), "text/html")
-            return self._send(200, "<h1>video-editor</h1><p>The UI is not built yet "
-                              "(issue #99). The API is live — see scripts/web.py.</p>", "text/html")
+        if method == "GET" and (path == "/" or re.match(r"^/app\.(js|css)$", path)):
+            fp = os.path.join(SCRIPTS, "web", "index.html" if path == "/" else path.lstrip("/"))
+            if os.path.exists(fp):
+                return self._send(200, open(fp, "rb").read(),
+                                  MIME.get(os.path.splitext(fp)[1], "text/plain"))
+            if path == "/":
+                return self._send(200, "<h1>video-editor</h1><p>The UI is not built yet. "
+                                  "The API is live — see scripts/web.py.</p>", "text/html")
+            return self._err(404, path)
         if path == "/health" and method == "GET":
             return self._send(200, {"ok": True, "projects_dir": ROOT})
 
@@ -270,7 +273,9 @@ class H(BaseHTTPRequestHandler):
             try:
                 return self._send(200, json.loads(r.stdout))
             except ValueError:
-                return self._err(500, "run.py --json failed: " + (r.stderr or r.stdout)[:400])
+                # run.py can't plan yet (usually: no video in rush/) — not an error for the UI
+                return self._send(200, {"stages": [], "next": None,
+                                        "blocked": (r.stdout or r.stderr or "").strip()[:300]})
 
         if sub == "/run" and method == "POST":
             args = []

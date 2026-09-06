@@ -1,6 +1,6 @@
-# `web.py` · `web.sh`
+# `web.py` · `web.sh` · `web/`
 
-`video-editor/scripts/web.py` · python (stdlib only) · the local web UI server
+`video-editor/scripts/web.py` (stdlib server) + `web/` (the SPA, no build step) · the local web UI
 
 > A thin front end over [`run.py`](run.md). Binds `127.0.0.1` only — no auth, no cloud, no
 > publishing. Shells out to `run.py` and the same scripts the CLI uses; **re-implements no
@@ -25,7 +25,7 @@ deliverable) — a project made in the UI is fully usable from the CLI and vice-
 
 | Method + path | Does |
 |---|---|
-| `GET /` | the SPA (`scripts/web/index.html`, issue #99) or a placeholder |
+| `GET /` · `GET /app.js` · `GET /app.css` | the SPA (`scripts/web/`) or, if absent, a placeholder |
 | `GET /health` | `{ ok, projects_dir }` |
 | `GET /projects` | list — `[{ id, format, language, hasVideo, hasDeliverable }]` |
 | `POST /projects` `{name}` | create → `{ id }` (slug; de-duplicated). Copies `compose.html` / `studio.html` in. |
@@ -51,6 +51,21 @@ deliverable) — a project made in the UI is fully usable from the CLI and vice-
 Pure stdlib `http.server` + `subprocess`. Spawns `uv run scripts/run.py` /
 `edit_script.py` with `cwd` = the skill dir; the `/run` stream sets `PYTHONUNBUFFERED=1`
 so lines arrive live. `web.sh` sources `lib/platform.sh` for `VEVO_SKILL_DIR`.
+
+## The SPA — `scripts/web/`
+
+`index.html` + `app.js` + `app.css`, **no build step, no framework** — vanilla DOM. Served
+by `web.py` at `/`, `/app.js`, `/app.css`.
+
+- **Project list** — cards, a "New project" name field.
+- **Project view** — the config form (a live view of `GET/PUT /config`), a drop zone for
+  the video, then the **stage list** (verdicts from `GET /state`) and a **Run** button
+  that opens the SSE stream into a live `<pre>` log.
+- Each `run.py` checkpoint gets a panel. `#99` ships the config panel real and the others
+  (transcript / trim / scenes / sound / tighten / chapters / broll) as stubs — a note +
+  "Run" + "re-check" — filled in by #100–#102.
+- **Result** — when every stage is `SKIP`: a `<video>` of `video-final.mp4` + download
+  links, served through the path-jailed `file/` endpoint.
 
 ## Place in the flow
 

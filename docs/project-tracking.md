@@ -163,7 +163,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | web: `run.py --dry --json` | `area:orchestrator` | ✅ #96 — one JSON line `{world, engine, stages:[{id,title,verdict,checkpoint,note?,block?,makes?}], next}`; implies `--dry`; text output unchanged without it. |
 | web: `scripts/web.py` server (router, project CRUD, config + decision endpoints, jailed file serving) | `area:web` | ✅ #97 — stdlib `http.server`, no framework; project CRUD under `~/.video-editor/projects/`, config/decision/edit/state/file endpoints, path-jailed. `POST /run` blocking (SSE in #98). `docs/scripts/web.md` + `web.sh`. Every endpoint tested. |
 | web: `POST /run` streaming (SSE stdout + exit code) | `area:web` | ✅ #98 — `Popen` `run.py` (`PYTHONUNBUFFERED=1`), `event: line` per line, `event: done` `{exit}`, client-disconnect kills the run. Verified live. |
-| web: SPA shell (drop zone, project list, config form, state-driven router) | `area:web` | #99 |
+| web: SPA shell (drop zone, project list, config form, state-driven router) | `area:web` | ✅ #99 — `scripts/web/` vanilla, no build. Project list/create, config form, drop zone, stage list + Run button (SSE log), Result view. Checkpoint panels stubbed (config real). Headless-verified. |
 | web: checkpoint screens — transcript + trim | `area:web` | #100 |
 | web: checkpoint screen — scenes (motif dropdown + params + preview) | `area:web` `area:scenes` | #101 |
 | web: checkpoint screen — sound + Result view | `area:web` | #102 |
