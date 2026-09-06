@@ -22,6 +22,7 @@ uv run scripts/run.py <work> [--from ID] [--to ID] [--only ID]
 | `--world NAME` | force `reel-speech` / `broll-montage` / `long-form` instead of picking it |
 | `--engine NAME` | override `config.engine` for `when` gating (`light` / `remotion`) |
 | `--dry` | print the plan + per-stage verdict (`SKIP`/`RUN`/`CHECKPOINT`/`HALT`), run nothing |
+| `--json` | emit the plan as one JSON line (implies `--dry`) — `{ world, engine, stages:[{id,title,verdict,checkpoint,note?,block?,makes?}], next }` where `next` is the first stage not up to date. For the web UI's `GET /state` (issue #96). |
 | `--force` | rerun every in-range runnable stage regardless of timestamps |
 | `--list` | print the world's stage ids and exit |
 

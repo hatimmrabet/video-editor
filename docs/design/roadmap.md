@@ -22,7 +22,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | ✅ done (#15 schema · #16 registry · #17 light · #18 Remotion · #19 11 motifs · #20 studio) |
 | 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | ✅ done (#21 `run.py` + stage manifests · #22 subagent design) |
 | 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | ✅ done (#23 design · #84–#89 impl) |
-| 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | 🚧 design done (#24 — [web.md](web.md)) |
+| 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | 🚧 in progress (#24 design · #96 done · #97–#103) |
 
 ## Pass 1 — Execution & dependencies
 
@@ -209,10 +209,11 @@ to English — both cosmetic cleanup, pick up whenever.)*
   writes `config/project.config.json`; each `run.py` checkpoint (`transcript-fix`,
   `script-review`, `scenes`, `sound-cues`) is a screen; `GET /state` = parsed
   `run.py --dry --json`. Nothing re-implements pipeline logic. Eight implementation
-  tickets listed in the doc.
-- Drop zone → form writes `project.config.json` → "generate" calls `run.py` → preview.
-- Decision points become form steps.
-- Same engine; no new pipeline.
+  tickets listed in the doc (#96–#103).
+- 🚧 **`run.py --dry --json`** (#96) — the machine-readable plan `GET /state` parses.
+- Remaining: #97 the server, #98 `POST /run` streaming, #99 the SPA shell, #100 transcript
+  + trim screens, #101 the scenes screen, #102 sound + Result, #103 the montage /
+  long-form flows.
 - **Done when:** drop a real video in the browser → download a finished reel without
   touching a terminal.
 
