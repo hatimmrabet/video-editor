@@ -75,8 +75,11 @@ Stages 7.5 / 7.6, after scene design. Then re-render: `render_frames.js <work> a
 
 ## Gotchas
 
-- Use it once or twice per video — invariant #8.
-- Rules the `plan` command enforces: sentence 1–4 words, duration ≥ 0.85 s. Best on the hook.
+- Twice per video at most, and ≥ 8 s between two moments — invariant #8. `plan` reads
+  `build/person-cutout.json` and flags a candidate within 8 s of one already built (and
+  `build` prints the same warning if a single call asks for too many, or too close). Both
+  are advisory — they never block.
+- Rules the `plan` command checks: sentence 1–4 words, duration ≥ 0.85 s. Best on the hook.
 - The regular caption card auto-hides during a `build` range so the text isn't shown twice.
 - Cost: ≈ 0.15 s per frame for the cut (a 2 s sentence ≈ 10 s of work).
 - **Migrated to the `build/` layout (issue #59, 2026-09-05)** — `vfr` → `build/frames-source`,
