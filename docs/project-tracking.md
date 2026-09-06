@@ -161,7 +161,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 |---|---|---|
 | web: UI design doc → plan | `type:design` | ✅ #24 — [web.md](design/web.md): local-only `scripts/web.py` (stdlib `http.server`) shelling to `run.py`, no-build SPA, each `run.py` checkpoint = a screen, config file is the source of truth. Eight impl tickets listed. |
 | web: `run.py --dry --json` | `area:orchestrator` | ✅ #96 — one JSON line `{world, engine, stages:[{id,title,verdict,checkpoint,note?,block?,makes?}], next}`; implies `--dry`; text output unchanged without it. |
-| web: `scripts/web.py` server (router, project CRUD, config + decision endpoints, jailed file serving) | `area:web` | #97 |
+| web: `scripts/web.py` server (router, project CRUD, config + decision endpoints, jailed file serving) | `area:web` | ✅ #97 — stdlib `http.server`, no framework; project CRUD under `~/.video-editor/projects/`, config/decision/edit/state/file endpoints, path-jailed. `POST /run` blocking (SSE in #98). `docs/scripts/web.md` + `web.sh`. Every endpoint tested. |
 | web: `POST /run` streaming (SSE stdout + exit code) | `area:web` | #98 |
 | web: SPA shell (drop zone, project list, config form, state-driven router) | `area:web` | #99 |
 | web: checkpoint screens — transcript + trim | `area:web` | #100 |

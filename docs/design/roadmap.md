@@ -211,9 +211,10 @@ to English — both cosmetic cleanup, pick up whenever.)*
   `run.py --dry --json`. Nothing re-implements pipeline logic. Eight implementation
   tickets listed in the doc (#96–#103).
 - 🚧 **`run.py --dry --json`** (#96) — the machine-readable plan `GET /state` parses.
-- Remaining: #97 the server, #98 `POST /run` streaming, #99 the SPA shell, #100 transcript
-  + trim screens, #101 the scenes screen, #102 sound + Result, #103 the montage /
-  long-form flows.
+- 🚧 **`scripts/web.py`** (#97) — stdlib server, project CRUD + config/decision/edit/state/
+  file endpoints, path-jailed. `POST /run` blocking (SSE next).
+- Remaining: #98 `POST /run` streaming, #99 the SPA shell, #100 transcript + trim screens,
+  #101 the scenes screen, #102 sound + Result, #103 the montage / long-form flows.
 - **Done when:** drop a real video in the browser → download a finished reel without
   touching a terminal.
 

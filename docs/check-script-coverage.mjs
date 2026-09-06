@@ -31,6 +31,7 @@ const COVERAGE = [
   ['subtitles',           ['subtitles.py']],
   ['montage_mode',        ['montage_mode.py']],
   ['run',                 ['run.py']],
+  ['web',                 ['web.py', 'web.sh']],
   ['join_takes',          ['join_takes.py']],
   ['tighten',             ['tighten.py']],
   ['assemble_longform',   ['assemble_longform.py']],
