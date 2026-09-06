@@ -29,6 +29,7 @@ gh label create "area:config"          -c "#FBCA04" -d "project.config.json / ad
 gh label create "area:transitions"     -c "#FBCA04" -d "transition vocabulary"
 gh label create "area:scenes"          -c "#FBCA04" -d "scenes-as-data / motif registry"
 gh label create "area:orchestrator"    -c "#FBCA04" -d "run.py / subagents"
+gh label create "area:web"             -c "#FBCA04" -d "local web UI"
 gh label create "area:windows"         -c "#006B75" -d "Windows support"
 gh label create "type:design"          -c "#D4C5F9" -d "design doc / decision"
 gh label create "type:bug"             -c "#D73A4A" -d "defect"
@@ -156,9 +157,17 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 
 ### Pass 7 — Web
 
-| Title | Labels | Milestone |
+| Title | Labels | Status |
 |---|---|---|
-| web: UI design doc → plan | `type:design` | Pass 7 |
+| web: UI design doc → plan | `type:design` | ✅ #24 — [web.md](design/web.md): local-only `scripts/web.py` (stdlib `http.server`) shelling to `run.py`, no-build SPA, each `run.py` checkpoint = a screen, config file is the source of truth. Eight impl tickets listed. |
+| web: `run.py --dry --json` | `area:orchestrator` | Pass 7 — from #24 |
+| web: `scripts/web.py` server (router, project CRUD, config + decision endpoints, jailed file serving) | `area:web` | Pass 7 — from #24 |
+| web: `POST /run` streaming (SSE stdout + exit code) | `area:web` | Pass 7 — from #24 |
+| web: SPA shell (drop zone, project list, config form, state-driven router) | `area:web` | Pass 7 — from #24 |
+| web: checkpoint screens — transcript + trim | `area:web` | Pass 7 — from #24 |
+| web: checkpoint screen — scenes (motif dropdown + params + preview) | `area:web` `area:scenes` | Pass 7 — from #24 |
+| web: checkpoint screen — sound + Result view | `area:web` | Pass 7 — from #24 |
+| web: `broll-montage` + `long-form` flows | `area:web` | Pass 7 — from #24 |
 
 ### Bugs — engine drift
 
