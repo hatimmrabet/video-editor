@@ -1,8 +1,9 @@
 # `long-form` — the YouTube world
 
-Status: **in progress (Pass 6).** The world switch is built (#84 — `format:"long"` →
+Status: **in progress (Pass 6).** Built: the world switch (#84 — `format:"long"` →
 `long-form`, `scripts/pipeline/long-form.json`, `join_takes.py`, the `longform` config
-block). Remaining: `tighten.py` (#85), `reframe.py` 16:9 branch (#86),
+block) and `tighten.py` + `scripts/fillers.json` (#85 — the jump-cut + filler pass, sharing
+`lib/timeline.py` with `edit_script.py`). Remaining: `reframe.py` 16:9 branch (#86),
 `assemble_longform.py` (#87), chapters (#88), the `SKILL.md` section (#89).
 
 This page is the spec + implementation plan for roadmap Pass 6. It builds on
@@ -101,7 +102,10 @@ in context — and writes `build/tighten-plan.json`. The agent shows the user th
 ("847 micro-cuts, 41 fillers, 3m12s removed — 18m04 → 14m52"), the user says
 drop-all / keep-these, `tighten.py apply` commits it: it folds the word drops into
 `build/cut-plan.json` (as extra non-keep ranges) and rewrites `build/captions.json` on the
-new timeline, exactly like `edit_script.py apply` does for whole sentences.
+new timeline, exactly like `edit_script.py apply` does for whole sentences. **Built (#85)** —
+the `keep`-remap + timestamp shift are extracted into
+[`lib/timeline.py`](../scripts/lib-timeline.md), shared with `edit_script.py` (whose output
+is byte-identical after the refactor).
 
 **Ordering:** `tighten` runs *after* `captions` and *before* `reframe` — same rule as
 `edit_script.py` for the reel (it shifts every downstream timestamp).
@@ -175,10 +179,10 @@ mode we can add once the world exists.
 `edit_script.py` (whole-sentence drops still apply), `montage_mode.py` scorer, `lib/config`,
 `lib/scenes._resolve_ref`, `run.py`'s manifest grammar, the transitions vocabulary.
 
-**New:** `join_takes.py`, `tighten.py`, `assemble_longform.py`, `scripts/fillers.json`,
-`scripts/pipeline/long-form.json`, `lib/rush.find_source()` prefers `build/source-joined.mp4`,
-a `format:"long"` branch in `run.py` (built) and `reframe.py` (#86), a chapters branch in
-`subtitles.py` (#88).
+**New:** `join_takes.py`, `tighten.py`, `lib/timeline.py`, `assemble_longform.py` (#87),
+`scripts/fillers.json`, `scripts/pipeline/long-form.json`, `lib/rush.find_source()` prefers
+`build/source-joined.mp4`, a `format:"long"` branch in `run.py` (built) and `reframe.py`
+(#86), a chapters branch in `subtitles.py` (#88).
 
 **Not touched:** the whole motif / scene system, both render engines, `safe_check.js`,
 `sound_fx.py`, `compose.html`.
@@ -191,8 +195,10 @@ a `format:"long"` branch in `run.py` (built) and `reframe.py` (#86), a chapters 
    subs`); [`join_takes.py`](../scripts/join_takes.md) + `lib/rush.find_source()` prefers
    `build/source-joined.mp4`; `defaults.config.json` `longform` block. Verified end-to-end
    through `join` (1 + 2 takes) → `cut` → `audio`.
-2. **`tighten.py`** (#85) — the jump-cut + filler pass + `scripts/fillers.json` + `apply`
-   that folds into `cut-plan.json` / `captions.json`. Doc page. *(area:pipeline)*
+2. ✅ **`tighten.py`** (#85) — the jump-cut + filler pass + `scripts/fillers.json` +
+   `apply`, sharing `lib/timeline.py` with `edit_script.py`. Verified: propose + apply on
+   a fixture (fillers dropped, hot words kept, cards monotonic); `edit_script.py` output
+   byte-identical after the extraction.
 3. **`reframe.py` 16:9 branch** (#86) — `format:"long"` keeps/produces 16:9 instead of
    9:16. *(area:pipeline)*
 4. **`assemble_longform.py`** (#87) — cut list → video, `config/broll.json` overlays. Doc

@@ -21,6 +21,8 @@ Edits: build/cut-plan.json (video segments) · build/captions.json (captions) ·
 Afterward: rebuild the video ← reframe.py, then extract frames, then render.
 """
 import json, os, sys, shutil
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lib import timeline   # shared with tighten.py
 
 W = os.path.abspath(sys.argv[1])
 CMD = sys.argv[2] if len(sys.argv) > 2 else "show"
@@ -138,16 +140,9 @@ for i in sorted(drop):
     if i + 1 < len(cards):                       # don't eat into the next sentence's start
         b = min(b, cards[i + 1]["w"][0]["s"] - 0.02)
     if b > a: iv.append([a, b])
-iv.sort(); merged = []
-for a, b in iv:
-    if merged and a - merged[-1][1] < 0.05: merged[-1][1] = max(merged[-1][1], b)
-    else: merged.append([a, b])
+merged = timeline.merge(iv)
 gone = sum(b - a for a, b in merged)
-
-def shift(t):                                    # new time after the deletion
-    return t - sum(min(t, b) - a for a, b in merged if a < t)
-def inside(t):
-    return any(a - 1e-6 <= t <= b + 1e-6 for a, b in merged)
+shift, inside = timeline.make_shift(merged)
 
 print("About to remove:")
 for i in sorted(drop): print("  ✂️ " + line(i, cards[i]).strip())
@@ -155,28 +150,8 @@ print(f"Duration: {caps['total']:.2f}s → {caps['total']-gone:.2f}s (‎-{gone:
 if DRY: sys.exit(0)
 
 # ── 1) cut-plan.json: map the deletion intervals back to the original timeline ──
-cut = load(CUT); keep = [list(x) for x in cut["keep"]]
-off, acc = [], 0.0
-for a, b in keep: off.append(acc); acc += b - a
-src_del = []
-for ds, de in merged:
-    for i, (a, b) in enumerate(keep):
-        s0, s1 = off[i], off[i] + (b - a)
-        lo, hi = max(ds, s0), min(de, s1)
-        if hi > lo: src_del.append([a + (lo - s0), a + (hi - s0)])
-new_keep = []
-for a, b in keep:
-    parts = [[a, b]]
-    for ds, de in src_del:
-        out = []
-        for x, y in parts:
-            if de <= x or ds >= y: out.append([x, y]); continue
-            if ds > x: out.append([x, ds])
-            if de < y: out.append([de, y])
-        parts = out
-    new_keep += [p for p in parts if p[1] - p[0] >= MIN_SEG]
-cut["keep"] = new_keep
-cut["total"] = round(sum(b - a for a, b in new_keep), 3)
+cut = load(CUT)
+cut["keep"], cut["total"] = timeline.remap_keep(cut["keep"], merged, MIN_SEG)
 save(CUT, cut)
 
 # ── 2) captions.json: remove the sentences and shift the rest ────────────

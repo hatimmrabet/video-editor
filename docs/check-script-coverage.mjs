@@ -32,6 +32,8 @@ const COVERAGE = [
   ['montage_mode',        ['montage_mode.py']],
   ['run',                 ['run.py']],
   ['join_takes',          ['join_takes.py']],
+  ['tighten',             ['tighten.py']],
+  ['lib-timeline',        ['lib/timeline.py']],
   ['render_frames',       ['render_frames.js']],
   ['safe_check',          ['safe_check.js']],
   ['encode',              ['encode.sh']],
