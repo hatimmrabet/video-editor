@@ -19,7 +19,7 @@ uv run scripts/run.py <work> [--from ID] [--to ID] [--only ID]
 | `--from ID` | start at stage `ID` |
 | `--to ID` | stop after stage `ID` |
 | `--only ID` | run just stage `ID` |
-| `--world NAME` | force `reel-speech` / `broll-montage` instead of inferring from `rush/` |
+| `--world NAME` | force `reel-speech` / `broll-montage` / `long-form` instead of picking it |
 | `--engine NAME` | override `config.engine` for `when` gating (`light` / `remotion`) |
 | `--dry` | print the plan + per-stage verdict (`SKIP`/`RUN`/`CHECKPOINT`/`HALT`), run nothing |
 | `--force` | rerun every in-range runnable stage regardless of timestamps |
@@ -32,7 +32,7 @@ checkpoint · `3` bad usage.
 
 | File (in `<work>`) | Role | Required |
 |---|---|---|
-| `rush/` | world inference (1 file → `reel-speech`, many → `broll-montage`) + `{source}` | yes |
+| `rush/` | world inference (1 file → `reel-speech`, many → `broll-montage`; `format:"long"` → `long-form` regardless) + `{source}` | yes |
 | `config/project.config.json` (via [`lib/config`](lib-config.md)) | `engine`, `language`, `when` gating | `language` required before `transcribe` |
 | `scripts/pipeline/<world>.json` | the stage list (static skill file) | yes |
 
@@ -43,8 +43,8 @@ None of its own. Each stage writes what `docs/pipeline.md` says it does. `run.py
 
 ## The stage manifest
 
-`scripts/pipeline/reel-speech.json` · `scripts/pipeline/broll-montage.json` —
-`{ _doc, world, stages[] }`. Per stage: `id`, `title`, `run` (argv with `{work}`
+`scripts/pipeline/reel-speech.json` · `scripts/pipeline/broll-montage.json` ·
+`scripts/pipeline/long-form.json` — `{ _doc, world, stages[] }`. Per stage: `id`, `title`, `run` (argv with `{work}`
 `{source}` `{language}` `{skill}` substituted — omit for a checkpoint), `needs` / `makes`
 (work-relative; `{source}` = the rush file; trailing `/` = non-empty directory),
 optional `block` (halt a checkpoint until `makes` exists), `note`, `when` (gate on a

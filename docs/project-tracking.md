@@ -148,12 +148,12 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | Title | Labels | Status |
 |---|---|---|
 | long-form: world design doc → plan | `type:design` | ✅ #23 — [long-form.md](design/long-form.md): one world (`format:"long"`), 11-stage manifest, `tighten.py` + curated `fillers.json`, hand-authored `config/chapters.json`, `assemble_longform.py`, soft `.srt`. Six impl tickets listed. |
-| long-form: `format:"long"` world switch + `scripts/pipeline/long-form.json` | `area:orchestrator` | Pass 6 — from #23 |
-| long-form: `tighten.py` (jump-cut + filler pass) + `scripts/fillers.json` | `area:pipeline` | Pass 6 — from #23 |
-| long-form: `reframe.py` 16:9 branch | `area:pipeline` | Pass 6 — from #23 |
-| long-form: `assemble_longform.py` (cut list + B-roll overlays) | `area:pipeline` | Pass 6 — from #23 |
-| long-form: chapters — `config/chapters.json` + `subtitles.py` markers | `area:pipeline` `area:docs` | Pass 6 — from #23 |
-| long-form: `SKILL.md` long-form flow section | `area:docs` | Pass 6 — from #23 |
+| long-form: `format:"long"` world switch + `scripts/pipeline/long-form.json` | `area:orchestrator` | ✅ #84 — `run.py` checks `config.format`; 13-stage manifest; `join_takes.py` + `lib/rush.find_source()` prefers `build/source-joined.mp4`; `defaults.config.json` `longform` block. Verified `join`(1+2 takes)→`cut`→`audio` |
+| long-form: `tighten.py` (jump-cut + filler pass) + `scripts/fillers.json` | `area:pipeline` | #85 |
+| long-form: `reframe.py` 16:9 branch | `area:pipeline` | #86 |
+| long-form: `assemble_longform.py` (cut list + B-roll overlays) | `area:pipeline` | #87 |
+| long-form: chapters — `config/chapters.json` + `subtitles.py` markers | `area:pipeline` `area:docs` | #88 |
+| long-form: `SKILL.md` long-form flow section | `area:docs` | #89 |
 
 ### Pass 7 — Web
 

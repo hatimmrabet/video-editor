@@ -134,14 +134,17 @@ def main():
     force = "--force" in opt
     if not os.path.isdir(os.path.join(work, "rush")):
         die("no rush/ in " + work + " - put the source file(s) there first")
-    world = flag(opt, "--world") or infer_world(work)
     os.makedirs(os.path.join(work, "build"), exist_ok=True)
     cfg = _config.load(work)
+    # long-form can't be inferred from rush/ (a folder of takes looks like broll-montage) —
+    # it's the config.format switch, checked first. See docs/design/long-form.md.
+    world = flag(opt, "--world") or ("long-form" if cfg.get("format") == "long"
+                                     else infer_world(work))
     engine = flag(opt, "--engine") or cfg.get("engine", "light")
     source = None
-    if world == "reel-speech":
+    if world in ("reel-speech", "long-form"):
         try:
-            source = _rush.find_source(work)
+            source = _rush.find_source(work)   # long-form: build/source-joined.mp4 once `join` ran
         except SystemExit:
             source = None  # a later stage will report it precisely
 

@@ -13,8 +13,8 @@
 
 | Function | Returns |
 |---|---|
-| `find_source(work)` | the one file at `rush/`'s root, excluding `bg-audio.mp3` — **reel-speech** (a single talking-head video). Raises `SystemExit` if there isn't exactly one. |
-| `find_clips(work)` | every file at `rush/`'s root, sorted, excluding `bg-audio.mp3` — **broll-montage** (many clips). |
+| `find_source(work)` | `build/source-joined.mp4` when it exists (**long-form**, after `join_takes.py`), else the one file at `rush/`'s root excluding `bg-audio.mp3` (**reel-speech**). Raises `SystemExit` if there's no joined file and not exactly one root file. |
+| `find_clips(work)` | every file at `rush/`'s root, sorted, excluding `bg-audio.mp3` — **broll-montage** (many clips), and **long-form** (`join_takes.py` concatenates them). |
 | `find_broll(work)` | every file under `rush/broll/`, sorted — `[]` if the folder doesn't exist. Always optional. |
 | `background_audio(work)` | `rush/bg-audio.mp3`'s path if the creator supplied one, else `None`. |
 
@@ -31,6 +31,7 @@ SRC = rush.find_source(W)     # reframe.py, plan_cuts.py
 
 ## Consumers
 
-`plan_cuts.py`, `reframe.py` (`find_source`); `montage_mode.py`'s `scan` defaults to
-`rush/` directly rather than importing this (it already had its own file-listing logic —
-see [montage_mode.md](montage_mode.md)).
+`plan_cuts.py`, `reframe.py` (`find_source`); `join_takes.py` (`find_clips` — the
+long-form `join` stage); `montage_mode.py`'s `scan` defaults to `rush/` directly rather
+than importing this (it already had its own file-listing logic — see
+[montage_mode.md](montage_mode.md)).

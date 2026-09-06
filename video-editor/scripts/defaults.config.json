@@ -2,5 +2,6 @@
   "format": "short",
   "engine": "light",
   "grade": false,
-  "crop": { "xAnchor": 0.5, "yAnchor": 0.30, "faceAnchor": 0.30 }
+  "crop": { "xAnchor": 0.5, "yAnchor": 0.30, "faceAnchor": 0.30 },
+  "longform": { "pauseMs": 250, "keepMs": 90, "fillers": true, "captions": "soft" }
 }

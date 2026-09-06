@@ -189,9 +189,10 @@ to English — both cosmetic cleanup, pick up whenever.)*
   (ffmpeg filter graph, no frame render); soft `.srt` captions (burned lower-third
   reserved). No motif/scene/`safe_check`/`sound_fx` involvement. Six implementation
   tickets listed in the doc.
-- Jump-cut / filler-word engine — `tighten.py` (#TBD).
-- 16:9 `reframe.py` branch · `assemble_longform.py` · chapters in `subtitles.py` · the
-  `SKILL.md` long-form section (#TBD).
+- 🚧 **World switch** (#84) — `run.py` checks `config.format=="long"`;
+  `scripts/pipeline/long-form.json` (13 stages); `join_takes.py`; `longform` config block.
+- Jump-cut / filler-word engine — `tighten.py` (#85). 16:9 `reframe.py` branch (#86).
+  `assemble_longform.py` (#87). Chapters in `subtitles.py` (#88). `SKILL.md` section (#89).
 - **Done when:** a ≥ 20-min recording → an edited 16:9 talk with chapters and B-roll.
 
 ## Pass 7 — Web

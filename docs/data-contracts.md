@@ -25,9 +25,15 @@ Legend: **W** = written by, **R** = read by, **M** = mutated in place by.
   "crop": { "xAnchor": 0.5, "yAnchor": 0.30, "faceAnchor": 0.30 },
   "theme": { "bg": "#101828", "ink": "#F5F7FA", "acc": "#F2B33D", "clay": "#C98B18",
              "mut": "#98A2B3", "font": "Tajawal", "logo": "config/logo.png", "handle": "@his_handle",
-             "grid": true }
+             "grid": true },
+  "longform": { "pauseMs": 250, "keepMs": 90, "fillers": true, "captions": "soft" }
 }
 ```
+
+`format: "long"` selects the [`long-form`](design/long-form.md) world (it can't be inferred
+from `rush/`). The `longform` block is read by `tighten.py` (#85) and `assemble_longform.py`
+(#87); defaults live in `defaults.config.json`. `captions: "burned"` is reserved (lower-third,
+post-Pass-6).
 
 Full rationale (why it's this lean, what deliberately isn't in it) in
 [design/project-config.md](design/project-config.md). **Fully wired in as of 2026-09-05**
