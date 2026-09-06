@@ -1,9 +1,9 @@
 # Web interface — a local UI over `run.py`
 
-Status: **in progress (Pass 7).** Built: #96–#101 — `run.py --dry --json`, `scripts/web.py`
-+ all endpoints, `POST /run` SSE, the SPA shell, the transcript + trim screens, the scenes
-screen. Remaining: #102 (sound + Result), #103 (montage / long-form flows). Spec +
-implementation plan for roadmap
+Status: **in progress (Pass 7).** Built: #96–#102 — `run.py --dry --json`, `scripts/web.py`
++ all endpoints, `POST /run` SSE, the SPA shell, the transcript + trim + scenes + sound
+screens, the Result view. Remaining: #103 (montage / long-form flows). Spec + implementation
+plan for roadmap
 Pass 7, the capstone. It assumes Pass 5 ([`run.py`](orchestrator.md)) and, ideally, Pass 4
 (`config/scenes.json`) exist — both do.
 
@@ -153,7 +153,10 @@ is an alternative front end, not a replacement).
    "Save + preview" → `config/scenes.json` + `POST /preview` stills. `run.py --json`'s
    `next` was made client-authoritative (a "passed" set) so advisory checkpoints don't
    loop. Verified headless.
-7. **Checkpoint screen: sound + Result** (#102) — cue placement, then the deliverable view.
+7. ✅ **Checkpoint screen: sound + Result** (#102) — sound: an end-card field + a `<canvas>`
+   waveform decoded from `transcribe-input.wav` (sentence lines drawn in), click to place /
+   remove `whoosh_up`/`whoosh_down`/`thud`/`tap` → `sound-cues.json`. Result: `<video>` +
+   size (flagged over 30 MB) + download links (+ `.chapters.txt` for long-form).
 8. **`broll-montage` + `long-form` flows** (#103) — the two shorter front ends.
 
 Ship 1–7 for `reel-speech` end to end first (drop a real video → download a reel without

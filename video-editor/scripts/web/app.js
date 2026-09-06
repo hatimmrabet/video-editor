@@ -88,11 +88,17 @@ async function open(id) {
   await refresh();
 }
 /* the screen to show now: first stage that isn't done and hasn't been ticked past.
-   RUN / HALT always count; an advisory checkpoint only until the user continues past it. */
+   HALT always counts; a producing RUN stage counts; an advisory checkpoint counts
+   until the user continues past it. A runnable stage that writes no file (`safe` —
+   a verification gate) is always RUN in run.py's eyes, so it never wedges the flow:
+   the full-run button and the Result panel's "re-run" both execute it, and a real
+   failure there keeps `master`/`subs` RUN so the Result screen stays hidden anyway. */
 function currentStep(stages) {
   for (const s of stages) {
     if (s.verdict === "SKIP") continue;
-    if (s.verdict === "RUN" || s.verdict === "HALT" || !S.passed.has(s.id)) return s;
+    if (s.verdict === "HALT") return s;
+    if (s.verdict === "RUN") { if (!s.checkpoint && !s.makes) continue; return s; }
+    if (!S.passed.has(s.id)) return s;
   }
   return null;
 }
@@ -229,8 +235,8 @@ function checkpointPanel(cp) {
   if (cp.id === "transcript-fix") return transcriptPanel(cp);
   if (cp.id === "script-review") return trimPanel(cp);
   if (cp.id === "scenes") return scenesPanel(cp);
+  if (cp.id === "sound-cues") return soundPanel(cp);
   const hint = {
-    "sound-cues": "write build/sound-cues.json — at least {\"outro\": <seconds>} (screen #102)",
     tighten: "run `tighten.py <work>` then `tighten.py <work> apply` in the terminal",
     chapters: "optional — write config/chapters.json in the terminal, or Continue",
     broll: "optional — put clips in rush/broll/ + config/broll.json, or Continue",
@@ -386,16 +392,94 @@ async function scenesPanel(cp) {
   return box;
 }
 
+/* --- sound cues (HALT sound-cues) --- */
+const CUES = ["whoosh_up", "whoosh_down", "thud", "tap"];
+async function soundPanel(cp) {
+  const box = el("div", {}, el("h3", {}, "sound"),
+    el("p", { class: "muted" }, "Set the end-card length, then click the waveform to drop a cue. "
+      + "A cue marks a meaningful beat — a number landing, something breaking, a scene change. Keep it sparse."));
+  const caps = await getFile("build/captions.json");
+  const cur = (await getFile("build/sound-cues.json")) || {};
+  const dur = (caps && caps.total) || 30;
+  const cues = {};
+  for (const k of CUES) cues[k] = Array.isArray(cur[k]) ? cur[k].slice() : [];
+
+  const outro = el("input", { type: "number", step: "0.1", value: cur.outro ?? 5, style: "width:90px" });
+  const kind = select("", CUES, "whoosh_up");
+  const cv = el("canvas", { width: 900, height: 90, style: "width:100%;background:#0c0e12;border:1px solid var(--line);border-radius:8px;cursor:crosshair" });
+  const list = el("div", { class: "muted", style: "font-size:12px;margin-top:6px" });
+
+  const draw = peaks => {
+    const x = cv.getContext("2d"), W = cv.width, H = cv.height;
+    x.clearRect(0, 0, W, H);
+    x.fillStyle = "#3a4150";
+    if (peaks) for (let i = 0; i < W; i++) { const h = peaks[i] * H; x.fillRect(i, (H - h) / 2, 1, h || 1); }
+    else { x.fillStyle = "#232833"; x.fillRect(0, H / 2 - 1, W, 2); }
+    // sentence boundaries
+    if (caps) { x.strokeStyle = "#2c313a"; caps.cards.forEach(c => { const px = c.s / dur * W; x.beginPath(); x.moveTo(px, 0); x.lineTo(px, H); x.stroke(); }); }
+    const col = { whoosh_up: "#5b9dff", whoosh_down: "#8a6dff", thud: "#e0574d", tap: "#4caf7d" };
+    for (const k of CUES) for (const t of cues[k]) {
+      const px = t / dur * W; x.fillStyle = col[k]; x.fillRect(px - 1, 0, 3, H);
+    }
+  };
+  const relist = () => {
+    list.replaceChildren(...CUES.flatMap(k => cues[k].map(t =>
+      el("span", { class: "pill", style: "margin:2px 4px 0 0;cursor:pointer",
+        onclick: () => { cues[k] = cues[k].filter(x => x !== t); draw(peaks); relist(); } }, `${k} ${t.toFixed(2)}s ✕`))));
+  };
+  cv.addEventListener("click", e => {
+    const t = +((e.offsetX / cv.clientWidth) * dur).toFixed(2);
+    const k = kind.value;
+    if (!cues[k].includes(t)) cues[k].push(t), cues[k].sort((a, b) => a - b);
+    draw(peaks); relist();
+  });
+
+  let peaks = null;
+  draw(null); relist();
+  fetch(pfile("build/transcribe-input.wav")).then(r => r.ok ? r.arrayBuffer() : null).then(async buf => {
+    if (!buf) return;
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const audio = await ac.decodeAudioData(buf);
+    const ch = audio.getChannelData(0), W = cv.width, step = Math.floor(ch.length / W);
+    peaks = new Array(W);
+    for (let i = 0; i < W; i++) { let m = 0; for (let j = 0; j < step; j++) m = Math.max(m, Math.abs(ch[i * step + j] || 0)); peaks[i] = m; }
+    draw(peaks);
+  }).catch(() => {});
+
+  const save = el("button", { onclick: async () => {
+    save.disabled = true;
+    const out = { outro: +outro.value || 5 };
+    for (const k of CUES) if (cues[k].length) out[k] = cues[k];
+    await api("PUT", `/projects/${S.pid}/decision/sound-cues`, out);
+    refresh();   // sound-cues.json now exists → the checkpoint clears, the run button appears
+  } }, "Save & continue");
+  box.append(
+    el("div", { class: "row" }, el("label", { style: "margin:0" }, "end card (s)"), outro,
+      el("label", { style: "margin:0 0 0 16px" }, "cue type"), kind),
+    el("div", { style: "margin-top:10px" }, cv), list,
+    el("div", { class: "row", style: "margin-top:12px" }, save));
+  return box;
+}
+
 function resultPanel() {
   const f = p => `/projects/${S.pid}/file/${p}`;
+  const size = el("span", { class: "muted" });
+  fetch(f("video-final.mp4"), { method: "HEAD" }).then(r => {
+    const n = +r.headers.get("Content-Length");
+    if (n) size.textContent = `  ·  ${(n / 1e6).toFixed(1)} MB` + (n > 30e6 ? " ⚠️ over 30 MB" : "");
+  }).catch(() => {});
+  const long = (S.cfg || {}).format === "long";
+  const links = [
+    el("a", { href: f("video-final.mp4"), download: "" }, "video-final.mp4"),
+    el("a", { href: f("video-final.srt"), download: "" }, ".srt"),
+    el("a", { href: f("post-caption.txt"), download: "" }, "post caption"),
+  ];
+  if (long) links.push(el("a", { href: f("video-final.chapters.txt"), download: "" }, "chapters"));
   return el("div", {},
-    el("h3", {}, "result"),
+    el("h3", {}, "result"), size,
     el("video", { src: f("video-final.mp4"), controls: "" }),
-    el("div", { class: "row", style: "margin-top:10px" },
-      el("a", { href: f("video-final.mp4"), download: "" }, "video-final.mp4"),
-      el("a", { href: f("video-final.srt"), download: "" }, ".srt"),
-      el("a", { href: f("post-caption.txt"), download: "" }, "post caption")),
-    runPanel(null, "Re-run (after an edit)"));
+    el("div", { class: "row", style: "margin-top:10px" }, ...links),
+    el("div", { style: "margin-top:14px" }, runPanel(null, "Re-run (after an edit)")));
 }
 
 showList().catch(e => app.replaceChildren(el("p", { class: "err" }, String(e))));

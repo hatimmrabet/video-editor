@@ -219,7 +219,8 @@ to English — both cosmetic cleanup, pick up whenever.)*
 - 🚧 **Transcript + trim screens** (#100) — editable transcript with a word-count guard;
   keep/drop checkboxes with a restatement flag.
 - 🚧 **Scenes screen** (#101) — per-sentence layout + motif + params, `POST /preview` stills.
-- Remaining: #102 sound + Result, #103 the montage / long-form flows.
+- 🚧 **Sound + Result screens** (#102) — `<canvas>` waveform cue placement; the deliverable view.
+- Remaining: #103 the montage / long-form flows.
 - **Done when:** drop a real video in the browser → download a finished reel without
   touching a terminal.
 
