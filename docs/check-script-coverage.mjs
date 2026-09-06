@@ -30,6 +30,7 @@ const COVERAGE = [
   ['sound_fx',            ['sound_fx.py']],
   ['subtitles',           ['subtitles.py']],
   ['montage_mode',        ['montage_mode.py']],
+  ['run',                 ['run.py']],
   ['render_frames',       ['render_frames.js']],
   ['safe_check',          ['safe_check.js']],
   ['encode',              ['encode.sh']],

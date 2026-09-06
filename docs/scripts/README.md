@@ -4,6 +4,7 @@ One page per script. Each follows [`_template.md`](_template.md).
 
 | Script | Engine | One-liner |
 |---|---|---|
+| [`run.py`](run.md) | shared | config-driven conductor — runs the stages below, pausing at decisions |
 | [`setup.sh`](setup.md) | shared | check / install tools |
 | [`lib/platform.sh` + `.js`](lib-platform.md) | shared | cross-platform helpers (paths, Chrome, OS) |
 | [`lib/config.py` + `.js`](lib-config.md) | shared | `project.config.json` load/merge (no legacy bridge) |

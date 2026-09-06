@@ -188,6 +188,14 @@ Verify it arrived: `ffprobe -v error -show_entries format=duration -of csv=p=0 <
 
 ## Steps 3–11 — production
 
+**Optional conductor.** `uv run scripts/run.py <work>` runs the mechanical stages below in
+order, skips whatever is already up to date, and stops at the four points that need you
+and the user — correcting the transcript, dropping sentences, designing the scenes,
+placing the sound cues. It's a convenience for a re-run or a repeat job; the steps below
+are still the source of truth for *how* to do each one, and the conversation stays yours.
+`run.py <work> --dry` shows the plan, `--from <stage>` resumes. See
+[`docs/design/orchestrator.md`](../docs/design/orchestrator.md).
+
 ### 3) Cut plan
 ```bash
 uv run scripts/plan_cuts.py <work>

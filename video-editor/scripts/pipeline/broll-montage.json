@@ -1,0 +1,46 @@
+{
+  "_doc": "Canonical stage list for the broll-montage world (a folder of speechless clips -> one rhythmic montage). Read by scripts/run.py; mirrors docs/pipeline.md's montage diagram and SKILL.md's Montage-mode section. Same stage grammar as reel-speech.json. No transcription, no captions, no theme. `montage_mode.py plan` rewrites the plan[] array inside build/montage-plan.json in place, so it declares no `makes` and always re-runs (cheap, deterministic).",
+  "world": "broll-montage",
+  "stages": [
+    {
+      "id": "scan",
+      "title": "Score every clip, pick each one's best moment",
+      "run": ["uv", "run", "scripts/montage_mode.py", "{work}", "scan", "--shot", "1.5"],
+      "needs": ["rush/"],
+      "makes": ["build/montage-plan.json"]
+    },
+    {
+      "id": "sheet",
+      "title": "Contact sheet of the picked moments",
+      "run": ["uv", "run", "scripts/montage_mode.py", "{work}", "sheet", "--cols", "6"],
+      "needs": ["build/montage-plan.json"],
+      "makes": ["build/montage-contact-sheet.jpg"]
+    },
+    {
+      "id": "pick",
+      "title": "Drop the shots the user doesn't want",
+      "needs": ["build/montage-contact-sheet.jpg"],
+      "note": "Show the numbered sheet to the user and ask what to remove. `montage_mode.py drop 4 11` / `keep 1 2 5 9` / `undo`. Nothing to cut -> continue. See SKILL.md, Montage mode step 3."
+    },
+    {
+      "id": "plan",
+      "title": "Order + rhythm",
+      "run": ["uv", "run", "scripts/montage_mode.py", "{work}", "plan", "--dur", "30", "--shot", "1.5"],
+      "needs": ["build/montage-plan.json"]
+    },
+    {
+      "id": "build",
+      "title": "Render the montage",
+      "run": ["uv", "run", "scripts/montage_mode.py", "{work}", "build", "{work}/build/montage-raw.mp4"],
+      "needs": ["build/montage-plan.json"],
+      "makes": ["build/montage-raw.mp4"]
+    },
+    {
+      "id": "master",
+      "title": "Audio mastering + background track (-14 LUFS)",
+      "run": ["bash", "scripts/master_audio.sh", "{work}", "{work}/build/montage-raw.mp4", "{work}/video-final.mp4"],
+      "needs": ["build/montage-raw.mp4", "rush/bg-audio.mp3"],
+      "makes": ["video-final.mp4"]
+    }
+  ]
+}
