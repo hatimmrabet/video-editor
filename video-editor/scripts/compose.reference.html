@@ -25,6 +25,11 @@ function init(d){
   if(typeof t.badge==='boolean') BADGE_UNTIL=t.badge?3:0;   /* back-compat: projects that wrote badge:false */
   if(typeof t.grid==='boolean') GRID=t.grid;
   if(d.transitions){ TX=Object.assign({},TX,d.transitions); TR=TX.sceneToScene.duration; }
+  if(d.motifs){ for(const n in d.motifs){ const m={exports:{}};
+    /* trusted skill file (scripts/motifs/canvas/<n>.js), read + injected by render_frames.js */
+    new Function('module','exports',d.motifs[n])(m,m.exports); MOTIFS[n]=m.exports; } }
+  if(d.schedule){ SCENES=d.schedule.map(e=>({s:e.s,e:e.e,m:MODES[e.m]||R_FULL,transition:e.transition,gb:e.gb})); _RES=false; }
+  if(d.scenes) SCENELIST=d.scenes;
   if(t.logo){const L=document.getElementById('LOGO'); if(L.getAttribute('src')!==t.logo) L.src=t.logo;}
   if(FONT!=='Cairo'){const l=document.createElement('link');l.rel='stylesheet';
     l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(FONT)+':wght@400;600;700;800;900&display=swap';
@@ -77,12 +82,17 @@ const R_LOWER={x:350,y:1370,w:380,h:520,r:32};   /* small card at the bottom —
    middle + graphic above the head + caption below = three focus points, the viewer gets
    lost). R_STAGE/R_SIDE remain only for back-compat. */
 const R_DOWN={x:214,y:760,w:652,h:1160,r:40};
-const SCENES=[
+let SCENES=[
  {s:0.00,e:3.32,m:R_FULL},{s:3.32,e:8.00,m:R_DOWN},{s:8.00,e:11.45,m:R_FULL},
  {s:11.45,e:15.36,m:R_DOWN},{s:15.36,e:18.56,m:R_DOWN},{s:18.56,e:20.42,m:R_FULL},
  {s:20.42,e:25.76,m:R_FULL},{s:25.76,e:28.35,m:R_DOWN},{s:28.35,e:30.75,m:R_FULL},
  {s:30.75,e:34.90,m:R_DOWN},{s:34.90,e:38.38,m:R_DOWN},{s:38.38,e:39.76,m:R_FULL},
  {s:39.76,e:42.82,m:R_DOWN},{s:42.82,e:99,m:R_FULL}];
+/* scenes-as-data (issue #17): when render_frames.js injects a resolved config/scenes.json,
+   SCENES is rebuilt from d.schedule and SCENELIST/MOTIFS drive drawScenes(t). No file →
+   all null → the inline SCENES + the hardcoded scene functions run exactly as before. */
+const MODES={FULL:R_FULL,DOWN:R_DOWN,LOWER:R_LOWER};
+let SCENELIST=null, MOTIFS={};
 let TR=0.42;   /* = TX.sceneToScene.duration; init() syncs it. panelIn() still reads it. */
 /* The flexible card: shrinks proportionally (9:16) based on the graphic's bottom (gb) and
    the caption's line count at that moment — so nothing crowds anything else */
@@ -242,6 +252,39 @@ function safe(fn,t,name){
   finally{ X.restore(); }
 }
 window.__helpers={rr,sh,nsh,card,T,pr,ease,eio,back,lerp,cl};
+
+/* ---------- scenes-as-data interpreter (issue #17) ---------- */
+/* The helper bag every motif gets as ctx.fx — see scripts/motifs/README.md */
+const FX={rr,sh,nsh,T,rgba,lum,onACC:h=>lum(h||ACC)>0.45?INK:'#FFFFFF',pr,ease,eio,back,lerp,cl,ez};
+const _tdur=(v,d)=>typeof v==='number'?v:(v&&typeof v.duration==='number'?v.duration:d);
+const _teas=(v,d)=>(v&&v.easing)||d;
+function drawScenes(t){
+  if(!SCENELIST) return;
+  for(const sc of SCENELIST){
+    if(!sc.motif||t<sc.s||t>=sc.e) continue;
+    const fn=MOTIFS[sc.motif]; if(typeof fn!=='function') continue;
+    safe(()=>{
+      const tm=sc.timing||{};
+      const inD=Math.max(0.001,_tdur(tm.in,TX.sceneEnter.duration));
+      const outD=Math.max(0.001,_tdur(tm.out,TX.sceneExit.duration));
+      const enter=cl((t-sc.s)/inD,0,1), exit=cl((t-(sc.e-outD))/outD,0,1);
+      const words=sc.words||[];
+      let hold=1, wordIndex=-1;
+      if(tm.hold==='words'&&words.length) wordIndex=words.reduce((n,w)=>t>=w.s?n+1:n,-1);
+      else if(typeof tm.hold==='number') hold=cl((t-sc.s-inD)/Math.max(0.001,tm.hold),0,1);
+      const eA=ez(_teas(tm.in,'ease'))(enter), xA=ez(_teas(tm.out,'linear'))(exit);
+      const riseY=(1-eA)*((tm.in&&typeof tm.in.y==='number')?tm.in.y:TX.sceneEnter.params.y);
+      X.save();
+      X.globalAlpha*=eA*(1-xA);
+      X.translate(0,riseY);
+      fn({X,t,enter,exit,hold,words,wordIndex,rect:vrect(t),
+          theme:{bg:BG,ink:INK,acc:ACC,clay:CLAY,mut:MUT,font:FONT,handle:HANDLE},
+          params:sc.params||{},fx:FX});
+      X.restore();
+    },t,sc.motif);
+  }
+}
+window.drawScenes=drawScenes;
 
 /* ═══ Speech passing behind the person — Arabic kashida ═══
    Data from behind.json (built by fx/behind_text.js). The letters stay on both
@@ -746,10 +789,11 @@ function draw(t){
   if(t<VEND&&_ho){safe(headOut,t,'headout');}
   if(t<VEND&&!_cut&&!_ho){safe(drawVideo,t,'video');safe(behindText,t,'behind');if(typeof glitch==='function')safe(glitch,t,'glitch');}
   badge(t);bar(t);
-  [['stamp',stamp],['chips',chips],['fileToCloud',fileToCloud],['transcript',transcript],
+  if(SCENELIST){ drawScenes(t); }
+  else{ [['stamp',stamp],['chips',chips],['fileToCloud',fileToCloud],['transcript',transcript],
    ['cardStack',cardStack],['suspense',suspense],['syncViz',syncViz],['price',price],
    ['rtlBug',rtlBug],['rtlFix',rtlFix],['solved',solved],['oneFile',oneFile],
-   ['commentBox',commentBox]].forEach(x=>safe(x[1],t,x[0]));
+   ['commentBox',commentBox]].forEach(x=>{if(typeof x[1]==='function')safe(x[1],t,x[0]);}); }
   if(_cut) safe(personStage,t,'cutout');   /* they're in front of the board */
   safe(caption,t,'caption'); safe(outro,t,'outro');
 }

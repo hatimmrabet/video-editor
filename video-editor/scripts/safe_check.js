@@ -12,6 +12,7 @@
 const path=require('path'), fs=require('fs');
 const {fileUrl,launchOptions,resolvePuppeteer}=require('./lib/platform');
 const {load:loadConfig}=require('./lib/config');
+const {load:loadScenes}=require('./lib/scenes');   // config/scenes.json → the video-rect schedule (issue #17)
 const W=path.resolve(process.argv[2])+path.sep;
 const SHOT=process.argv.includes('--shot');
 const CFG=JSON.parse(fs.readFileSync(W+'build/sound-cues.json','utf8'));
@@ -64,7 +65,7 @@ const FLAT_B='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2
   const FF=THEME.font||'Cairo';
   await p.evaluate(()=>new Promise(r=>{const l=document.getElementById('LOGO');
     if(!l||l.complete)return r(); l.onload=r; l.onerror=r; setTimeout(r,3000);}));
-  await p.evaluate((c,o,t)=>window.init({cards:c.cards,total:c.total,outro:o,theme:t}),caps,OUT_D,THEME);
+  await p.evaluate((c,o,t,sch)=>window.init({cards:c.cards,total:c.total,outro:o,theme:t,schedule:sch}),caps,OUT_D,THEME,loadScenes(W).schedule);
   /* ⚠️ after init, not before — the non-Cairo font is injected inside init (same bug as #4) */
   await p.evaluate(async f=>{
     const W=['400','600','700','800','900'];

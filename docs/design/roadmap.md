@@ -134,7 +134,12 @@ to English — both cosmetic cleanup, pick up whenever.)*
   manifest: `{status, kind, bottom, from, params}`), `README.md` (the `ctx` contract),
   `canvas/` + `remotion/`. `stamp` implemented on both engines as the reference; the other
   ten are `status: "planned"` until #19.
-- Light-engine interpreter (#17, inside `safe()`); Remotion `<Scene>` dispatcher (#18).
+- ✅ **Light-engine interpreter** (#17) — `lib/scenes.{py,js}` resolves `config/scenes.json`
+  against `build/captions.json`; `render_frames.js` injects `{scenes, schedule}` + the used
+  canvas motif sources; `compose.html` rebuilds `SCENES` from `schedule` and `drawScenes(t)`
+  dispatches to motifs inside `safe()`. `safe_check.js` takes the `schedule` too. Gated on
+  the file — byte-identical raw-canvas render without it.
+- Remotion `<Scene>` dispatcher (#18).
 - Port the reference functions to motifs, one at a time, each with a 3-way visual diff (#19).
 - `studio.html` renders the scene list, drops its private drawing copy (#20).
 - **Done when:** a new video is authored as a `config/scenes.json` with zero inline JS/JSX,

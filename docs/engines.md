@@ -94,7 +94,12 @@ The bottom of the file (`/* ===== SCENE GRAPHICS ===== */`) has ~15 named functi
 **hardcoded for one specific reference video** (`stamp`, `chips`, `fileToCloud`,
 `transcript`, `cardStack`, `suspense`, `syncViz`, `price`, `glitch`, `rtlBug`, `rtlFix`,
 `solved`, `oneFile`, `commentBox`, `outro`), each `function name(t){ if(t<X||t>Y) return; … }`
-with baked-in timestamps. `draw(t)` calls them all through `safe(...)`.
+with baked-in timestamps. `draw(t)` calls them all through `safe(...)` — **unless a
+`config/scenes.json` is present** (Pass 4, issue #17): then `render_frames.js` injects the
+resolved scene list + `schedule` + the used `motifs/canvas/*.js` sources, `SCENES` is
+rebuilt from the schedule, and `draw(t)` runs `drawScenes(t)` — dispatching to the motifs
+inside `safe()` — instead of the hardcoded list. See
+[design/scenes-as-data.md](design/scenes-as-data.md).
 
 **"Invent scenes per video" means:** per video the model copies
 `compose.reference.html` → `<work>/compose.html`, rewrites the `SCENES` array, **deletes
