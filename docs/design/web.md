@@ -1,9 +1,11 @@
 # Web interface — a local UI over `run.py`
 
 Status: **in progress (Pass 7).** Design locked (#24). Built: #96 (`run.py --dry --json`),
-#97 (`scripts/web.py` — the server + all endpoints), #98 (`POST /run` streams `run.py`
-output over SSE). Remaining: #99 (the SPA), #100–#102 (the checkpoint screens), #103
-(montage / long-form flows). Spec + implementation plan for roadmap
+#97 (`scripts/web.py` — the server + all endpoints), #98 (`POST /run` SSE), #99 (the SPA
+shell — `scripts/web/`, no build step: project list/create, config form, drop zone,
+state-driven stage list + Run button + live log, Result view; checkpoint panels stubbed
+for #100–#102). Remaining: #100–#102 (the real checkpoint screens), #103 (montage /
+long-form flows). Spec + implementation plan for roadmap
 Pass 7, the capstone. It assumes Pass 5 ([`run.py`](orchestrator.md)) and, ideally, Pass 4
 (`config/scenes.json`) exist — both do.
 
@@ -140,8 +142,10 @@ is an alternative front end, not a replacement).
 3. ✅ **`POST /run` streaming** (#98) — `Popen` `run.py` with `PYTHONUNBUFFERED=1`;
    `event: line` per output line (the child stage output too), `event: done` `{exit}`;
    client disconnect → `proc.terminate()`. `?from=&to=&only=&force=`. Verified live.
-4. **The SPA shell** (#99) — drop zone, project list, the config form, the state-driven
-   screen router.
+4. ✅ **The SPA shell** (#99) — `scripts/web/` (vanilla, no build). Project list/create,
+   config form (live `GET/PUT /config`), drop zone, state-driven stage list + Run button
+   streaming the SSE log, Result view. Checkpoint panels stubbed (config real). Verified
+   headless: list → create → config + drop zone → upload → 16-stage pipeline renders.
 5. **Checkpoint screens: transcript + trim** (#100) — the two blocking text decisions.
 6. **Checkpoint screen: scenes** (#101) — motif dropdown + params form + per-window
    preview. *(+ area:scenes)*
