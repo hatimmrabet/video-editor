@@ -14,6 +14,13 @@ const el = (tag, attrs = {}, ...kids) => {
   return n;
 };
 
+const pfile = rel => `/projects/${S.pid}/file/${rel}`;
+async function getFile(rel) {
+  const r = await fetch(pfile(rel));
+  if (!r.ok) return null;
+  try { return JSON.parse(await r.text()); } catch { return null; }
+}
+
 async function api(method, path, body, opts = {}) {
   const r = await fetch(path, {
     method,
@@ -111,9 +118,16 @@ function render() {
   parts.push(stageList(stages));
   const nextId = S.state.next;
   const next = stages.find(s => s.id === nextId);
-  if (!nextId) parts.push(resultPanel());
-  else if (next && next.checkpoint) parts.push(checkpointPanel(next));
-  else parts.push(runPanel(nextId, "Run the pipeline"));
+  if (!nextId) {
+    parts.push(resultPanel());
+  } else if (next && next.checkpoint) {
+    const holder = el("div", {}, el("p", { class: "muted" }, "loading…"));
+    parts.push(holder);
+    Promise.resolve(checkpointPanel(next)).then(n => holder.replaceWith(n))
+      .catch(e => holder.replaceWith(el("p", { class: "err" }, String(e))));
+  } else {
+    parts.push(runPanel(nextId, "Run the pipeline"));
+  }
   app.replaceChildren(...parts);
 }
 
@@ -188,31 +202,111 @@ function runPanel(toId, label) {
   return el("div", {}, log, btn);
 }
 
-function checkpointPanel(cp) {
-  const done = {
-    "transcript-fix": "screen coming in #100 — for now, correct build/transcript-raw.json → build/transcript-fixes.json in the terminal",
-    "script-review": "screen coming in #100 — run `edit_script.py show` / `drop` in the terminal, or skip",
-    "scenes": "screen coming in #101 — author config/scenes.json in the terminal, or skip for a captions-only reel",
-    "sound-cues": "screen coming in #102 — write build/sound-cues.json ({\"outro\": <seconds>}) in the terminal",
-    "tighten": "run `tighten.py <work>` then `tighten.py <work> apply` in the terminal",
-    "chapters": "optional — write config/chapters.json in the terminal, or skip",
-    "broll": "optional — put clips in rush/broll/ + write config/broll.json, or skip",
-  }[cp.id] || "do this step, then Run again";
+/* a Run-up-to-here button + live log, shared by the checkpoint panels */
+function runHere(label = "Continue") {
   const log = el("pre", { class: "log", style: "display:none" });
-  const runBtn = el("button", { onclick: async () => {
-    runBtn.disabled = true; log.style.display = "block"; log.textContent = "";
+  const btn = el("button", { onclick: async () => {
+    btn.disabled = true; log.style.display = "block"; log.textContent = "";
     await runStream("", t => { log.textContent += t + "\n"; log.scrollTop = log.scrollHeight; },
-      () => { runBtn.disabled = false; setTimeout(refresh, 300); });
-  } }, "Run up to here");
-  return el("div", {},
-    el("h3", {}, "next: " + cp.title),
-    el("div", { class: "card" },
-      el("p", {}, cp.note || ""),
-      el("p", { class: "muted" }, done),
-      el("div", { class: "row" },
-        runBtn,
-        el("button", { class: "ghost", onclick: refresh }, "I did it — re-check"))),
-    log);
+      () => { btn.disabled = false; setTimeout(refresh, 300); });
+  } }, label);
+  return { log, btn, node: el("div", {}, el("div", { class: "row" }, btn,
+    el("button", { class: "ghost", onclick: refresh }, "re-check")), log) };
+}
+
+function checkpointPanel(cp) {
+  if (cp.id === "transcript-fix") return transcriptPanel(cp);
+  if (cp.id === "script-review") return trimPanel(cp);
+  const hint = {
+    scenes: "author config/scenes.json (screen #101) — or Continue for a captions-only reel",
+    "sound-cues": "write build/sound-cues.json — at least {\"outro\": <seconds>} (screen #102)",
+    tighten: "run `tighten.py <work>` then `tighten.py <work> apply` in the terminal",
+    chapters: "optional — write config/chapters.json in the terminal, or Continue",
+    broll: "optional — put clips in rush/broll/ + config/broll.json, or Continue",
+  }[cp.id] || "do this step, then Continue";
+  const r = runHere("Continue");
+  return el("div", {}, el("h3", {}, "next: " + cp.title),
+    el("div", { class: "card" }, el("p", {}, cp.note || ""),
+      el("p", { class: "muted" }, hint), r.node));
+}
+
+/* --- transcript correction (HALT transcript-fix) --- */
+async function transcriptPanel(cp) {
+  const box = el("div", {}, el("h3", {}, "correct the transcript"));
+  const raw = await getFile("build/transcript-raw.json");
+  if (!raw || !raw.segments) {
+    box.append(el("p", { class: "muted" }, "waiting for build/transcript-raw.json — run to here first."));
+    box.append(runHere("Transcribe").node);
+    return box;
+  }
+  const rows = raw.segments.map(seg => {
+    const want = (seg.words || []).length;
+    const inp = el("input", { value: (seg.words || []).map(w => w.word).join(" ").trim() || (seg.text || "").trim() });
+    const cnt = el("span", { class: "pill" });
+    const upd = () => {
+      const got = inp.value.trim().split(/\s+/).filter(Boolean).length;
+      cnt.textContent = got + " / " + want;
+      cnt.style.color = got === want ? "var(--mut)" : "var(--err)";
+      save.disabled = rows.some(x => x.bad());
+    };
+    inp.addEventListener("input", upd);
+    const row = { inp, want, bad: () => inp.value.trim().split(/\s+/).filter(Boolean).length !== want, upd };
+    box.append(el("div", { class: "row", style: "margin:4px 0" }, el("span", { class: "grow" }, inp), cnt));
+    return row;
+  });
+  const hot = el("input", { placeholder: "hot words (comma-separated, get the accent pill)" });
+  const save = el("button", { onclick: async () => {
+    save.disabled = true;
+    await api("PUT", `/projects/${S.pid}/decision/transcript-fixes`, {
+      fix: rows.map(r => r.inp.value.trim().split(/\s+/).filter(Boolean)),
+      hot: hot.value.split(",").map(s => s.trim()).filter(Boolean),
+    });
+    refresh();
+  } }, "Save & continue");
+  box.append(el("label", {}, "hot words"), hot, el("div", { style: "margin-top:12px" }, save));
+  rows.forEach(r => r.upd());
+  return box;
+}
+
+/* --- drop sentences (CHECKPOINT script-review) --- */
+const norm = w => w.toLowerCase().replace(/[ً-ْـ]/g, "")
+  .replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي");
+function similar(a, b) {
+  const sa = new Set(a.map(norm)), sb = new Set(b.map(norm));
+  let shared = 0; for (const w of sa) if (sb.has(w)) shared++;
+  return shared / Math.min(sa.size, sb.size || 1);
+}
+async function trimPanel(cp) {
+  const box = el("div", {}, el("h3", {}, "review the script — drop repeated or unwanted sentences"));
+  const caps = await getFile("build/captions.json");
+  if (!caps || !caps.cards) {
+    box.append(el("p", { class: "muted" }, "waiting for build/captions.json."));
+    box.append(runHere("Build captions").node);
+    return box;
+  }
+  const words = caps.cards.map(c => c.w.map(w => w.t));
+  const dupes = new Set();
+  for (let i = 0; i < words.length - 1; i++)
+    for (let j = i + 1; j <= Math.min(i + 2, words.length - 1); j++)
+      if (similar(words[i], words[j]) >= 0.6) { dupes.add(i); break; }
+  const boxes = caps.cards.map((c, i) => {
+    const cb = el("input", { type: "checkbox", checked: "" });
+    box.append(el("label", { class: "row", style: "margin:3px 0; cursor:pointer" },
+      cb, el("span", { class: "grow" }, `${i + 1}. ${c.w.map(w => w.t).join(" ")}`),
+      dupes.has(i) ? el("span", { class: "pill", style: "color:var(--warn)" }, "looks repeated") : ""));
+    return cb;
+  });
+  if (dupes.size) box.querySelector("h3").after(
+    el("p", { class: "muted" }, "Highlighted rows look like a restatement of a nearby sentence — usually the first one is the mistake."));
+  const apply = el("button", { onclick: async () => {
+    const drop = boxes.map((cb, i) => cb.checked ? 0 : i + 1).filter(Boolean);  // edit_script.py is 1-indexed
+    apply.disabled = true;
+    if (drop.length) await api("POST", `/projects/${S.pid}/edit`, { op: "drop", sentences: drop });
+    refresh();
+  } }, "Apply & continue");
+  const r = runHere("Continue (nothing to drop)");
+  box.append(el("div", { class: "row", style: "margin-top:12px" }, apply), r.node);
+  return box;
 }
 
 function resultPanel() {
