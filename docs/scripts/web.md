@@ -35,7 +35,7 @@ deliverable) — a project made in the UI is fully usable from the CLI and vice-
 | `PUT /projects/<id>/decision/<name>` | write a decision file — `name` ∈ `transcript-fixes` · `sound-cues` · `scenes` · `chapters` · `broll` |
 | `POST /projects/<id>/edit` `{op, sentences}` | shell `edit_script.py` (`op` ∈ drop / keep / undo) |
 | `GET /projects/<id>/state` | parsed `run.py <work> --json` |
-| `POST /projects/<id>/run` `?from=&to=` | run `run.py` — **blocking** in #97; SSE-streamed in #98 |
+| `POST /projects/<id>/run` `?from=&to=&only=&force=` | spawn `run.py`, stream output as **SSE** — `event: line` per output line, `event: done` `{exit}` at the end. Closing the connection kills the run. |
 | `GET /projects/<id>/file/<path>` | serve a `build/` or root artifact, **path-jailed** to the work dir |
 
 ## Security
@@ -49,8 +49,8 @@ deliverable) — a project made in the UI is fully usable from the CLI and vice-
 ## Cross-platform
 
 Pure stdlib `http.server` + `subprocess`. Spawns `uv run scripts/run.py` /
-`edit_script.py` with `cwd` = the skill dir. `web.sh` sources `lib/platform.sh` for
-`VEVO_SKILL_DIR`.
+`edit_script.py` with `cwd` = the skill dir; the `/run` stream sets `PYTHONUNBUFFERED=1`
+so lines arrive live. `web.sh` sources `lib/platform.sh` for `VEVO_SKILL_DIR`.
 
 ## Place in the flow
 

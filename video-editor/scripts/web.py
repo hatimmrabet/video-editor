@@ -14,7 +14,7 @@ run.py and the same scripts the CLI uses — it does NOT re-implement any pipeli
 Projects are normal work dirs under  ~/.video-editor/projects/<slug>/  (override with
 VEVO_PROJECTS_DIR), so a project made here is fully usable from the CLI and vice-versa.
 
-Endpoints (issue #97; POST /run streams over SSE in #98, the SPA is #99):
+Endpoints (issues #97 / #98; the SPA is #99):
   GET  /                              the SPA (scripts/web/index.html) or a placeholder
   GET  /health
   GET  /projects                      list
@@ -25,7 +25,8 @@ Endpoints (issue #97; POST /run streams over SSE in #98, the SPA is #99):
   PUT  /projects/<id>/decision/<name> write a decision file (allow-listed)
   POST /projects/<id>/edit  {op, sentences}   -> shells edit_script.py
   GET  /projects/<id>/state           parsed `run.py --json`
-  POST /projects/<id>/run   ?from=&to=   run run.py (blocking; #98 makes it SSE)
+  POST /projects/<id>/run   ?from=&to=&only=&force=   run run.py, stream output as SSE
+                                     (`event: line` per line, `event: done` {exit})
   GET  /projects/<id>/file/<path>     serve a build/ or root artifact, path-jailed
 """
 import json
@@ -110,6 +111,33 @@ class H(BaseHTTPRequestHandler):
 
     def log_message(self, *a):
         pass  # quiet
+
+    def _stream_run(self, work, args):
+        """POST /run — spawn run.py and stream its output as Server-Sent Events.
+        `data:` events carry one output line each; a final `event: done` carries the
+        exit code. Killing the browser kills the run."""
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "close")
+        self.end_headers()
+
+        def emit(ev, obj):
+            self.wfile.write(("event: %s\ndata: %s\n\n" % (ev, json.dumps(obj))).encode("utf-8"))
+            self.wfile.flush()
+
+        proc = subprocess.Popen(
+            ["uv", "run", "scripts/run.py", work, *args],
+            cwd=SKILL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, encoding="utf-8", errors="replace", bufsize=1,
+            env=dict(os.environ, PYTHONUNBUFFERED="1"))
+        try:
+            for line in proc.stdout:
+                emit("line", {"text": line.rstrip("\n")})
+            proc.wait()
+            emit("done", {"exit": proc.returncode})
+        except (BrokenPipeError, ConnectionResetError):
+            proc.terminate()  # the client went away
 
     # ---- routing ----
     def do_GET(self):    self._route("GET")
@@ -246,13 +274,12 @@ class H(BaseHTTPRequestHandler):
 
         if sub == "/run" and method == "POST":
             args = []
-            if q.get("from"):
-                args += ["--from", q["from"]]
-            if q.get("to"):
-                args += ["--to", q["to"]]
-            r = _run_py(work, *args)
-            return self._send(200, {"exit": r.returncode,
-                                    "output": (r.stdout or "") + (r.stderr or "")})
+            for k in ("from", "to", "only"):
+                if q.get(k):
+                    args += ["--" + k, q[k]]
+            if q.get("force"):
+                args.append("--force")
+            return self._stream_run(work, args)
 
         fm = re.match(r"^/file/(.+)$", sub)
         if fm and method == "GET":
