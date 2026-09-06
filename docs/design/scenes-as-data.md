@@ -97,19 +97,21 @@ A **motif** is a parameterized scene type, implemented **once per engine** and s
 name. Generalize the ~15 reference scene functions in `compose.reference.html` into a
 starter set:
 
-| Motif | Generalized from | Params (sketch) |
-|---|---|---|
-| `counter` | `price` | `to`, `from`, `prefix`, `suffix`, `settle` |
-| `card-stack` | `chips`, `cardStack` | `items[]`, `columns`, `checkmark` |
-| `checklist` | `solved` | `items[]`, `tickPerWord` |
-| `transcript-panel` | `transcript` | `lines[]` (or pull from `build/captions.json`) |
-| `file-merge` | `fileToCloud`, `oneFile` | `sources[]`, `targetLabel` |
-| `glitch` | `glitch` | `intensity`, `slices` — a `VideoOverlay` motif (drawn on the video) |
-| `stamp` | `stamp` | `text`, `rotation` |
-| `quote` / `title-chip` | `titleChip` | `text` |
-| `comment-box` | `commentBox` | `word`, `avatar` |
-| `sync-viz` | `syncViz` | — |
-| `suspense` | `suspense` | — |
+The authoritative list + status is [`scripts/motifs/index.json`](../../video-editor/scripts/motifs/index.json).
+
+| Motif | Generalized from | Status | Params |
+|---|---|---|---|
+| `stamp` | `stamp` | ✅ #16 | `text`, `lead`, `rotation`, `ring` |
+| `counter` | `price` | ✅ #19 | `title`, `from`, `to`, `prefix`, `suffix`, `decimals`, `settleAt`, `scramble` |
+| `quote` | `titleChip` | ✅ #19 | `text`, `accent`, `y` |
+| `card-stack` | `chips`, `cardStack` | planned | `items[]`, `columns`, `checkmark` |
+| `checklist` | `solved` | planned | `items[]`, `tickPerWord` |
+| `transcript-panel` | `transcript` | planned | `lines[]` (or pull from `build/captions.json`) |
+| `file-merge` | `fileToCloud`, `oneFile` | planned | `sources[]`, `targetLabel` |
+| `glitch` | `glitch` | planned | `intensity`, `slices` — an `overlay` motif (drawn on the video) |
+| `comment-box` | `commentBox` | planned | `word`, `avatar` |
+| `sync-viz` | `syncViz` | planned | — |
+| `suspense` | `suspense` | planned | — |
 
 Registry shape:
 
@@ -177,8 +179,10 @@ must change incompatibly gets a new name.
    `SCENES`; `Ad.tsx` renders `<SceneList>` (the dispatcher — mirror of `drawScenes`) when
    `SCENES` is set, else the hand-written `Scenes.tsx`. Timing math verified equal to the
    light engine's.
-3. #19 ports the reference scene functions to motifs one at a time, each with a 3-way visual
-   diff (canvas render vs Remotion render vs the original reference).
+3. 🟡 #19 ports the reference scene functions to motifs one at a time (canvas + Remotion +
+   a 3-way visual diff). Done: `counter`, `quote` (`stamp` was #16). Remaining: `card-stack`,
+   `checklist`, `transcript-panel`, `file-merge`, `glitch`, `comment-box`, `sync-viz`,
+   `suspense`.
 4. #20 points `studio.html` at the interpreter and drops its private drawing copy.
 5. Once the starter set is covered, `config/scenes.json` becomes the documented default and
    the inline reference functions move to `scripts/motifs/` history.

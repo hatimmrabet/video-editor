@@ -274,10 +274,11 @@ function drawScenes(t){
       else if(typeof tm.hold==='number') hold=cl((t-sc.s-inD)/Math.max(0.001,tm.hold),0,1);
       const eA=ez(_teas(tm.in,'ease'))(enter), xA=ez(_teas(tm.out,'linear'))(exit);
       const riseY=(1-eA)*((tm.in&&typeof tm.in.y==='number')?tm.in.y:TX.sceneEnter.params.y);
+      const prog=cl((t-sc.s)/Math.max(0.001,sc.e-sc.s),0,1);
       X.save();
       X.globalAlpha*=eA*(1-xA);
       X.translate(0,riseY);
-      fn({X,t,enter,exit,hold,words,wordIndex,rect:vrect(t),
+      fn({X,t,prog,enter,exit,hold,words,wordIndex,rect:vrect(t),
           theme:{bg:BG,ink:INK,acc:ACC,clay:CLAY,mut:MUT,font:FONT,handle:HANDLE},
           params:sc.params||{},fx:FX});
       X.restore();

@@ -10,11 +10,11 @@
       "params": { "text": "string", "lead": "string", "rotation": "number", "ring": "boolean" }
     },
     "counter": {
-      "status": "planned",
+      "status": "implemented",
       "kind": "scene",
       "bottom": 520,
       "from": "price",
-      "params": { "to": "number", "from": "number", "prefix": "string", "suffix": "string", "settle": "number" }
+      "params": { "title": "string", "from": "number", "to": "number", "prefix": "string", "suffix": "string", "decimals": "number", "settleAt": "number", "scramble": "boolean" }
     },
     "card-stack": {
       "status": "planned",
@@ -52,11 +52,11 @@
       "params": { "intensity": "number", "slices": "number" }
     },
     "quote": {
-      "status": "planned",
+      "status": "implemented",
       "kind": "scene",
-      "bottom": 320,
+      "bottom": 260,
       "from": "titleChip",
-      "params": { "text": "string" }
+      "params": { "text": "string", "accent": "boolean", "y": "number" }
     },
     "comment-box": {
       "status": "planned",

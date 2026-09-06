@@ -31,10 +31,10 @@ Full schema — [data-contracts.md](../data-contracts.md#scriptsmotifsindexjson-
 
 ## Status
 
-`stamp` is implemented (canvas + Remotion) as the reference motif for the #17 / #18
-interpreters. The other ten (`counter`, `card-stack`, `checklist`, `transcript-panel`,
-`file-merge`, `glitch`, `quote`, `comment-box`, `sync-viz`, `suspense`) are declared in
-`index.json` with `status: "planned"` and get ported one at a time in **#19**.
+`stamp` (#16), `counter` and `quote` (#19) are implemented (canvas + Remotion). The other
+eight (`card-stack`, `checklist`, `transcript-panel`, `file-merge`, `glitch`, `comment-box`,
+`sync-viz`, `suspense`) are declared in `index.json` with `status: "planned"` and get
+ported one at a time, still under **#19**.
 
 ## The `ctx` contract
 
