@@ -1,10 +1,12 @@
 # `long-form` — the YouTube world
 
-Status: **in progress (Pass 6) — the pipeline runs end to end.** Built: #84 world switch,
-#85 `tighten.py` + `scripts/fillers.json`, #86 `reframe.py` 16:9 branch, #87
-`assemble_longform.py` (B-roll overlays / remux → `build/video-raw.mp4`), #88 chapters
-(`config/chapters.json` → `subtitles.py` → `video-final.chapters.txt`). Remaining: the
-`SKILL.md` long-form section (#89).
+Status: **Pass 6 complete** (#84–#89). #84 world switch, #85 `tighten.py` +
+`scripts/fillers.json`, #86 `reframe.py` 16:9 branch, #87 `assemble_longform.py` (B-roll
+overlays / remux), #88 chapters (`config/chapters.json` → `video-final.chapters.txt`), #89
+the `SKILL.md` "Long-form mode" section. `run.py` conducts the whole thing; the four
+decision points (transcript, tighten, chapters, B-roll) are in `SKILL.md`. Not yet
+verified: a full run on a real ≥ 20-minute recording (Whisper + a real edit) — the pieces
+are each tested on fixtures.
 
 This page is the spec + implementation plan for roadmap Pass 6. It builds on
 [worlds.md](worlds.md#long-form--new-youtube) and resolves that section's three open
@@ -212,8 +214,10 @@ mode we can add once the world exists.
    `lib/scenes._resolve_ref`); `subtitles.py` sorts, forces the first to `00:00`, writes
    `video-final.chapters.txt` (`MM:SS Title`), warns on < 3 or < 10 s apart. No file → no
    change.
-6. **`SKILL.md` — the `long-form` flow** (#89) — a new top-level section (like "Montage
-   mode"), the checkpoints, the "propose chapters / propose B-roll" conversation.
-   *(area:docs)*
+6. ✅ **`SKILL.md` — the `long-form` flow** (#89) — new "Long-form mode" section (7 steps
+   + the four checkpoints + the propose-chapters / propose-B-roll conversation + the
+   long-form rules); "Three modes" table; `format:"long"` trigger phrases in the
+   `description`; the new scripts in the script map.
 
-Ship 1–5 as code with a real ≥ 5-minute recording run end-to-end; 6 lands with them.
+**Pass 6 done.** Owed: one full run on a real ≥ 20-minute recording — each piece is
+fixture-tested; the end-to-end Whisper-through-delivery run is not.

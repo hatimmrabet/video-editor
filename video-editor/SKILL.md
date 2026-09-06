@@ -1,6 +1,6 @@
 ---
 name: video-editor
-description: Turns a talking-to-camera video (selfie / teleprompter) into a full vertical 9:16 ad — removes the silences, transcribes the speech with per-word timing, adds synced Arabic captions, builds code-drawn motion graphics and B-roll scenes, and an end card with a call to interact — all in the content creator's own colors. It also has a second montage mode: a folder of speechless clips (cafés, travel, a product, a place) — it picks the best moment of each clip and assembles them into one rhythmic montage. ALWAYS use this skill when the user says "منتج هذا المقطع", "سو من هذا الفيديو إعلان", "شيّل السكتات", "حوّل الفيديو لريل", "ركّب كابشن عربي", "ابي موشن قرافيكس على الفيديو", "اقص الصمت", "عندي ٣٠ مقطع سوّ لي منها فيديو", "ركّب لي مونتاج من هالمقاطع", "اختار أحلى اللقطات", or the English equivalents ("edit this clip into an ad", "turn this video into a reel", "remove the silences / dead air", "add Arabic captions", "make a montage from these clips", "pick the best shots"), or sends a talking video or a folder of clips and asks for an edit or an ad. NOT for carousels (use carousel-creator) or video covers (use animated-video-cover).
+description: Turns a talking-to-camera video (selfie / teleprompter) into a full vertical 9:16 ad — removes the silences, transcribes the speech with per-word timing, adds synced Arabic captions, builds code-drawn motion graphics and B-roll scenes, and an end card with a call to interact — all in the content creator's own colors. It also has a second montage mode: a folder of speechless clips (cafés, travel, a product, a place) — it picks the best moment of each clip and assembles them into one rhythmic montage. And a third long-form mode: one or more long talking recordings become an edited 16:9 YouTube video — pauses and filler words cut tight, chapter markers, optional B-roll cutaways, soft subtitles. ALWAYS use this skill when the user says "منتج هذا المقطع", "سو من هذا الفيديو إعلان", "شيّل السكتات", "حوّل الفيديو لريل", "ركّب كابشن عربي", "ابي موشن قرافيكس على الفيديو", "اقص الصمت", "عندي ٣٠ مقطع سوّ لي منها فيديو", "ركّب لي مونتاج من هالمقاطع", "اختار أحلى اللقطات", "سو من هذا مقطع يوتيوب", "قص السكتات من المحاضرة", "حط فهرس فصول", or the English equivalents ("edit this clip into an ad", "turn this video into a reel", "remove the silences / dead air", "add Arabic captions", "make a montage from these clips", "pick the best shots", "edit this into a YouTube video", "tighten this talk", "cut the pauses out of this lecture", "add chapters"), or sends a talking video, a folder of clips, or a long recording and asks for an edit. NOT for carousels (use carousel-creator) or video covers (use animated-video-cover).
 ---
 
 # Video ad montage — no editing app
@@ -11,19 +11,23 @@ The whole edit is code: ffmpeg cuts, Whisper transcribes with per-word timing, a
 drawing engine composites the captions and motion graphics over the video. The output is
 one publish-ready MP4.
 
-## Two modes — decide which one you're in, in your first line
+## Three modes — decide which one you're in, in your first line
 
-| | **Speech ad** (default) | **Clip montage** |
-|---|---|---|
-| Input | one video of a person talking | a folder with many speechless clips |
-| Example | selfie · teleprompter · explainer | café · trip · product · place · event |
-| Selection driven by | the speech (you remove silences and repeated sentences) | the shot itself (sharpness · motion · lighting) |
-| Captions? | yes, word-synced | **no** — no transcription at all |
-| Steps | 0–11 below | the "Montage mode" section, on its own |
+| | **Speech ad** (default) | **Clip montage** | **Long-form** |
+|---|---|---|---|
+| Input | one video of a person talking | a folder with many speechless clips | one or more long talking recordings |
+| Example | selfie · teleprompter · explainer | café · trip · product · place · event | a YouTube talk · a lesson · a podcast |
+| Output | 9:16 captioned ad | one rhythmic MP4 | **16:9** edited talk with chapters |
+| Selection driven by | the speech (remove silences + repeats) | the shot itself (sharpness · motion · lighting) | the speech (**tight** jump cuts + filler words) |
+| Captions? | yes, word-synced burned-in | **no** | soft `.srt` only |
+| Steps | 0–11 below | the "Montage mode" section | the "Long-form mode" section |
 
-**How do you know the mode without asking?** They gave you a **folder** or more than one
-clip = montage. They gave you **a single file with speech** = speech ad. If a folder turns
-out to have audible speech and they want captions, run the speech-ad flow on the main clip.
+**How do you know the mode without asking?** A **folder** / more than one clip with no
+speech = montage. **A single file with speech** = speech ad. They ask for a **YouTube
+edit**, "tighten this talk", "cut the pauses in this lecture", "add chapters", or hand you
+a long recording for YouTube = long-form — and you set `"format": "long"` in the config
+(it's the one thing that can't be read from the footage). If a folder turns out to have
+audible speech and they want captions, run the speech-ad flow on the main clip.
 
 **Do not ask "which mode do you want?"** — read the input, go, and tell them in one
 sentence what you understood.
@@ -584,6 +588,99 @@ isn't decoration — without it the video is silent.
 
 ---
 
+# Long-form mode — YouTube 16:9
+
+One or more long talking recordings, and the ask is an **edited YouTube video**: the
+pauses tightened out, filler words gone, chapters in the description, maybe a few B-roll
+cutaways. **No motion-graphics scenes, no sound effects, no Instagram safe-zone check** —
+this is a different, much smaller path than the reel. Captions are a soft `.srt` file, not
+burned in.
+
+**The conductor runs it.** `uv run scripts/run.py <work>` runs every mechanical stage and
+stops at the four points that need you and the user. Below is what to do at each stop; the
+stages between them are automatic.
+
+### 1) Configuration
+Same as speech-ad step 1, but write **`"format": "long"`** in
+`<work>/config/project.config.json` — that's the switch that selects this world. Ask the
+video's language. Theme colors barely matter here (no cards, no end card); you still need
+the language. The tightening thresholds live under `longform` (`pauseMs` 250, `keepMs` 90,
+`fillers` true) — defaults are good, only touch them if the user wants a looser or tighter
+cut.
+
+### 2) Get the recordings
+Copy every take into `<work>/rush/` (keeping names). One file or several — `run.py`'s
+`join` stage concatenates them into `build/source-joined.mp4` (the takes must be the same
+resolution / codec — a single session split into files is the normal case).
+
+```bash
+uv run scripts/run.py <work>          # runs join → cut → audio → transcribe, then stops
+```
+
+### 3) Correct the transcript ← same as the reel
+Read `build/transcript-raw.json`, fix every sentence with the user, write
+`build/transcript-fixes.json` (word count per sentence must match Whisper's). Then:
+
+```bash
+uv run scripts/run.py <work>          # runs captions, then stops at the tighten checkpoint
+```
+
+### 4) Tighten ← the core of this mode
+```bash
+uv run scripts/tighten.py <work>              # proposes the cuts, writes build/tighten-plan.json
+```
+It trims every inter-word pause over 250 ms down to 90 ms (hard jump cuts) and drops
+filler words (`um`, `euh`, `يعني` …) from `scripts/fillers.json`. **Show the user the
+summary** — "847 micro-cuts, 41 fillers, 3m12s removed, 18m04 → 14m52" — and the filler
+list in context. If they want a specific filler kept or an extra one dropped, adjust and
+re-run. Then:
+```bash
+uv run scripts/tighten.py <work> apply        # folds it into cut-plan.json + captions.json
+```
+This is terminal (like `edit_script.py apply`) — don't re-run `captions.py` after it. Undo
+= restore the `.bak` files.
+
+### 5) Propose chapters
+Read the corrected transcript and **propose 3–8 chapter breaks** to the user — the topic
+shifts, keyed to a sentence number. After they confirm, write
+`<work>/config/chapters.json`:
+```json
+[ { "ref": { "sentence": 0 }, "title": "Intro" },
+  { "ref": { "sentence": 34 }, "title": "The three mistakes" } ]
+```
+Optional — no file means no chapter markers. `subtitles.py` turns it into
+`video-final.chapters.txt` (the first is forced to `00:00`).
+
+### 6) B-roll cutaways (optional)
+If they gave you cutaway clips, put them in `<work>/rush/broll/` and write
+`<work>/config/broll.json` — each entry is a span (`{ "range": [t0,t1] }` or
+`{ "sentence": N }`) + the clip filename. The clip covers the speaker for that span; the
+speaker's audio keeps playing.
+```json
+[ { "ref": { "range": [72.0, 78.5] }, "clip": "screen-recording.mp4", "at": 0.4 } ]
+```
+
+### 7) Finish
+```bash
+uv run scripts/run.py <work>          # reframe (16:9) → assemble → master → subs
+```
+Delivers `<work>/video-final.mp4` (1920×1080), `video-final.srt`, `post-caption.txt`, and
+`video-final.chapters.txt` if there are chapters. **Present it with:** the duration before
+and after tightening, the number of fillers cut, the chapter list, and the final loudness.
+
+### Long-form rules
+1. **Tighten is a proposal, not an auto-apply** — always show the user the summary and the
+   filler list before `apply`.
+2. **Chapters are your judgment from the transcript** — there's no automatic topic
+   detection. Propose, let the user adjust.
+3. **Soft captions only.** No burned-in text (`longform.captions: "burned"` is reserved,
+   not built). YouTube renders the `.srt`.
+4. **No end card, no badge, no motion graphics, no sound effects** — this mode is the cut
+   and the chapters, nothing decorative.
+5. **No publishing, no scheduling** — delivery is a file only.
+
+---
+
 ## Fixed rules
 
 1. **A sound effect is tied to a meaningful moment** — a number dropping, something
@@ -682,10 +779,15 @@ for the post caption). And mention that you didn't publish anything.
 | `lib/platform.sh` · `lib/platform.js` | cross-platform helpers (paths · `VEVO_PY` · browser · OS) | shared |
 | `lib/config.py` · `lib/config.js` | reads/merges `project.config.json` | shared |
 | `lib/rush.py` | finds the input file(s) in `rush/` without assuming a fixed name | shared |
+| `lib/timeline.py` | the cut-plan / caption timeline surgery shared by `edit_script.py` + `tighten.py` | shared |
+| `run.py` | the config-driven conductor — runs the stages, stops at the decisions | shared |
 | `transcribe.py` | transcription → `build/transcript-raw.json` (faster-whisper GPU/CPU ← whisper) | shared |
 | `plan_cuts.py` | measures the silences and produces the speech segments | shared |
 | `captions.py` | per-word timing on the new timeline | shared |
-| `reframe.py` | cut + 9:16 reframe (accepts a landscape source) + zoom + bt709 tag | shared |
+| `reframe.py` | cut + reframe (9:16, or 16:9 for `format:"long"`) + zoom + bt709 tag | shared |
+| `join_takes.py` | **long-form**: joins the `rush/` recording take(s) → `build/source-joined.mp4` | long-form |
+| `tighten.py` | **long-form**: jump-cut + filler pass (word-level cuts) | long-form |
+| `assemble_longform.py` | **long-form**: B-roll overlays / remux → `build/video-raw.mp4` | long-form |
 | `render_frames.js` | draws the frames (resume + window) | light |
 | `remotion/remotion.sh` | prepares / opens / renders a Remotion project | Remotion |
 | `sound_fx.py` | the sound effects from `build/sound-cues.json` | shared |
@@ -693,7 +795,7 @@ for the post caption). And mention that you didn't publish anything.
 | `master_audio.sh` | −14 LUFS + ducked background audio | shared |
 | `contact_sheet.sh` | one contact sheet (token economy) | shared |
 | `safe_check.js` | safe zone + hook | light (and Remotion: `"guides":true` gives you the zones live in the studio) |
-| `subtitles.py` | subtitle file + caption text | shared |
+| `subtitles.py` | subtitle file + caption text (+ `video-final.chapters.txt` from `config/chapters.json`) | shared |
 | `edit_script.py` | drop a sentence from the text → it drops from the video | shared |
 | `fx/behind_text.js` + `personmask.swift` | the three cutout styles (behind the person · in front of the panel · head outside the card) | light |
 | `montage_mode.py` | **montage mode**: scans a clip folder, picks the best moment of each, and assembles them | independent |

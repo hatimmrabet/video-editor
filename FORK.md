@@ -66,7 +66,7 @@ Séquençage détaillé et à jour : [`docs/design/roadmap.md`](docs/design/road
 | 3 | **Bibliothèque de transitions** — vocabulaire nommé et paramétré, commun aux 2 moteurs + montage | ✅ fait |
 | 4 | **Scènes-données + registre de motifs** — une scène = donnée, rendue à l'identique par les 2 moteurs (fin de la triple maintenance) | ✅ fait |
 | 5 | **Runner orchestrateur** — `scripts/run.py` piloté par la config, pauses aux points de décision | ✅ fait (#21 `run.py` + manifestes · #22 conception des sous-agents) |
-| 6 | **Monde `long-form`** — montage YouTube 16:9 (jump cuts, chapitrage, b-roll) | 🚧 conception faite (#23 — [`docs/design/long-form.md`](docs/design/long-form.md)) |
+| 6 | **Monde `long-form`** — montage YouTube 16:9 (jump cuts, chapitrage, b-roll) | ✅ fait (#23 conception · #84–#89 impl) |
 | 7 | **Interface web** — dépôt vidéo + formulaire → `run.py`, sur le même moteur | 🚧 conception faite (#24 — [`docs/design/web.md`](docs/design/web.md)) |
 
 Correspondance avec la vision d'origine de ce fork : config par projet → 2 · bibliothèque de
