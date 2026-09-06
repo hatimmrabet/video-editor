@@ -167,7 +167,7 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | web: checkpoint screens — transcript + trim | `area:web` | ✅ #100 — transcript: editable row per Whisper sentence + `edited/Whisper` count guard + hot-words → `transcript-fixes.json`. trim: keep/drop checkboxes + client-side restatement flag → `POST /edit` (1-indexed). Headless-verified. |
 | web: checkpoint screen — scenes (motif dropdown + params + preview) | `area:web` `area:scenes` | ✅ #101 — card per sentence (layout + motif `<select>` from `GET /motifs` + params JSON template), Save + preview stills (`POST /preview`). `next` made client-authoritative so advisory checkpoints don't loop. |
 | web: checkpoint screen — sound + Result view | `area:web` | ✅ #102 — sound: end-card field + `<canvas>` waveform (decoded `transcribe-input.wav`, sentence lines), click to place/remove cues → `sound-cues.json`. Result: `<video>` + size (flagged >30 MB) + download links. |
-| web: `broll-montage` + `long-form` flows | `area:web` | #103 |
+| web: `broll-montage` + `long-form` flows | `area:web` | ✅ #103 — project-type picker (`long-form` → `config.format:"long"`, `montage` → localStorage hint); multi-clip + `rush/bg-audio.mp3` upload; montage **pick** screen (contact sheet + keep/drop → `POST /montage`); long-form **tighten** (`POST /tighten` propose/apply), **chapters**, **broll** (+ `rush/broll/` uploader) screens. `runTarget()` caps a run at the next advisory checkpoint; `long-form.json` moves `broll` before `reframe`. Headless-verified. **Pass 7 complete.** |
 
 ### Bugs — engine drift
 

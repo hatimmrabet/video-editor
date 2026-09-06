@@ -204,25 +204,27 @@ to English — both cosmetic cleanup, pick up whenever.)*
 ## Pass 7 — Web
 
 - ✅ **UI design + implementation plan** (#24) — [web.md](web.md). Local-only
-  (`127.0.0.1`, no auth, no cloud, no publish); `scripts/web.py` = a ~250-line stdlib
+  (`127.0.0.1`, no auth, no cloud, no publish); `scripts/web.py` = a stdlib
   `http.server` that shells out to `run.py` and serves a no-build SPA. The config form
   writes `config/project.config.json`; each `run.py` checkpoint (`transcript-fix`,
   `script-review`, `scenes`, `sound-cues`) is a screen; `GET /state` = parsed
   `run.py --dry --json`. Nothing re-implements pipeline logic. Eight implementation
   tickets listed in the doc (#96–#103).
-- 🚧 **`run.py --dry --json`** (#96) — the machine-readable plan `GET /state` parses.
-- 🚧 **`scripts/web.py`** (#97) — stdlib server, project CRUD + config/decision/edit/state/
+- ✅ **`run.py --dry --json`** (#96) — the machine-readable plan `GET /state` parses.
+- ✅ **`scripts/web.py`** (#97) — stdlib server, project CRUD + config/decision/edit/state/
   file endpoints, path-jailed.
-- 🚧 **`POST /run` SSE** (#98) — `run.py` output streamed line-by-line, `event: done` {exit}.
-- 🚧 **SPA shell** (#99) — `scripts/web/` (no build): project list/create, config form,
+- ✅ **`POST /run` SSE** (#98) — `run.py` output streamed line-by-line, `event: done` {exit}.
+- ✅ **SPA shell** (#99) — `scripts/web/` (no build): project list/create, config form,
   drop zone, state-driven stage list + Run button + live log, Result view.
-- 🚧 **Transcript + trim screens** (#100) — editable transcript with a word-count guard;
+- ✅ **Transcript + trim screens** (#100) — editable transcript with a word-count guard;
   keep/drop checkboxes with a restatement flag.
-- 🚧 **Scenes screen** (#101) — per-sentence layout + motif + params, `POST /preview` stills.
-- 🚧 **Sound + Result screens** (#102) — `<canvas>` waveform cue placement; the deliverable view.
-- Remaining: #103 the montage / long-form flows.
-- **Done when:** drop a real video in the browser → download a finished reel without
-  touching a terminal.
+- ✅ **Scenes screen** (#101) — per-sentence layout + motif + params, `POST /preview` stills.
+- ✅ **Sound + Result screens** (#102) — `<canvas>` waveform cue placement; the deliverable view.
+- ✅ **Montage + long-form flows** (#103) — project-type picker; montage `pick` screen
+  (`POST /montage`) + background-track upload; long-form `tighten` (`POST /tighten`),
+  `chapters`, `broll` screens; `runTarget()` caps a run at the next advisory checkpoint.
+- **Done:** drop a video in the browser → download a finished reel / montage / long-form
+  cut without touching a terminal. (Owed: one run against a real long-form recording.)
 
 ## Also on the backlog (not passes)
 

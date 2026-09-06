@@ -114,7 +114,7 @@ silent track. Same deliverable name (`video-final.mp4`) as the speech-ad flow.
 
 A third world, selected by `project.config.json` `format: "long"` (not inferred from
 `rush/`). `join → cut → audio → transcribe → ⟨fix⟩ → captions → ⟨tighten⟩ → ⟨chapters⟩ →
-reframe → ⟨broll⟩ → assemble → master → subs` — see
+⟨broll⟩ → reframe → assemble → master → subs` — see
 [`scripts/pipeline/long-form.json`](../video-editor/scripts/pipeline/long-form.json) and
 the full spec in [design/long-form.md](design/long-form.md), the operator flow in
 [`SKILL.md`](../video-editor/SKILL.md)'s "Long-form mode" section. No motif/scene layer, no

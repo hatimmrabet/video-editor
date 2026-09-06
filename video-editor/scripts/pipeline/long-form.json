@@ -60,17 +60,17 @@
       "note": "Optional. Read the transcript, propose chapter breaks to the user, write config/chapters.json ([{ref, title}] — ref binds to a caption sentence). No file -> one continuous video, no markers. See docs/design/long-form.md."
     },
     {
+      "id": "broll",
+      "title": "B-roll cutaways",
+      "needs": ["build/captions.json"],
+      "note": "Optional. Put cutaway clips in rush/broll/, mark ranges in config/broll.json ([{ref, clip, crop}]). montage_mode.py's scorer picks the best moment of each. No file -> no cutaways. See docs/design/long-form.md."
+    },
+    {
       "id": "reframe",
       "title": "Cut + keep 16:9",
       "run": ["uv", "run", "scripts/reframe.py", "{work}"],
       "needs": ["build/source-joined.mp4", "build/cut-plan.json"],
       "makes": ["build/video-reframed.mp4"]
-    },
-    {
-      "id": "broll",
-      "title": "B-roll cutaways",
-      "needs": ["build/captions.json"],
-      "note": "Optional. Put cutaway clips in rush/broll/, mark ranges in config/broll.json ([{ref, clip, crop}]). montage_mode.py's scorer picks the best moment of each. No file -> no cutaways. See docs/design/long-form.md."
     },
     {
       "id": "assemble",

@@ -1,8 +1,9 @@
 # Web interface — a local UI over `run.py`
 
-Status: **in progress (Pass 7).** Built: #96–#102 — `run.py --dry --json`, `scripts/web.py`
-+ all endpoints, `POST /run` SSE, the SPA shell, the transcript + trim + scenes + sound
-screens, the Result view. Remaining: #103 (montage / long-form flows). Spec + implementation
+Status: **complete (Pass 7).** #96–#103 — `run.py --dry --json`, `scripts/web.py` + all
+endpoints, `POST /run` SSE, the SPA shell, the transcript + trim + scenes + sound screens,
+the Result view, and the `broll-montage` + `long-form` flows (project-type picker,
+montage `pick` + long-form `tighten` / `chapters` / `broll` screens). Spec + implementation
 plan for roadmap
 Pass 7, the capstone. It assumes Pass 5 ([`run.py`](orchestrator.md)) and, ideally, Pass 4
 (`config/scenes.json`) exist — both do.
@@ -43,7 +44,7 @@ config, a button calls `run.py`, and each `run.py` checkpoint becomes a screen.*
 └───────────────────────┬───────────────────────────────────┘
                         │  fetch / SSE  (localhost only)
 ┌───────────────────────┴───────────────────────────────────┐
-│  scripts/web.py  — stdlib http.server, ~250 lines          │
+│  scripts/web.py  — stdlib http.server, ~315 lines          │
 │    • serves the SPA + build/ artifacts                     │
 │    • REST for config + decision files                      │
 │    • POST /run  → subprocess run.py, streams stdout (SSE)  │
@@ -54,7 +55,7 @@ config, a button calls `run.py`, and each `run.py` checkpoint becomes a screen.*
 ```
 
 - **`scripts/web.py`** — Python, `http.server.ThreadingHTTPServer` + a small hand-rolled
-  router. **No web framework** — the surface is ~8 endpoints; Flask/FastAPI would be a new
+  router. **No web framework** — the surface is ~13 endpoints; Flask/FastAPI would be a new
   isolated dep for very little. (Noted tradeoff: if the endpoint count grows past ~15,
   revisit.)
 - **The SPA** — one `scripts/web/index.html` + `app.js` + `app.css`, no build step, no
@@ -84,10 +85,21 @@ for that halt.
 | `CHECKPOINT script-review` | **Trim** — numbered sentence list, checkboxes, dupe pairs flagged | `build/captions.json`, `build/transcript-editable.txt` | calls `edit_script.py drop …` via `POST /edit` | `POST /run?to=frames` |
 | `CHECKPOINT scenes` | **Scenes** — per sentence: a motif dropdown (`motifs/index.json`), a params form, a live preview still | `build/captions.json`, `scripts/motifs/index.json` | `config/scenes.json` | `POST /run?to=render` after each change re-previews that window |
 | `HALT sound-cues` | **Sound** — a waveform, click to place whoosh/thud/tap, `outro` length field | `build/captions.json`, the audio | `build/sound-cues.json` | `POST /run` (to the end) |
-| all `SKIP` | **Result** — `<video>` of `video-final.mp4`, the `.srt`, the post caption, the safe-check verdict, size/LUFS | the deliverables | — | download links (local files) |
+| all `SKIP` | **Result** — `<video>` of `video-final.mp4`, the `.srt`, the post caption, size (flagged over 30 MB) | the deliverables | — | download links (local files) |
 
-`broll-montage` and `long-form` get their own (shorter) flows behind a project-type
-picker; same pattern — the UI renders whatever checkpoint `run.py` reports for that world.
+`broll-montage` and `long-form` get their own (shorter) flows behind a **project-type
+picker** (chosen at "New project" — `long-form` writes `config.format:"long"`, `montage`
+is a per-project localStorage hint until `run.py` infers `broll-montage` from the clips).
+Same pattern — the UI renders whatever checkpoint `run.py` reports for that world:
+
+| world | checkpoint screens (beyond the shared ones) |
+|---|---|
+| `broll-montage` | **Pick** (`pick`) — the contact sheet + a keep/drop checkbox per clip → `POST /montage`. The source zone also takes a background track (→ `rush/bg-audio.mp3`). |
+| `long-form` | **Tighten** (`tighten`) — "Propose" runs `tighten.py`, then the gap/filler summary + Apply / Continue → `POST /tighten`. **Chapters** (`chapters`) — a sentence# + title row editor → `config/chapters.json`. **B-roll** (`broll`) — a when/clip/at row editor + a clip uploader (→ `rush/broll/`) → `config/broll.json`. |
+
+A "Run the pipeline" click is capped (`?to=`) at the stage before the next un-passed
+advisory checkpoint, so `run.py` — which only *halts* at a blocking checkpoint — doesn't
+run straight past `pick` / `chapters` / `broll` before their screen opens.
 
 ## API
 
@@ -157,10 +169,15 @@ is an alternative front end, not a replacement).
    waveform decoded from `transcribe-input.wav` (sentence lines drawn in), click to place /
    remove `whoosh_up`/`whoosh_down`/`thud`/`tap` → `sound-cues.json`. Result: `<video>` +
    size (flagged over 30 MB) + download links (+ `.chapters.txt` for long-form).
-8. **`broll-montage` + `long-form` flows** (#103) — the two shorter front ends.
+8. ✅ **`broll-montage` + `long-form` flows** (#103) — the project-type picker (`long-form`
+   → `config.format:"long"`, `montage` → localStorage hint); multi-clip + background-track
+   upload for montage; the `pick` screen (`POST /montage`); the `tighten` (`POST /tighten`),
+   `chapters`, and `broll` screens (+ `rush/broll/` uploader). `runTarget()` caps a run at
+   the next un-passed advisory checkpoint. `long-form.json`: `broll` moved before `reframe`
+   (both are transcript-authored decisions).
 
-Ship 1–7 for `reel-speech` end to end first (drop a real video → download a reel without
-touching a terminal); 8 follows.
+Shipped 1–7 for `reel-speech` end to end first (drop a real video → download a reel without
+touching a terminal); 8 followed.
 
 ## Toward the far future (not Pass 7)
 

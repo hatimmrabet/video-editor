@@ -52,7 +52,7 @@ infer_world(work)`.
 
 ```
 join → cut → audio → transcribe → ⟨transcript-fix⟩ → captions → ⟨tighten⟩ → ⟨chapters⟩
-     → reframe → ⟨broll⟩ → assemble → master → subs
+     → ⟨broll⟩ → reframe → assemble → master → subs
 ```
 
 | id | run | notes |
@@ -65,8 +65,8 @@ join → cut → audio → transcribe → ⟨transcript-fix⟩ → captions → 
 | `captions` | `captions.py` | per-word timing on the joined timeline |
 | `tighten` | **checkpoint, block** — `tighten.py` proposes, agent + user confirm, `tighten.py apply` → `build/tighten-plan.json` + mutates `cut-plan.json`/`captions.json` | the jump-cut + filler pass, below |
 | `chapters` | **checkpoint, advisory** — author `config/chapters.json` | optional; no file → one continuous video, no markers |
+| `broll` | **checkpoint, advisory** — mark cutaway ranges in `config/broll.json`, scored from `rush/broll/` by the montage scorer | optional; both decision files are authored from the transcript, so they come before `reframe` runs |
 | `reframe` | `reframe.py` — `format:"long"` branch keeps 16:9 (crop/letterbox a vertical source, pass a 16:9 through) + bt709 | opposite of the reel's "landscape → 9:16" |
-| `broll` | **checkpoint, advisory** — mark cutaway ranges in `config/broll.json`, scored from `rush/broll/` by the montage scorer | optional |
 | `assemble` | `assemble_longform.py` — apply the cut list to the reframed video, overlay each B-roll range, → `build/video-raw.mp4` | no frame-by-frame render; ffmpeg filter graph |
 | `master` | `master_audio.sh` | −14 LUFS, same |
 | `subs` | `subtitles.py` — `.srt` **and**, from `config/chapters.json`, `video-final.chapters.txt` (`00:00 Title` lines for the description) | one new output |
@@ -193,7 +193,7 @@ mode we can add once the world exists.
 
 1. ✅ **`format:"long"` world switch** (#84) — `run.py` checks `config.format`;
    `scripts/pipeline/long-form.json` (13 stages: `join → cut → audio → transcribe →
-   ⟨fix⟩ → captions → ⟨tighten⟩ → ⟨chapters⟩ → reframe → ⟨broll⟩ → assemble → master →
+   ⟨fix⟩ → captions → ⟨tighten⟩ → ⟨chapters⟩ → ⟨broll⟩ → reframe → assemble → master →
    subs`); [`join_takes.py`](../scripts/join_takes.md) + `lib/rush.find_source()` prefers
    `build/source-joined.mp4`; `defaults.config.json` `longform` block. Verified end-to-end
    through `join` (1 + 2 takes) → `cut` → `audio`.
