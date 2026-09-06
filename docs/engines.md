@@ -132,14 +132,16 @@ head; person redrawn on top; `personStage`; `headOut`) lives in `compose.referen
 - `mkdir -p <work>/remotion/src <work>/remotion/public`
 - Always overwrites structural files: `package.json tsconfig.json remotion.config.ts
   .gitignore README.md` and `index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts util.tsx
-  Chrome.tsx Captions.tsx Outro.tsx Guides.tsx`
-- **`Scenes.tsx` copied once only** (`[ -f … ] || cp …`) — the user's scene work survives
-  a re-sync
+  Chrome.tsx Captions.tsx Outro.tsx Guides.tsx SceneList.tsx`, plus `src/motifs/*.tsx`
+  (copied from `scripts/motifs/remotion/`)
+- **`Scenes.tsx` copied once only** (`[ -f … ] || cp …`) — a project's hand-written scene
+  components survive a re-sync (used only when there's no `config/scenes.json`)
 - `cp <work>/build/captions.json → src/caps.json` (the internal name stays `caps.json`)
 - inline Python **generates `src/project.json`** from `build/captions.json` +
   `project.config.json` (via `lib/config`) + `scripts/transitions.json` (via
-  `lib/transitions`) + `build/sound-cues.json` + `config/stage.json` + `config/outro.json`
-  + `config/safe.json`
+  `lib/transitions`) + `config/scenes.json` (via `lib/scenes` — adds `scenes` + a derived
+  `stage`) + `build/sound-cues.json` + `config/stage.json` + `config/outro.json` +
+  `config/safe.json`
 - copies assets: `build/video-reframed.mp4 → public/video.mp4`,
   `build/sound-effects.wav → public/sfx.wav`, `<logo> → public/logo.png`
 
@@ -157,7 +159,9 @@ head; person redrawn on top; `personStage`; `headOut`) lives in `compose.referen
 | `Chrome.tsx` | `Badge` (handle + logo pill at `top:190`, hidden when `badgeUntil==0`), `Bar` (progress bar at `top:1492`), generic `Card` |
 | `Outro.tsx` | wipe-up reveal; logo, `C.line`, `RECAP` 2-col grid with SVG check, `C.cta_top` + `C.cta_word` accent chip, `C.tail`, handle+logo footer. **All copy from `project.json` — nothing hardcoded** |
 | `Guides.tsx` | 4 red Instagram-zone overlays, shown only when `project.json` `guides:true` |
-| `Scenes.tsx` | **the file the operator rewrites per video.** Exports `W(i)` = words of caption `i`, a `CARD` style const, two example components (`Stamp`, `Chips`). `VideoOverlay` = drawn over the video itself; `Scenes` = drawn over everything |
+| `Scenes.tsx` | the operator's hand-written scenes — used **only when there is no `config/scenes.json`**. `W(i)` = words of caption `i`; `CARD` style; `Stamp` / `Chips` examples (commented out); `VideoOverlay` + `Scenes` exports |
+| `SceneList.tsx` | the scenes-as-data **dispatcher** (issue #18) — mirror of `compose.html`'s `drawScenes(t)`; renders `motifs/<Motif>` per active `project.json.scenes` entry with the `rise` container applied. `Ad.tsx` renders it xor `Scenes.tsx` |
+| `motifs/*.tsx` | shared per-engine motif components, copied from `scripts/motifs/remotion/` |
 | `font.ts` | `delayRender`/`continueRender` around a Google Fonts `<link>` for `T.font` |
 | `remotion.config.ts` | `setVideoImageFormat('jpeg')`, `setChromiumOpenGlRenderer('angle')` |
 | `tsconfig.json` | ES2020, `react-jsx`, `resolveJsonModule`, `strict:false` |

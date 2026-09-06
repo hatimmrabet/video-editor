@@ -35,5 +35,6 @@
 - **`render_frames.js`** — injects `scenes` + `schedule` + the used canvas motif sources
   into `window.init` (issue #17).
 - **`safe_check.js`** — injects `schedule` only (it needs the right `vrect`, not the graphics).
-- **Remotion** (#18) — `remotion.sh` will fold the resolved scenes into `project.json`.
+- **Remotion** (#18) — `remotion.sh` folds `scenes` + the derived `schedule` into
+  `project.json`; `SceneList.tsx` dispatches motifs.
 - **`studio.html`** (#20).

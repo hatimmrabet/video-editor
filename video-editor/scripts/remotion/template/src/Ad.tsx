@@ -1,10 +1,11 @@
 import {AbsoluteFill, Audio, OffthreadVideo, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
-import {T, VEND, HAS_SFX, GUIDES} from './theme';
+import {T, VEND, HAS_SFX, GUIDES, SCENES} from './theme';
 import {rgba} from './util';
 import {videoLayers} from './stage';
 import {Badge, Bar} from './Chrome';
 import {Captions} from './Captions';
 import {Scenes, VideoOverlay} from './Scenes';
+import {SceneList} from './SceneList';
 import {Outro} from './Outro';
 import {Guides} from './Guides';
 
@@ -29,7 +30,7 @@ export const Ad: React.FC = () => {
       {HAS_SFX && <Audio src={staticFile('sfx.wav')} />}
       <Badge t={t} />
       <Bar t={t} />
-      <Scenes t={t} />
+      {SCENES ? <SceneList t={t} /> : <Scenes t={t} />}
       <Captions t={t} />
       <Outro t={t} />
       {GUIDES && <Guides />}

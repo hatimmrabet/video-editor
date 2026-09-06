@@ -334,8 +334,8 @@ that file is present** (issue #15) — the schedule is then derived from the sce
 **W** hand-authored (the per-video design work) · **R** via
 [`lib/scenes`](scripts/lib-scenes.md): `render_frames.js` → `window.init` (resolved
 `scenes` + `schedule` + motif sources, issue #17); `safe_check.js` → `window.init`
-(`schedule` only); Remotion is #18. Schema + rationale:
-[design/scenes-as-data.md](design/scenes-as-data.md).
+(`schedule` only); `remotion.sh` → `project.json.scenes` + `project.json.stage` (issue
+#18). Schema + rationale: [design/scenes-as-data.md](design/scenes-as-data.md).
 
 ```jsonc
 [
@@ -351,10 +351,10 @@ that file is present** (issue #15) — the schedule is then derived from the sce
 
 `ref` resolves against `build/captions.json`, so an `edit_script.py` sentence drop shifts
 the scene with it. Absent → today's behaviour (inline `SCENES` / `stage.json`). **Schema
-locked (#15); the light engine reads it (#17)** — `lib/scenes.load()` returns `{ scenes,
-schedule }`, each resolved scene `{ s, e, mode, transition, gb, motif, params, timing,
-words, bottom }` (a `ref` to a missing sentence is dropped; a `planned` motif is nulled and
-only its layout applies). Remotion is #18, `studio.html` is #20.
+locked (#15); both engines read it (#17 light, #18 Remotion)** — `lib/scenes.load()`
+returns `{ scenes, schedule }`, each resolved scene `{ s, e, mode, transition, gb, motif,
+params, timing, words, bottom }` (a `ref` to a missing sentence is dropped; a `planned`
+motif is nulled and only its layout applies). `studio.html` is #20.
 
 ---
 
@@ -389,10 +389,11 @@ in `compose.html`.
   "total": 46.078,                                // round(caps.total, 3)
   "outro": 5.2,                                   // float(sound-cues.outro), default 5.0
   "sfx":   true,                                  // does <work>/build/sound-effects.wav exist
-  "stage": [ { "s": 0, "e": 9999, "m": "FULL" } ],// from config/stage.json
+  "stage": [ { "s": 0, "e": 9999, "m": "FULL" } ],// config/stage.json — or derived from config/scenes.json (#18)
   "outro_copy": { "line": "", "recap": [], "cta_top": "", "cta_word": "", "tail": "" },
   "guides": false,                                // from config/safe.json's guides
-  "transitions": { "sceneToScene": {…}, "sceneEnter": {…}, "sceneExit": {…}, … }  // lib/transitions.load()["defaults"] (issue #13)
+  "transitions": { "sceneToScene": {…}, "sceneEnter": {…}, "sceneExit": {…}, … },  // lib/transitions.load()["defaults"] (issue #13)
+  "scenes": [ … ]                                 // only when config/scenes.json exists — the resolved list (#18); theme.ts SCENES
 }
 ```
 
