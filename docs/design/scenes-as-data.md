@@ -104,8 +104,8 @@ The authoritative list + status is [`scripts/motifs/index.json`](../../video-edi
 | `stamp` | `stamp` | ✅ #16 | `text`, `lead`, `rotation`, `ring` |
 | `counter` | `price` | ✅ #19 | `title`, `from`, `to`, `prefix`, `suffix`, `decimals`, `settleAt`, `scramble` |
 | `quote` | `titleChip` | ✅ #19 | `text`, `accent`, `y` |
+| `checklist` | `rtlFix` row reveal | ✅ #19 | `title`, `items[]`, `tick` (`even`\|`words`), `y` |
 | `card-stack` | `chips`, `cardStack` | planned | `items[]`, `columns`, `checkmark` |
-| `checklist` | `solved` | planned | `items[]`, `tickPerWord` |
 | `transcript-panel` | `transcript` | planned | `lines[]` (or pull from `build/captions.json`) |
 | `file-merge` | `fileToCloud`, `oneFile` | planned | `sources[]`, `targetLabel` |
 | `glitch` | `glitch` | planned | `intensity`, `slices` — an `overlay` motif (drawn on the video) |
@@ -180,8 +180,8 @@ must change incompatibly gets a new name.
    `SCENES` is set, else the hand-written `Scenes.tsx`. Timing math verified equal to the
    light engine's.
 3. 🟡 #19 ports the reference scene functions to motifs one at a time (canvas + Remotion +
-   a 3-way visual diff). Done: `counter`, `quote` (`stamp` was #16). Remaining: `card-stack`,
-   `checklist`, `transcript-panel`, `file-merge`, `glitch`, `comment-box`, `sync-viz`,
+   a 3-way visual diff). Done: `counter`, `quote`, `checklist` (`stamp` was #16). Remaining:
+   `card-stack`, `transcript-panel`, `file-merge`, `glitch`, `comment-box`, `sync-viz`,
    `suspense`.
 4. #20 points `studio.html` at the interpreter and drops its private drawing copy.
 5. Once the starter set is covered, `config/scenes.json` becomes the documented default and

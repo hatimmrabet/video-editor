@@ -8,8 +8,9 @@ import {vrect} from './stage';
 import Stamp from './motifs/Stamp';       // one static import per implemented motif
 import Counter from './motifs/Counter';
 import Quote from './motifs/Quote';
+import Checklist from './motifs/Checklist';
 
-const MOTIFS: Record<string, React.FC<any>> = {stamp: Stamp, counter: Counter, quote: Quote};
+const MOTIFS: Record<string, React.FC<any>> = {stamp: Stamp, counter: Counter, quote: Quote, checklist: Checklist};
 
 /* the four named easings — same curves as compose.html / transitions.json */
 const linear = (k: number) => k;

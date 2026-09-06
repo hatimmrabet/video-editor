@@ -24,11 +24,11 @@
       "params": { "items": "string[]", "columns": "number", "checkmark": "boolean" }
     },
     "checklist": {
-      "status": "planned",
+      "status": "implemented",
       "kind": "scene",
-      "bottom": 540,
-      "from": "solved",
-      "params": { "items": "string[]", "tickPerWord": "boolean" }
+      "bottom": 640,
+      "from": "rtlFix (row reveal)",
+      "params": { "title": "string", "items": "string[]", "tick": "string", "y": "number" }
     },
     "transcript-panel": {
       "status": "planned",

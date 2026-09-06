@@ -255,7 +255,7 @@ window.__helpers={rr,sh,nsh,card,T,pr,ease,eio,back,lerp,cl};
 
 /* ---------- scenes-as-data interpreter (issue #17) ---------- */
 /* The helper bag every motif gets as ctx.fx — see scripts/motifs/README.md */
-const FX={rr,sh,nsh,T,rgba,lum,onACC:h=>lum(h||ACC)>0.45?INK:'#FFFFFF',pr,ease,eio,back,lerp,cl,ez};
+const FX={rr,sh,nsh,card,iCheck,T,rgba,lum,onACC:h=>lum(h||ACC)>0.45?INK:'#FFFFFF',pr,ease,eio,back,lerp,cl,ez};
 const _tdur=(v,d)=>typeof v==='number'?v:(v&&typeof v.duration==='number'?v.duration:d);
 const _teas=(v,d)=>(v&&v.easing)||d;
 function drawScenes(t){

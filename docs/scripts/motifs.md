@@ -31,8 +31,8 @@ Full schema — [data-contracts.md](../data-contracts.md#scriptsmotifsindexjson-
 
 ## Status
 
-`stamp` (#16), `counter` and `quote` (#19) are implemented (canvas + Remotion). The other
-eight (`card-stack`, `checklist`, `transcript-panel`, `file-merge`, `glitch`, `comment-box`,
+`stamp` (#16), `counter`, `quote`, `checklist` (#19) are implemented (canvas + Remotion).
+The other seven (`card-stack`, `transcript-panel`, `file-merge`, `glitch`, `comment-box`,
 `sync-viz`, `suspense`) are declared in `index.json` with `status: "planned"` and get
 ported one at a time, still under **#19**.
 

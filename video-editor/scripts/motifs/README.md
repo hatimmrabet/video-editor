@@ -49,7 +49,7 @@ X.restore();
 | `rect` | `{x,y,w,h,r}` | the resolved video rect at this frame |
 | `theme` | `{bg,ink,acc,clay,mut,font,handle}` | raw theme values |
 | `params` | object | the scene's `params`, with this motif's `index.json` keys as defaults |
-| `fx` | object | helpers: `rr, sh, nsh, T, rgba, lum, onACC, pr, ease, eio, back, lerp, cl, ez` |
+| `fx` | object | helpers: `rr, sh, nsh, card, iCheck, T, rgba, lum, onACC, pr, ease, eio, back, lerp, cl, ez` |
 
 A Remotion motif is a React component taking `{ t, prog, enter, exit, hold, words,
 wordIndex, rect, theme, params }` as props (no `X`, no `fx` — it uses JSX; small helpers
