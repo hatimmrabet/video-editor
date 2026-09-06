@@ -55,4 +55,5 @@ This is `FORK.md`'s roadmap, made concrete.
 | [worlds.md](worlds.md) | editing families — `reel-speech`, `broll-montage`, `long-form` |
 | [long-form.md](long-form.md) | the `long-form` (YouTube) world — spec + Pass 6 implementation plan |
 | [orchestrator.md](orchestrator.md) | the config-driven runner (`run.py`, built) + the subagent split design |
+| [web.md](web.md) | the local web UI — a thin front end over `run.py` (Pass 7 plan) |
 | [roadmap.md](roadmap.md) | the sequence of implementable passes = GitHub milestones |
