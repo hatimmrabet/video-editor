@@ -1,11 +1,9 @@
 # Web interface — a local UI over `run.py`
 
-Status: **in progress (Pass 7).** Design locked (#24). Built: #96 (`run.py --dry --json`),
-#97 (`scripts/web.py` — the server + all endpoints), #98 (`POST /run` SSE), #99 (the SPA
-shell — `scripts/web/`, no build step: project list/create, config form, drop zone,
-state-driven stage list + Run button + live log, Result view; checkpoint panels stubbed
-for #100–#102). Remaining: #100–#102 (the real checkpoint screens), #103 (montage /
-long-form flows). Spec + implementation plan for roadmap
+Status: **in progress (Pass 7).** Built: #96 (`run.py --dry --json`), #97 (`scripts/web.py`
++ all endpoints), #98 (`POST /run` SSE), #99 (the SPA shell), #100 (the transcript + trim
+checkpoint screens). Remaining: #101 (scenes screen), #102 (sound + Result), #103 (montage
+/ long-form flows). Spec + implementation plan for roadmap
 Pass 7, the capstone. It assumes Pass 5 ([`run.py`](orchestrator.md)) and, ideally, Pass 4
 (`config/scenes.json`) exist — both do.
 
@@ -146,7 +144,10 @@ is an alternative front end, not a replacement).
    config form (live `GET/PUT /config`), drop zone, state-driven stage list + Run button
    streaming the SSE log, Result view. Checkpoint panels stubbed (config real). Verified
    headless: list → create → config + drop zone → upload → 16-stage pipeline renders.
-5. **Checkpoint screens: transcript + trim** (#100) — the two blocking text decisions.
+5. ✅ **Checkpoint screens: transcript + trim** (#100) — transcript: editable row per
+   Whisper sentence, `edited / Whisper` count guard, hot-words field → `transcript-fixes.json`.
+   trim: keep/drop checkboxes, client-side restatement flag → `POST /edit` (1-indexed).
+   Verified headless: prefill, typo fix + save, dupe flag, drop → captions rewritten.
 6. **Checkpoint screen: scenes** (#101) — motif dropdown + params form + per-window
    preview. *(+ area:scenes)*
 7. **Checkpoint screen: sound + Result** (#102) — cue placement, then the deliverable view.

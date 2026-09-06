@@ -61,9 +61,16 @@ by `web.py` at `/`, `/app.js`, `/app.css`.
 - **Project view** — the config form (a live view of `GET/PUT /config`), a drop zone for
   the video, then the **stage list** (verdicts from `GET /state`) and a **Run** button
   that opens the SSE stream into a live `<pre>` log.
-- Each `run.py` checkpoint gets a panel. `#99` ships the config panel real and the others
-  (transcript / trim / scenes / sound / tighten / chapters / broll) as stubs — a note +
-  "Run" + "re-check" — filled in by #100–#102.
+- Each `run.py` checkpoint gets a panel:
+  - **Config** — a form over `GET/PUT /config`.
+  - **Transcript** (`transcript-fix`) — one editable row per Whisper sentence, prefilled
+    with its words, a live `edited / Whisper` word count (Save is blocked on a mismatch),
+    a global "hot words" field → `PUT /decision/transcript-fixes`.
+  - **Trim** (`script-review`) — a checkbox per caption sentence (checked = keep),
+    restatement pairs flagged by a client-side shared-word ratio → `POST /edit` `{op:"drop"}`
+    (1-indexed).
+  - `scenes` / `sound` / `tighten` / `chapters` / `broll` — a note + Continue + re-check
+    (screens #101–#102; the rest handled in the terminal).
 - **Result** — when every stage is `SKIP`: a `<video>` of `video-final.mp4` + download
   links, served through the path-jailed `file/` endpoint.
 

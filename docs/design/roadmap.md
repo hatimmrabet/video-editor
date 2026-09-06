@@ -216,8 +216,9 @@ to English — both cosmetic cleanup, pick up whenever.)*
 - 🚧 **`POST /run` SSE** (#98) — `run.py` output streamed line-by-line, `event: done` {exit}.
 - 🚧 **SPA shell** (#99) — `scripts/web/` (no build): project list/create, config form,
   drop zone, state-driven stage list + Run button + live log, Result view.
-- Remaining: #100 transcript + trim screens, #101 the scenes screen, #102 sound + Result,
-  #103 the montage / long-form flows.
+- 🚧 **Transcript + trim screens** (#100) — editable transcript with a word-count guard;
+  keep/drop checkboxes with a restatement flag.
+- Remaining: #101 the scenes screen, #102 sound + Result, #103 the montage / long-form flows.
 - **Done when:** drop a real video in the browser → download a finished reel without
   touching a terminal.
 
