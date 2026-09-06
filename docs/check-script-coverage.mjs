@@ -37,6 +37,7 @@ const COVERAGE = [
   ['assemble_longform',   ['assemble_longform.py']],
   ['lib-timeline',        ['lib/timeline.py']],
   ['render_frames',       ['render_frames.js']],
+  ['lint_compose',        ['lint_compose.js']],
   ['safe_check',          ['safe_check.js']],
   ['encode',              ['encode.sh']],
   ['master_audio',        ['master_audio.sh']],
