@@ -5,6 +5,7 @@ One page per script. Each follows [`_template.md`](_template.md).
 | Script | Engine | One-liner |
 |---|---|---|
 | [`run.py`](run.md) | shared | config-driven conductor — runs the stages below, pausing at decisions |
+| [`web.py`](web.md) · `web.sh` | web UI | local `127.0.0.1` server — a thin front end over `run.py` |
 | [`join_takes.py`](join_takes.md) | long-form | join the `rush/` recording take(s) → `build/source-joined.mp4` |
 | [`tighten.py`](tighten.md) | long-form | jump-cut + filler pass (word-level cuts from `captions.json`) |
 | [`assemble_longform.py`](assemble_longform.md) | long-form | B-roll overlays → `build/video-raw.mp4` (the long-form `encode.sh`) |

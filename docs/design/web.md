@@ -1,8 +1,10 @@
 # Web interface — a local UI over `run.py`
 
-Status: **in progress (Pass 7).** Design locked (#24). Built: #96 (`run.py --dry --json`).
-Remaining: #97–#103 (the server, streaming, the SPA, the checkpoint screens, the montage /
-long-form flows). Spec + implementation plan for roadmap
+Status: **in progress (Pass 7).** Design locked (#24). Built: #96 (`run.py --dry --json`),
+#97 (`scripts/web.py` — the server: project CRUD, config / decision / edit / state / file
+endpoints, path-jailed; `POST /run` blocking for now). Remaining: #98 (SSE streaming), #99
+(the SPA), #100–#102 (the checkpoint screens), #103 (montage / long-form flows). Spec +
+implementation plan for roadmap
 Pass 7, the capstone. It assumes Pass 5 ([`run.py`](orchestrator.md)) and, ideally, Pass 4
 (`config/scenes.json`) exist — both do.
 
@@ -130,8 +132,12 @@ is an alternative front end, not a replacement).
 1. ✅ **`run.py --dry --json`** (#96) — one JSON line `{ world, engine, stages:[{id,
    title, verdict, checkpoint, note?, block?, makes?}], next }`; `next` = first stage not
    up to date. Implies `--dry`. Text output unchanged without the flag.
-2. **`scripts/web.py`** (#97) — the server: router, project CRUD, config + decision file
-   endpoints, path-jailed file serving. Doc page. *(area:web)*
+2. ✅ **`scripts/web.py`** (#97) — stdlib `http.server` (no framework, `cgi` avoided —
+   raw body + `X-Filename` for uploads). Project CRUD under `~/.video-editor/projects/`,
+   `config` GET/PUT, `decision/<name>` PUT, `edit` (shells `edit_script.py`), `state`
+   (`run.py --json`), path-jailed `file/<path>`, `POST /run` (blocking here, SSE in #98).
+   `docs/scripts/web.md`. Verified: every endpoint + the jail + a real `run?to=audio`.
+
 3. **`POST /run` streaming** (#98) — subprocess `run.py` with SSE stdout + exit code.
 4. **The SPA shell** (#99) — drop zone, project list, the config form, the state-driven
    screen router.
