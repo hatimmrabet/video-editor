@@ -110,6 +110,16 @@ in `rush/` (scanned by default — pass a folder explicitly to scan somewhere el
 `master_audio.sh` on the result needs `rush/bg-audio.mp3` — a montage with no ambience is a
 silent track. Same deliverable name (`video-final.mp4`) as the speech-ad flow.
 
+## Long-form mode (`format: "long"` — YouTube, 16:9)
+
+A third world, selected by `project.config.json` `format: "long"` (not inferred from
+`rush/`). `join → cut → audio → transcribe → ⟨fix⟩ → captions → ⟨tighten⟩ → ⟨chapters⟩ →
+reframe → ⟨broll⟩ → assemble → master → subs` — see
+[`scripts/pipeline/long-form.json`](../video-editor/scripts/pipeline/long-form.json) and
+the full spec in [design/long-form.md](design/long-form.md). No motif/scene layer, no
+sound cues, no safe-zone check. **In progress (Pass 6)** — `tighten.py`,
+`assemble_longform.py` and the chapters output are not built yet.
+
 ## Shared helpers
 
 [`lib/platform.sh`](scripts/lib-platform.md) (shell) · [`lib/platform.js`](scripts/lib-platform.md)

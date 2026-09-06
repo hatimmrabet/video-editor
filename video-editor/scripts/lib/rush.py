@@ -18,7 +18,15 @@ def _root_files(rush):
 
 
 def find_source(work):
-    """The one primary file at rush/'s root — reel-speech mode (one talking-head video)."""
+    """The primary video file.
+
+    - long-form: build/source-joined.mp4 (join_takes.py's output) when it exists, so
+      plan_cuts.py / reframe.py / the audio extract all use the joined recording.
+    - otherwise: the one file at rush/'s root — reel-speech (one talking-head video).
+    """
+    joined = os.path.join(work, "build", "source-joined.mp4")
+    if os.path.exists(joined):
+        return joined
     rush = _rush_dir(work)
     cands = _root_files(rush)
     if len(cands) != 1:

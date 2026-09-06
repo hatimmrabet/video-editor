@@ -1,0 +1,97 @@
+{
+  "_doc": "Canonical stage list for the long-form world (one or more 16:9 talking-head recordings -> an edited YouTube video with tight jump cuts, chapters and B-roll). Selected by project.config.json format:\"long\" (NOT inferred from rush/). Same stage grammar as reel-speech.json / broll-montage.json. No motif/scene layer, no sound_fx, no safe_check (short-form concept). Design: docs/design/long-form.md.",
+  "world": "long-form",
+  "stages": [
+    {
+      "id": "join",
+      "title": "Join the takes",
+      "run": ["uv", "run", "scripts/join_takes.py", "{work}"],
+      "needs": ["rush/"],
+      "makes": ["build/source-joined.mp4"]
+    },
+    {
+      "id": "cut",
+      "title": "Coarse cut plan (long pauses / dead air)",
+      "run": ["uv", "run", "scripts/plan_cuts.py", "{work}"],
+      "needs": ["build/source-joined.mp4", "config/project.config.json"],
+      "makes": ["build/cut-plan.json"]
+    },
+    {
+      "id": "audio",
+      "title": "Extract the speech audio",
+      "run": ["ffmpeg", "-v", "error", "-i", "{work}/build/source-joined.mp4", "-vn", "-ac", "1", "-ar", "16000", "-y", "{work}/build/transcribe-input.wav"],
+      "needs": ["build/source-joined.mp4"],
+      "makes": ["build/transcribe-input.wav"]
+    },
+    {
+      "id": "transcribe",
+      "title": "Transcribe with per-word timing",
+      "run": ["uv", "run", "scripts/transcribe.py", "{work}", "--language", "{language}", "--model", "large-v3"],
+      "needs": ["build/transcribe-input.wav"],
+      "makes": ["build/transcript-raw.json"]
+    },
+    {
+      "id": "transcript-fix",
+      "title": "Correct the transcript",
+      "block": true,
+      "needs": ["build/transcript-raw.json"],
+      "makes": ["build/transcript-fixes.json"],
+      "note": "Read build/transcript-raw.json and correct every sentence with the user (rule #5). Write build/transcript-fixes.json ({fix:[[...]], hot:[...]}). Each sentence's word count must equal Whisper's. See SKILL.md step 5."
+    },
+    {
+      "id": "captions",
+      "title": "Build the word timings",
+      "run": ["uv", "run", "scripts/captions.py", "{work}"],
+      "needs": ["build/cut-plan.json", "build/transcript-raw.json", "build/transcript-fixes.json"],
+      "makes": ["build/captions.json"]
+    },
+    {
+      "id": "tighten",
+      "title": "Jump-cut + filler pass",
+      "block": true,
+      "needs": ["build/captions.json"],
+      "makes": ["build/tighten-plan.json"],
+      "note": "Run `uv run scripts/tighten.py <work>` to propose word-level cuts (inter-phrase gaps > longform.pauseMs, fillers from scripts/fillers.json). Show the user the summary, then `tighten.py <work> apply` folds it into build/cut-plan.json + build/captions.json. See docs/design/long-form.md."
+    },
+    {
+      "id": "chapters",
+      "title": "Chapter markers",
+      "needs": ["build/captions.json"],
+      "note": "Optional. Read the transcript, propose chapter breaks to the user, write config/chapters.json ([{ref, title}] — ref binds to a caption sentence). No file -> one continuous video, no markers. See docs/design/long-form.md."
+    },
+    {
+      "id": "reframe",
+      "title": "Cut + keep 16:9",
+      "run": ["uv", "run", "scripts/reframe.py", "{work}"],
+      "needs": ["build/source-joined.mp4", "build/cut-plan.json"],
+      "makes": ["build/video-reframed.mp4"]
+    },
+    {
+      "id": "broll",
+      "title": "B-roll cutaways",
+      "needs": ["build/captions.json"],
+      "note": "Optional. Put cutaway clips in rush/broll/, mark ranges in config/broll.json ([{ref, clip, crop}]). montage_mode.py's scorer picks the best moment of each. No file -> no cutaways. See docs/design/long-form.md."
+    },
+    {
+      "id": "assemble",
+      "title": "Assemble the cut + B-roll",
+      "run": ["uv", "run", "scripts/assemble_longform.py", "{work}"],
+      "needs": ["build/video-reframed.mp4"],
+      "makes": ["build/video-raw.mp4"]
+    },
+    {
+      "id": "master",
+      "title": "Audio mastering (-14 LUFS)",
+      "run": ["bash", "scripts/master_audio.sh", "{work}", "{work}/build/video-raw.mp4", "{work}/video-final.mp4"],
+      "needs": ["build/video-raw.mp4"],
+      "makes": ["video-final.mp4"]
+    },
+    {
+      "id": "subs",
+      "title": "Subtitle file + chapter list",
+      "run": ["uv", "run", "scripts/subtitles.py", "{work}"],
+      "needs": ["build/captions.json"],
+      "makes": ["video-final.srt", "post-caption.txt"]
+    }
+  ]
+}

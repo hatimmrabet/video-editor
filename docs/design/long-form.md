@@ -1,8 +1,13 @@
 # `long-form` — the YouTube world
 
-Status: **design (issue #23)** — nothing built. This page is the spec + the implementation
-plan for roadmap Pass 6. It builds on [worlds.md](worlds.md#long-form--new-youtube) and
-resolves that section's three open questions.
+Status: **in progress (Pass 6).** The world switch is built (#84 — `format:"long"` →
+`long-form`, `scripts/pipeline/long-form.json`, `join_takes.py`, the `longform` config
+block). Remaining: `tighten.py` (#85), `reframe.py` 16:9 branch (#86),
+`assemble_longform.py` (#87), chapters (#88), the `SKILL.md` section (#89).
+
+This page is the spec + implementation plan for roadmap Pass 6. It builds on
+[worlds.md](worlds.md#long-form--new-youtube) and resolves that section's three open
+questions.
 
 ## Problem
 
@@ -34,22 +39,24 @@ reframe — a subset, not a second world. No split. (Minimalism — same call as
 `project.config.json`: **`format: "long"` → `long-form`**, checked before the
 `rush/`-count inference. `format` is already the reserved field for exactly this
 ([worlds.md](worlds.md#the-abstraction-boundary), [project-config.md](project-config.md)).
-`run.py` gains: `world = "long-form" if cfg.get("format") == "long" else infer_world(work)`.
+`run.py` gains (built, #84): `world = "long-form" if cfg.get("format") == "long" else
+infer_world(work)`.
 
 ## The stage list
 
-`scripts/pipeline/long-form.json`, same grammar as the other two manifests
+`scripts/pipeline/long-form.json` (built, #84), same grammar as the other two manifests
 ([orchestrator.md](orchestrator.md#the-stage-manifest)):
 
 ```
-join → audio → transcribe → ⟨transcript-fix⟩ → captions → ⟨tighten⟩ → ⟨chapters⟩
+join → cut → audio → transcribe → ⟨transcript-fix⟩ → captions → ⟨tighten⟩ → ⟨chapters⟩
      → reframe → ⟨broll⟩ → assemble → master → subs
 ```
 
 | id | run | notes |
 |---|---|---|
-| `join` | `ffmpeg` concat (only if `rush/` has >1 take) → `build/source-joined.mp4` | skipped for a single take; `{source}` resolves to the join output or the lone file |
-| `audio` | `ffmpeg -vn -ar 16000` | same as reel |
+| `join` | [`join_takes.py`](../scripts/join_takes.md) → `build/source-joined.mp4` | one take = a copy; many = ffmpeg concat. `lib/rush.find_source()` then returns the joined file for every downstream stage |
+| `cut` | `plan_cuts.py` → `build/cut-plan.json` | the **coarse** pass — removes long dead air / between-take gaps. `tighten` does the fine per-word pass on top |
+| `audio` | `ffmpeg -vn -ar 16000` on `build/source-joined.mp4` | same as reel |
 | `transcribe` | `transcribe.py --language {language}` | same |
 | `transcript-fix` | **checkpoint, block** — `build/transcript-fixes.json` | rule #5, same as reel |
 | `captions` | `captions.py` | per-word timing on the joined timeline |
@@ -164,31 +171,36 @@ mode we can add once the world exists.
 
 ## What's reused vs new
 
-**Reused unchanged:** `transcribe.py`, `captions.py`, `master_audio.sh`, `edit_script.py`
-(whole-sentence drops still apply), `montage_mode.py` scorer, `lib/config`, `lib/rush`,
-`lib/scenes._resolve_ref`, `run.py` + the manifest grammar, the transitions vocabulary.
+**Reused unchanged:** `transcribe.py`, `captions.py`, `plan_cuts.py`, `master_audio.sh`,
+`edit_script.py` (whole-sentence drops still apply), `montage_mode.py` scorer, `lib/config`,
+`lib/scenes._resolve_ref`, `run.py`'s manifest grammar, the transitions vocabulary.
 
-**New:** `tighten.py`, `assemble_longform.py`, `scripts/fillers.json`,
-`scripts/pipeline/long-form.json`, a `format:"long"` branch in `reframe.py` and `run.py`,
-a chapters branch in `subtitles.py`.
+**New:** `join_takes.py`, `tighten.py`, `assemble_longform.py`, `scripts/fillers.json`,
+`scripts/pipeline/long-form.json`, `lib/rush.find_source()` prefers `build/source-joined.mp4`,
+a `format:"long"` branch in `run.py` (built) and `reframe.py` (#86), a chapters branch in
+`subtitles.py` (#88).
 
 **Not touched:** the whole motif / scene system, both render engines, `safe_check.js`,
 `sound_fx.py`, `compose.html`.
 
 ## Implementation tickets (Pass 6 milestone)
 
-1. **`format:"long"` world switch** — `run.py` checks `config.format`;
-   `scripts/pipeline/long-form.json` with the stage list above; `defaults.config.json`
-   gains the `longform` block. *(area:orchestrator)*
-2. **`tighten.py`** — the jump-cut + filler pass + `scripts/fillers.json` + `apply` that
-   folds into `cut-plan.json` / `captions.json`. Doc page. *(area:pipeline)*
-3. **`reframe.py` 16:9 branch** — `format:"long"` keeps/produces 16:9 instead of 9:16.
-   *(area:pipeline)*
-4. **`assemble_longform.py`** — cut list → video, `config/broll.json` overlays. Doc page.
-   *(area:pipeline)*
-5. **Chapters** — `config/chapters.json` contract + `subtitles.py` emits
+1. ✅ **`format:"long"` world switch** (#84) — `run.py` checks `config.format`;
+   `scripts/pipeline/long-form.json` (13 stages: `join → cut → audio → transcribe →
+   ⟨fix⟩ → captions → ⟨tighten⟩ → ⟨chapters⟩ → reframe → ⟨broll⟩ → assemble → master →
+   subs`); [`join_takes.py`](../scripts/join_takes.md) + `lib/rush.find_source()` prefers
+   `build/source-joined.mp4`; `defaults.config.json` `longform` block. Verified end-to-end
+   through `join` (1 + 2 takes) → `cut` → `audio`.
+2. **`tighten.py`** (#85) — the jump-cut + filler pass + `scripts/fillers.json` + `apply`
+   that folds into `cut-plan.json` / `captions.json`. Doc page. *(area:pipeline)*
+3. **`reframe.py` 16:9 branch** (#86) — `format:"long"` keeps/produces 16:9 instead of
+   9:16. *(area:pipeline)*
+4. **`assemble_longform.py`** (#87) — cut list → video, `config/broll.json` overlays. Doc
+   page. *(area:pipeline)*
+5. **Chapters** (#88) — `config/chapters.json` contract + `subtitles.py` emits
    `video-final.chapters.txt`. *(area:pipeline area:docs)*
-6. **`SKILL.md` — the `long-form` flow** — a new top-level section (like "Montage mode"),
-   the checkpoints, the "propose chapters / propose B-roll" conversation. *(area:docs)*
+6. **`SKILL.md` — the `long-form` flow** (#89) — a new top-level section (like "Montage
+   mode"), the checkpoints, the "propose chapters / propose B-roll" conversation.
+   *(area:docs)*
 
 Ship 1–5 as code with a real ≥ 5-minute recording run end-to-end; 6 lands with them.
