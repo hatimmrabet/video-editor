@@ -69,7 +69,7 @@ flowchart TD
 | 4 | *correct transcript* | `build/transcript-raw.json` → `build/transcript-fixes.json` | Claude fixes every sentence with the user; word count per sentence must match Whisper's |
 | 5 | [`captions.py`](scripts/captions.md) | `cut-plan` + `transcript-raw` + `transcript-fixes` → `build/captions.json` | per-word timing on the compressed timeline |
 | 5.5 | [`edit_script.py`](scripts/edit_script.md) | `build/captions.json` (+ `cut-plan.json`, `sound-cues.json`) | `show` · `dupes` · `drop`/`keep`/`undo` · `apply`. **Before** scene design — it shifts all times |
-| 6 | [`reframe.py`](scripts/reframe.md) | `rush/<name>` + `build/cut-plan.json` → `build/video-reframed.mp4` | cut + 9:16 reframe (accepts landscape) + per-segment zoom + bt709 tag |
+| 6 | [`reframe.py`](scripts/reframe.md) | `rush/<name>` + `build/cut-plan.json` → `build/video-reframed.mp4` | cut + 9:16 reframe (accepts landscape; **16:9 for `format:"long"`**) + per-segment zoom + bt709 tag |
 | — | *extract frames* | `build/video-reframed.mp4` → `build/frames-source/*.jpg` | `ffmpeg -i video-reframed.mp4 -vf fps=30 -q:v 3 frames-source/%05d.jpg` |
 | 7 | *design scenes* | edit `<work>/compose.html` | rewrite the scene functions; each is a visual metaphor for what's said |
 | 7.5/7.6 | [`fx/behind_text.js`](scripts/fx-behind_text.md) | `build/captions.json` + `frames-source/` → `build/person-cutout.json` + `person-cutout/person/*.png` | macOS only. `build` / `cutout` / `headout`. Then re-render the window |
@@ -117,9 +117,9 @@ A third world, selected by `project.config.json` `format: "long"` (not inferred 
 reframe → ⟨broll⟩ → assemble → master → subs` — see
 [`scripts/pipeline/long-form.json`](../video-editor/scripts/pipeline/long-form.json) and
 the full spec in [design/long-form.md](design/long-form.md). No motif/scene layer, no
-sound cues, no safe-zone check. **In progress (Pass 6)** — `join_takes.py` and
-[`tighten.py`](scripts/tighten.md) are built; `assemble_longform.py`, the `reframe.py`
-16:9 branch and the chapters output are not.
+sound cues, no safe-zone check. **In progress (Pass 6)** — `join_takes.py`,
+[`tighten.py`](scripts/tighten.md) and the `reframe.py` 16:9 branch are built;
+`assemble_longform.py` and the chapters output are not.
 
 ## Shared helpers
 
