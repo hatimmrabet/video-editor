@@ -44,13 +44,19 @@ the "no colour grade" invariant, contact sheets for review.
 | Output | 16:9 MP4 + chapter markers + `.srt` |
 
 `long-form` is a **separate engine path** from the reel — the reel's motion-graphics scene
-system doesn't apply. It reuses: `transcribe.py`, the silence/pause detection idea from
-`plan_cuts.py` (tuned much tighter), `montage_mode.py`'s shot scorer (for B-roll
-selection), `master_audio.sh`, `subtitles.py`, the transitions vocabulary.
+system doesn't apply. It reuses: `transcribe.py`, `captions.py`, `montage_mode.py`'s shot
+scorer (for B-roll selection), `master_audio.sh`, `subtitles.py`, the transitions
+vocabulary, `run.py` + the manifest grammar.
 
-This is roadmap Pass 6 — deliberately last among the engine work, because it needs the
-config system, the transitions vocabulary, and ideally the motif/scene split to already
-exist.
+This is roadmap Pass 6. The full spec + implementation plan is
+[long-form.md](long-form.md); the three open questions below are **resolved there**:
+
+- **One world, not two** — a static "podcast" long-form is just `long-form` with no B-roll
+  and no reframe.
+- **Chapters** — hand-authored `config/chapters.json` (the agent proposes breaks from the
+  transcript, the user confirms). No topic-shift heuristic in code.
+- **Filler words** — a curated per-language list, `scripts/fillers.json`, not a per-run
+  model choice (reproducible, inspectable).
 
 ## The abstraction boundary
 
@@ -74,7 +80,6 @@ can't be inferred from the footage itself.
 
 ## Open questions
 
-- Is `long-form` one world or two (podcast-style static vs edited-talk with B-roll)?
-- Chapter detection — topic-shift heuristic on the transcript, or always ask the user for
-  an outline?
-- Filler-word list per language — maintainable, or model-driven per run?
+- `broll-montage` and `reel-speech` are inferred from `rush/`; `long-form` is the
+  `format:"long"` switch. Is there ever a fourth world that needs a third selection
+  mechanism? (No candidate today.)

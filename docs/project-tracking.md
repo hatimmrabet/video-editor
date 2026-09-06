@@ -142,11 +142,22 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 | orchestrator: `scripts/run.py` design | `area:orchestrator` `type:design` | ✅ #21 — `run.py` + `scripts/pipeline/{reel-speech,broll-montage}.json`; timestamp skip, blocking/advisory checkpoints, `when` engine gate. Decisions locked in [orchestrator.md](design/orchestrator.md) |
 | orchestrator: subagent split (transcript-fixer / scene-designer / reviewer) | `area:orchestrator` `type:design` | ✅ #22 — spec in [orchestrator.md](design/orchestrator.md). Only `reviewer` is a clean win; `scene-designer` = a draft generator; `transcript-fixer` stays inline. Bundled `agents/*.md` templates = a later impl ticket, not built. |
 
-### Pass 6 / 7
+### Pass 6 — Long-form
+
+| Title | Labels | Status |
+|---|---|---|
+| long-form: world design doc → plan | `type:design` | ✅ #23 — [long-form.md](design/long-form.md): one world (`format:"long"`), 11-stage manifest, `tighten.py` + curated `fillers.json`, hand-authored `config/chapters.json`, `assemble_longform.py`, soft `.srt`. Six impl tickets listed. |
+| long-form: `format:"long"` world switch + `scripts/pipeline/long-form.json` | `area:orchestrator` | Pass 6 — from #23 |
+| long-form: `tighten.py` (jump-cut + filler pass) + `scripts/fillers.json` | `area:pipeline` | Pass 6 — from #23 |
+| long-form: `reframe.py` 16:9 branch | `area:pipeline` | Pass 6 — from #23 |
+| long-form: `assemble_longform.py` (cut list + B-roll overlays) | `area:pipeline` | Pass 6 — from #23 |
+| long-form: chapters — `config/chapters.json` + `subtitles.py` markers | `area:pipeline` `area:docs` | Pass 6 — from #23 |
+| long-form: `SKILL.md` long-form flow section | `area:docs` | Pass 6 — from #23 |
+
+### Pass 7 — Web
 
 | Title | Labels | Milestone |
 |---|---|---|
-| long-form: world design doc → plan | `type:design` | Pass 6 |
 | web: UI design doc → plan | `type:design` | Pass 7 |
 
 ### Bugs — engine drift
