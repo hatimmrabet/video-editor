@@ -14,9 +14,9 @@
 | `tsconfig.json` | yes | ES2020, `react-jsx`, `resolveJsonModule`, `strict:false` |
 | `src/index.ts` | yes | `registerRoot(RemotionRoot)`, imports `./font` |
 | `src/Root.tsx` | yes | `<Composition id="Ad" component={Ad} durationInFrames={DUR_F} fps={30} width={1080} height={1920} />` |
-| `src/theme.ts` | yes | imports `./project.json`; exports `T`, `FPS`, `VEND`, `OUTRO`, `DUR_F`, `HAS_SFX`, `OUTRO_COPY`, `STAGE`, `GUIDES`, `TX` (transition defaults), `SCENES` (resolved `config/scenes.json` or `null`) |
+| `src/theme.ts` | yes | imports `./project.json`; exports `T`, `FACE_ANCHOR` (`crop.faceAnchor`, default 0.30), `FPS`, `VEND`, `OUTRO`, `DUR_F`, `HAS_SFX`, `OUTRO_COPY`, `STAGE`, `GUIDES`, `TX` (transition defaults), `SCENES` (resolved `config/scenes.json` or `null`) |
 | `src/util.tsx` | yes | `p, linear, ease, eio, back, ez, sec, lerp, hx, rgba, lum, onACC` (Remotion `interpolate`/`Easing` wrappers; `ez(name)` = easing by name) |
-| `src/stage.ts` | yes | rect presets `R_FULL/R_STAGE/R_SIDE/R_LOWER/R_DOWN`; `vrect(t)` per `project.json.stage` with `TR`/easing from `TX.sceneToScene`; `videoLayers(t)` (two cross-fading rects mid-`dissolve`); a `stage[i].transition` overrides one boundary |
+| `src/stage.ts` | yes | rect presets `R_FULL/R_LOWER/R_DOWN`; `vrect(t)` per `project.json.stage` with `TR`/easing from `TX.sceneToScene`; `videoLayers(t)` (two cross-fading rects mid-`dissolve`); a `stage[i].transition` overrides one boundary. `resolveScenes()` flexes each `DOWN` span to `rDown(gb, caption-lines)` — same math as `compose.html` (issue #25) |
 | `src/Ad.tsx` | yes | top composition — `videoLayers(t).map(...)` video box(es) + `VideoOverlay` on top, then `Audio`, `Badge`, `Bar`, **`SCENES ? <SceneList> : <Scenes>`**, `Captions`, `Outro`, `Guides` |
 | `src/SceneList.tsx` | yes | the scenes-as-data **dispatcher** (issue #18) — mirror of `compose.html`'s `drawScenes(t)`. Per active `SCENES` entry: computes `enter`/`exit`/`hold`/`wordIndex`, applies the container `rise`, renders `motifs/<Motif>` with `{enter,exit,hold,words,wordIndex,rect,theme,params}`. Null `SCENES` → renders nothing |
 | `src/motifs/*.tsx` | yes | copied from `scripts/motifs/remotion/` — the shared per-engine motif components (`Stamp`, then #19 adds more) |
@@ -47,9 +47,11 @@
 
 ## Gotchas
 
-- The rect presets here have **drifted** from `compose.reference.html` — see the drift
-  table in [../engines.md](../engines.md#drift).
-- `Ad.tsx` hardcodes the video `objectPosition: '50% 26%'`; the light engine uses
-  `faceAnchor` from `project.config.json`. Unifying this is issue #28.
+- The video rects, caption width and object-position were **realigned** to
+  `compose.reference.html` in issues #25–#29 (`R_STAGE`/`R_SIDE` deleted, `R_DOWN` flexes
+  via `rDown`, `maxWidth: 730`, `objectPosition` from `FACE_ANCHOR`). The `stage.ts` flex
+  is verified equal to `compose`'s by a plain-JS parity port — **a real Remotion render is
+  still owed** (the sandbox has no Remotion install). Remaining drift (caption position,
+  `badge`/`bar` y) is in [../engines.md](../engines.md#drift).
 - After editing `Scenes.tsx`, run `safe_check.js` (the pixel check needs `compose.html`,
   but the hook check still runs; or set `guides:true` and eyeball the studio).

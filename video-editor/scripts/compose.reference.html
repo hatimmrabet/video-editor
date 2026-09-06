@@ -70,18 +70,17 @@ function card(x,y,w,h,r,al){X.save();X.globalAlpha*=(al===undefined?1:al);sh(44,
 function T(s,x,y,f,c,al,dir){X.save();X.font=f;X.fillStyle=c;X.textAlign=al||'center';X.textBaseline='middle';if(dir)X.direction=dir;X.fillText(s,x,y);X.restore();}
 /* ---------- video staging ---------- */
 const R_FULL={x:0,y:0,w:1080,h:1920,r:0};
-const R_STAGE={x:190,y:470,w:700,h:620,r:44};
-const R_SIDE={x:120,y:480,w:840,h:560,r:44};
 /* Video below, explanation above — for moments with a lot of information. Deliberately
    enters the Instagram belt: there's no text down there anyway, and what's covered is
    part of the image, not the speech. The speaker's head gets cropped a little from the top. */
 const R_LOWER={x:350,y:1370,w:380,h:520,r:32};   /* small card at the bottom — for B-roll and big panels */
-/* ⛔ The default for any moment with a graphic (user-approved): graphic on top (y 280-520)
-   ← caption directly below it ← speaker's face below, full 9:16 card with no cropping. The
-   viewer's eye travels in one line top to bottom. Don't use R_STAGE/R_SIDE (video in the
-   middle + graphic above the head + caption below = three focus points, the viewer gets
-   lost). R_STAGE/R_SIDE remain only for back-compat. */
-const R_DOWN={x:214,y:760,w:652,h:1160,r:40};
+/* ⛔ R_DOWN is the default for any moment with a graphic (user-approved): graphic on top
+   (y 280-520) ← caption directly below it ← speaker's face below, full-width 9:16 card with
+   no cropping. The viewer's eye travels in one line top to bottom. The value here is only
+   the full-width fallback — resolveScenes() replaces each R_DOWN entry with rDown(gb,
+   caption-lines), which is what actually renders. (R_STAGE / R_SIDE — video in the middle,
+   graphic above the head — were removed: three focus points, the viewer gets lost.) */
+const R_DOWN={x:0,y:770,w:1080,h:1150,r:0};
 let SCENES=[
  {s:0.00,e:3.32,m:R_FULL},{s:3.32,e:8.00,m:R_DOWN},{s:8.00,e:11.45,m:R_FULL},
  {s:11.45,e:15.36,m:R_DOWN},{s:15.36,e:18.56,m:R_DOWN},{s:18.56,e:20.42,m:R_FULL},

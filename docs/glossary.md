@@ -31,9 +31,10 @@ animated accent pill behind it when spoken. Stored per-word as `"hot": true` in
 show/hide time and a list of words each carrying its own start/end and `hot` flag.
 
 **stage / rect mode** — how big the video is and where it sits on screen at a given time.
-Modes: `FULL` (fills screen), `DOWN` (video below, graphic above), `LOWER` (small card),
-`STAGE` / `SIDE` (legacy). The schedule is `SCENES` (inline in `compose.html`) or
-`config/stage.json` (Remotion). [engines.md](engines.md).
+Modes: `FULL` (fills screen), `DOWN` (video below, graphic above — flexes per caption
+lines), `LOWER` (small card). (`STAGE` / `SIDE` were removed — issue #26.) The schedule is
+`SCENES` (inline in `compose.html`), `config/stage.json` (Remotion), or derived from
+`config/scenes.json`. [engines.md](engines.md).
 
 **rect / `R_*`** — a rectangle `{x, y, w, h, r}` (r = corner radius) that a stage mode
 maps to. `vrect(t)` interpolates between consecutive rects over `TR = 0.42 s`.

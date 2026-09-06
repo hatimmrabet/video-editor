@@ -29,10 +29,8 @@
 | Const | Value | Use |
 |---|---|---|
 | `R_FULL` | `{0, 0, 1080, 1920, r:0}` | speech, no graphic |
-| `R_DOWN` | `{214, 760, 652, 1160, r:40}` | any graphic — the default. Flexed by `rDown(gb, lines)` |
+| `R_DOWN` | `{0, 770, 1080, 1150, r:0}` | any graphic — the default. Full-width fallback; `resolveScenes()` replaces each entry with `rDown(gb, lines)` |
 | `R_LOWER` | `{350, 1370, 380, 520, r:32}` | B-roll / big panel |
-| `R_STAGE` | `{190, 470, 700, 620, r:44}` | **legacy — do not use** |
-| `R_SIDE` | `{120, 480, 840, 560, r:44}` | **legacy — do not use** |
 
 `const SCENES = [ {s, e, m}, ... ]` — inline array of `{start, end, rect}`.
 `resolveScenes()` swaps each `R_DOWN` for a flexible rect from the graphic bottom (`gb`,

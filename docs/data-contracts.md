@@ -370,7 +370,8 @@ is a rare per-project exception, not something set routinely. Defaults:
 ]
 ```
 
-`m` ∈ `"FULL" | "DOWN" | "LOWER" | "STAGE" | "SIDE"` (STAGE/SIDE are legacy). Optional
+`m` ∈ `"FULL" | "DOWN" | "LOWER"` (`STAGE` / `SIDE` were removed — issue #26; an old value
+falls back to `FULL`). Optional
 `transition` (issue #13; shorthand or object, see `transitions.json`) overrides
 type/duration/easing for the cut **into** that entry — `rect-morph` / `cut` / `dissolve` on
 the reel video. Entry 0's is ignored.
@@ -439,6 +440,7 @@ in `compose.html`.
 {
   "theme": { "bg": "...", "ink": "...", "acc": "...", "clay": "...", "mut": "...",
              "font": "...", "handle": "..." },   // only the truthy keys from project.config.json's theme
+  "faceAnchor": 0.30,                             // project.config.json's crop.faceAnchor → theme.ts FACE_ANCHOR / Ad.tsx object-position (#28)
   "total": 46.078,                                // round(caps.total, 3)
   "outro": 5.2,                                   // float(sound-cues.outro), default 5.0
   "sfx":   true,                                  // does <work>/build/sound-effects.wav exist

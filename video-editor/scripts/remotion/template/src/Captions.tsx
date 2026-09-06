@@ -21,7 +21,7 @@ export const Captions: React.FC<{t:number}> = ({t}) => {
     <div style={{position:'absolute', left:0, right:0, bottom:1920-1460, display:'flex', justifyContent:'center',
       opacity:a, transform:`translateY(${dy}px) scale(${sc})`}}>
       <div dir="rtl" style={{
-        maxWidth:918, background:rgba(T.bg,0.96), border:`2.5px solid ${rgba(T.ink,0.09)}`,
+        maxWidth:730, background:rgba(T.bg,0.96), border:`2.5px solid ${rgba(T.ink,0.09)}`,
         borderRadius:38, padding:'30px 44px', boxShadow:`0 20px 48px ${rgba(T.ink,0.30)}`,
         fontFamily:T.font, fontWeight:800, fontSize:55, lineHeight:1.44, textAlign:'center', color:T.ink}}>
         {c.w.map((w,i) => {

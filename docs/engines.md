@@ -67,9 +67,10 @@ Then `encode.sh` muxes `build/frames-composited/*.jpg` + `build/video-reframed.m
 - **Theme vars** `BG INK ACC CLAY MUT FONT HANDLE FACE_ANCH GRID BADGE_UNTIL`, overwritten
   by `init(d.theme)`; **`TX`** (transition defaults) + `TR` from `init(d.transitions)`.
 - **Video staging rectangles** (module consts):
-  `R_FULL {0,0,1080,1920,r:0}` · `R_STAGE {190,470,700,620,44}` (legacy) ·
-  `R_SIDE {120,480,840,560,44}` (legacy) · `R_LOWER {350,1370,380,520,32}` ·
-  `R_DOWN {214,760,652,1160,40}`.
+  `R_FULL {0,0,1080,1920,r:0}` · `R_LOWER {350,1370,380,520,32}` ·
+  `R_DOWN {0,770,1080,1150,r:0}` (a full-width fallback — `resolveScenes()` replaces each
+  `R_DOWN` entry with `rDown(gb, caption-lines)`, which is what actually renders).
+  (`R_STAGE` / `R_SIDE` were removed — issue #26.)
 - **`const SCENES = [ {s:0.00,e:3.32,m:R_FULL}, {s:3.32,e:8.00,m:R_DOWN}, … ]`** — a
   hardcoded inline array of `{start, end, rect}`. `resolveScenes()` replaces each `R_DOWN`
   entry with a flexible `rDown(gb, lines)` rect computed from the graphic bottom + caption
@@ -151,10 +152,10 @@ head; person redrawn on top; `personStage`; `headOut`) lives in `compose.referen
 |---|---|
 | `index.ts` | `registerRoot(RemotionRoot)`, imports `./font` |
 | `Root.tsx` | `<Composition id="Ad" component={Ad} durationInFrames={DUR_F} fps={30} width={1080} height={1920} />` |
-| `theme.ts` | imports `project.json`; exports `T` (colors/font/handle/badgeUntil), `FPS=30`, `VEND=P.total`, `OUTRO=P.outro`, `DUR_F`, `HAS_SFX`, `OUTRO_COPY`, `STAGE`, `GUIDES`, `TX` (transition defaults) |
+| `theme.ts` | imports `project.json`; exports `T` (colors/font/handle/badgeUntil), `FACE_ANCHOR` (`crop.faceAnchor`, default 0.30), `FPS=30`, `VEND=P.total`, `OUTRO=P.outro`, `DUR_F`, `HAS_SFX`, `OUTRO_COPY`, `STAGE`, `GUIDES`, `TX` (transition defaults) |
 | `util.tsx` | Remotion `interpolate`/`Easing` wrappers: `p, linear, ease, eio, back, ez, sec, lerp, hx, rgba, lum, onACC` — same math as `compose.html`'s helpers; `ez(name)` = easing by name |
-| `stage.ts` | rect presets + `vrect(t)` interpolating per `project.json.stage`; `TR` / easing from `TX.sceneToScene`; a `stage[i].transition` overrides one boundary; `videoLayers(t)` returns one rect (or two cross-fading, mid-`dissolve`) |
-| `Ad.tsx` | `<AbsoluteFill background={T.bg}>`; if `t < VEND`, `videoLayers(t).map(...)` → absolutely-positioned `div`(s) with `<OffthreadVideo src={staticFile('video.mp4')} objectFit:cover objectPosition:'50% 26%'>` (+ `<VideoOverlay t>` on the top layer); then `<Audio>`, `<Badge>`, `<Bar>`, `<Scenes>`, `<Captions>`, `<Outro>`, `<Guides>` |
+| `stage.ts` | `R_FULL/R_LOWER/R_DOWN` presets + `vrect(t)` interpolating per `project.json.stage`; `TR` / easing from `TX.sceneToScene`; a `stage[i].transition` overrides one boundary; `videoLayers(t)` returns one rect (or two cross-fading, mid-`dissolve`). `resolveScenes()` replaces each `DOWN` span with `rDown(gb, caption-lines)` — the same flex as `compose.html` (issue #25), using canvas `measureText` for the wrap |
+| `Ad.tsx` | `<AbsoluteFill background={T.bg}>`; if `t < VEND`, `videoLayers(t).map(...)` → absolutely-positioned `div`(s) with `<OffthreadVideo src={staticFile('video.mp4')} objectFit:cover objectPosition:\`50% ${FACE_ANCHOR*100}%\`>` (+ `<VideoOverlay t>` on the top layer); then `<Audio>`, `<Badge>`, `<Bar>`, `<Scenes>`, `<Captions>`, `<Outro>`, `<Guides>` |
 | `Captions.tsx` | active card from `caps.cards`, RTL flex-centered card at `bottom: 1920-1460`, per-word `<span>` with `color: hot ? '#FFF' : active ? T.acc : T.ink` and an animated `scaleX` accent pill behind hot words; enter/exit = the `rise` type (`TX.sceneEnter` / `TX.sceneExit`) |
 | `Chrome.tsx` | `Badge` (handle + logo pill at `top:190`, hidden when `badgeUntil==0`), `Bar` (progress bar at `top:1492`), generic `Card` |
 | `Outro.tsx` | wipe-up reveal; logo, `C.line`, `RECAP` 2-col grid with SVG check, `C.cta_top` + `C.cta_word` accent chip, `C.tail`, handle+logo footer. **All copy from `project.json` — nothing hardcoded** |
@@ -184,17 +185,26 @@ trap that needs handling (`Scenes.tsx` must stay per-project, not shared).
 
 ## Drift
 
-The two engines were hand-ported from each other and have diverged. **Fixing this is the
-point of [design/scenes-as-data.md](design/scenes-as-data.md).** Known differences today:
+The two engines were hand-ported from each other and diverged. **Fixing this is the point
+of [design/scenes-as-data.md](design/scenes-as-data.md).**
 
-| Thing | `compose.reference.html` (light) | `stage.ts` / `Captions.tsx` (Remotion) |
+**Resolved (issues #25–#29):** `R_STAGE` / `R_SIDE` deleted from all three surfaces (out of
+the data path — see [scenes-as-data.md](design/scenes-as-data.md)); `R_DOWN` now flexes
+identically (`rDown(gb, caption-lines)`) in `compose.html`, `stage.ts` and `studio.html`;
+caption card max width is `730` everywhere; the video object-position reads
+`crop.faceAnchor` in every engine (`remotion.sh` writes it into `project.json` →
+`theme.ts` `FACE_ANCHOR` → `Ad.tsx`; `studio.html` reads `d.theme.faceAnchor` in `init`).
+Verified: `compose.html` render byte-identical; `studio.html` `vrect` matches `compose`'s
+across a sweep; `stage.ts`'s flex verified equal to `compose`'s by a plain-JS parity port
+(a real Remotion render still owed — the sandbox has no Remotion install).
+
+**Remaining:**
+
+| Thing | `compose.reference.html` (light) | Remotion / `studio.html` |
 |---|---|---|
-| `R_DOWN` | `{x:214, y:760, w:652, h:1160, r:40}` | `{x:0, y:770, w:1080, h:1150, r:0}` |
-| `R_STAGE` | `{x:190, y:470, w:700, h:620, r:44}` | `{x:190, y:660, w:700, h:700, r:44}` |
-| `R_SIDE` | `{x:120, y:480, w:840, h:560, r:44}` | `{x:120, y:700, w:840, h:620, r:44}` |
-| Caption card max width | `MAXW = 730` (word wrap), card `bw` from measured lines | `maxWidth: 918` |
-| Video object-position | `FACE_ANCH` (`project.config.json` `crop.faceAnchor`, default 0.30) | hardcoded `'50% 26%'` (issue #28) |
-| `studio.html` rects | its own stale inline copy (`R_STAGE {190,660,…}`) | — |
+| caption position | rides the video edge (`vtarget`), lower-third / above-head cases | `studio.html` uses a fixed `by=1580-bh`; `Captions.tsx` a fixed `bottom` |
+| `badge` / `bar` y | `badge` y 190, `bar` y 1600 | `studio.html` `badge` y 74, `bar` y 1878 |
+| scene graphics (scenes-less) | inline `compose.html` functions | `Scenes.tsx` / `studio.html` inline copies — go once every project uses `config/scenes.json` |
 
 Also:
 

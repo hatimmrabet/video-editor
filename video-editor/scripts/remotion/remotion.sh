@@ -38,10 +38,12 @@ def rd(rel, dflt):
     p = os.path.join(W, rel)
     return json.load(open(p, encoding="utf-8-sig")) if os.path.exists(p) else dflt
 caps  = json.load(open(os.path.join(W, "build", "captions.json"), encoding="utf-8-sig"))
-theme = cfg.load(W).get("theme", {})   # no longer from theme.json — same migration as reframe.py (#8)
+_cfg  = cfg.load(W)                     # no longer from theme.json — same migration as reframe.py (#8)
+theme = _cfg.get("theme", {})
 sfx   = rd(os.path.join("build", "sound-cues.json"), {})
 proj = {
   "theme": {k: theme.get(k) for k in ("bg","ink","acc","clay","mut","font","handle") if theme.get(k)},
+  "faceAnchor": _cfg.get("crop", {}).get("faceAnchor", 0.30),   # → theme.ts FACE_ANCHOR / Ad.tsx objectPosition (issue #28)
   "total": round(caps["total"], 3),
   "outro": float(sfx.get("outro", 5.0)),
   "sfx":   os.path.exists(os.path.join(W, "build", "sound-effects.wav")),

@@ -36,7 +36,8 @@ found in real production runs — each is fixed in code, and the fix must not be
 
 Don't overuse `R_DOWN`: the hook (first 3–4 s) is always full-screen; any peak / emotion /
 question is full-screen; never more than half the video in `R_DOWN`, never more than 8 s
-continuous. `R_STAGE` / `R_SIDE` are legacy — do not use them in a new video.
+continuous. (The old middle-of-screen rects `R_STAGE` / `R_SIDE` were removed from both
+engines — issue #26.)
 
 ### Instagram safe zone
 

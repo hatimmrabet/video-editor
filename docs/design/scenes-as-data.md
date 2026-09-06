@@ -46,7 +46,8 @@ which holds only up-front static facts — see
 
 ### `layout` — required — the video-rect mode for the span
 
-A string `"FULL" | "DOWN" | "LOWER"` (`STAGE` / `SIDE` are dropped — legacy), or an object:
+A string `"FULL" | "DOWN" | "LOWER"` (`STAGE` / `SIDE` were removed from both engines —
+issue #26), or an object:
 
 ```jsonc
 { "mode": "DOWN", "transition": "dissolve:0.3", "gb": 480 }

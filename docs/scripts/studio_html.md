@@ -29,9 +29,13 @@ set, the timeline chips are rebuilt from the scene list, and `draw(t)` runs the 
 
 For a **scenes-less** project, `studio.html` still runs its own **third hand-maintained
 copy** of the reference scene functions + drawing code (the first is
-`compose.reference.html`, the second is `remotion/template/src/`). Those have drifted —
-e.g. its `R_STAGE` is `{190, 660, …}` while `compose.reference.html`'s is `{190, 470, …}`.
-Once every project is authored as `config/scenes.json`, that copy can go — see
+`compose.reference.html`, the second is `remotion/template/src/`). The video staging was
+realigned to `compose.reference.html` in issues #25–#29 (`R_STAGE`/`R_SIDE` deleted;
+`R_DOWN` now flexes via a ported `rDown()`/`resolveScenes()`; caption `MAXW = 730`;
+`paintVideo` reads `FACE_ANCH` from `d.theme.faceAnchor`) — `vrect` output now matches
+`compose`'s across a sweep. Still drifted: the caption *position* (`studio.html` uses a
+fixed `by`, `compose` rides the video edge) and the `badge`/`bar` y. Once every project is
+authored as `config/scenes.json`, this copy can go — see
 [../design/scenes-as-data.md](../design/scenes-as-data.md).
 
 ## Gotchas
@@ -49,7 +53,9 @@ Once every project is authored as `config/scenes.json`, that copy can go — see
   extracting/compositing frames — which you do anyway, since it reads `build/frames-source/`.
 - `draw()` here isn't guarded per-function like `compose.html`'s `safe()` — a broken
   `config/logo.png` throws in `badge()`. Pre-existing; unrelated to #20.
-- Treat `studio.html`'s rect values as **not authoritative** — `compose.reference.html` is.
+- `compose.reference.html` is the authoritative light-engine surface — `studio.html`
+  mirrors it. The video staging (`R_*`, `rDown`, `FACE_ANCH`, caption `MAXW`) was resynced
+  in #25–#29; if you change any of it in `compose.reference.html`, port the change here.
 - `OUT_D=5.2` and `NVF=1379` (line ~488) are **hardcoded literals**, not read from any
   file — edit them by hand per project. Unrelated to the layout migration below; a
   pre-existing gap (see [project-tracking.md](../project-tracking.md)'s engine-drift bugs).

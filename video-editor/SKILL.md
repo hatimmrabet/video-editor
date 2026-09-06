@@ -309,8 +309,9 @@ project's `compose.html` — it puts it in the first 3 seconds only. Not a confi
 | any graphic or motion | `R_DOWN` (default) | **graphic on top (y 280–520) ← caption riding the video's edge ← face below, full screen width** |
 | B-roll or a big panel | `R_LOWER` | the big card on top ← caption ← small face below |
 
-**Why:** the old layout (`R_STAGE`/`R_SIDE`: video in the middle, graphic above the head,
-caption below) creates three separated focus points and the viewer gets lost.
+**Why:** the old middle-of-screen layout (video in the middle, graphic above the head,
+caption below) created three separated focus points and the viewer got lost. Those rects
+(`R_STAGE` / `R_SIDE`) are gone from both engines.
 
 **Three details that matter (from the layout revision):**
 1. **The video is the full screen width, no margins, no rounded corners** — the face comes
@@ -338,8 +339,7 @@ travels in one line top to bottom. **And the card is flexible:** it shrinks in p
 (9:16) based on the graphic's bottom (`gb` per scene, e.g. `{s,e,m:R_DOWN,gb:480}`) and
 the number of caption lines at that moment, so the graphic and the caption never crowd
 each other. Panels are drawn at coordinates `130..950 × 278..458` inside `panelIn()` and
-they scale to 1.2 on their own. `R_STAGE` and `R_SIDE` remain in the file for
-back-compat only — **do not use them in a new video.**
+they scale to 1.2 on their own.
 
 **B-roll shots (optional):** put the cutaway clip(s) in `<work>/rush/broll/` (a folder —
 it may hold several, see [`docs/design/file-layout.md`](../docs/design/file-layout.md)),
