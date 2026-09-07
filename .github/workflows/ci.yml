@@ -51,29 +51,38 @@ jobs:
         run: cd video-editor/scripts/remotion/template && npm ci --silent --ignore-scripts
 
       # --- the headless suite ---
-      # ffmpeg: cache the static binaries so a flaky download can't redden CI. The cache
-      # hits on ~every run; on a cold cache, curl --retry rides out a network blip, and
-      # apt is the last resort. Bump the key's vN to pull a newer ffmpeg.
+      # ffmpeg: cache the static binaries so a bad download can't redden CI. The cache
+      # hits on ~every run (zero network). On a cold cache we pull BtbN's static build
+      # from GitHub Releases — reachable whenever Actions itself is (johnvansickle.com,
+      # which setup-ffmpeg used, is not) — retrying five times, then apt as a last
+      # resort. Bump the key's vN to pull a newer ffmpeg.
       - name: cache ffmpeg
         uses: actions/cache@v6
         with:
           path: ~/.local/ffmpeg
-          key: ffmpeg-static-${{ runner.os }}-v1
+          key: ffmpeg-btbn-${{ runner.os }}-v1
       - name: ffmpeg
         run: |
           set -eu
           DEST="$HOME/.local/ffmpeg"
           if [ ! -x "$DEST/ffmpeg" ]; then
-            URL=https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-            if curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
-                    --connect-timeout 20 --max-time 300 "$URL" -o /tmp/ffmpeg.tar.xz; then
-              mkdir -p "$DEST"
-              tar -xJf /tmp/ffmpeg.tar.xz -C /tmp
-              mv /tmp/ffmpeg-*-amd64-static/ffmpeg /tmp/ffmpeg-*-amd64-static/ffprobe "$DEST/"
-            else
-              echo "::warning::static ffmpeg unavailable after retries — falling back to apt"
-              sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-              DEST=/usr/bin
+            mkdir -p "$DEST"
+            D=ffmpeg-master-latest-linux64-gpl
+            URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/$D.tar.xz"
+            ok=
+            for n in 1 2 3 4 5; do
+              if curl -fL --connect-timeout 30 --max-time 600 -o /tmp/ffmpeg.tar.xz "$URL" \
+                 && tar -xJf /tmp/ffmpeg.tar.xz -C /tmp "$D/bin/ffmpeg" "$D/bin/ffprobe"; then
+                mv "/tmp/$D/bin/ffmpeg" "/tmp/$D/bin/ffprobe" "$DEST/"
+                ok=1; break
+              fi
+              echo "ffmpeg fetch $n/5 failed; retrying in 10s"; sleep 10
+            done
+            if [ -z "$ok" ]; then
+              echo "::warning::ffmpeg download failed 5x — falling back to apt"
+              sudo apt-get update && sudo apt-get install -y ffmpeg
+              rmdir "$DEST" 2>/dev/null || true
+              DEST="$(dirname "$(command -v ffmpeg)")"
             fi
           fi
           printf '%s\n' "$DEST" >> "$GITHUB_PATH"
