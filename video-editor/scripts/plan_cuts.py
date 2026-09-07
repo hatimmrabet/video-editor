@@ -6,14 +6,14 @@ except Exception:
     pass
 """Cut plan: measures the silences in the audio and produces the speech segments.  Usage: python3 plan_cuts.py <workdir>"""
 import subprocess, re, json, sys, os
-from lib import rush
+from lib import rush, platform as _plat
 W = os.path.abspath(sys.argv[1]); SRC = rush.find_source(W)
 os.makedirs(os.path.join(W, "build"), exist_ok=True)
 NOISE, MIND, PAD, MERGE = "-32dB", 0.35, 0.13, 0.20
 
-dur = float(subprocess.run(["ffprobe","-v","error","-show_entries","format=duration",
+dur = float(subprocess.run([_plat.FFPROBE,"-v","error","-show_entries","format=duration",
     "-of","csv=p=0", SRC], capture_output=True, text=True).stdout.strip())
-out = subprocess.run(["ffmpeg","-hide_banner","-nostats","-i",SRC,"-af",
+out = subprocess.run([_plat.FFMPEG,"-hide_banner","-nostats","-i",SRC,"-af",
     f"silencedetect=noise={NOISE}:d={MIND}","-f","null","-"], capture_output=True, text=True).stderr
 
 sil=[]; s=None

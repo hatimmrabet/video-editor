@@ -33,7 +33,8 @@ Audio graph: `[1:a]apad=pad_dur=8` (pad the speech), `amix` with
 
 ## External tools
 
-`ffmpeg`, `ffprobe`, `"${VEVO_PY[@]}"` (inline `-c` — DUR/FADE calc).
+`"$VEVO_FFMPEG"`, `"$VEVO_FFPROBE"` (set by `lib/platform.sh` — `$VEVO_FFMPEG` /
+`$VEVO_FFPROBE` else PATH, #44), `"${VEVO_PY[@]}"` (inline `-c` — DUR/FADE calc).
 
 ## Cross-platform
 

@@ -29,7 +29,8 @@ with no change.
 
 ## External tools
 
-`ffmpeg` (only for the multi-take path).
+`ffmpeg` (only for the multi-take path) — via [`lib/platform.py`](lib-platform.md)'s
+`FFMPEG` (`$VEVO_FFMPEG` else PATH, #44).
 
 ## Gotchas
 

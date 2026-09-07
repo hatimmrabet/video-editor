@@ -24,7 +24,7 @@ GPU=0; have nvidia-smi && GPU=1
 # ─────────────────────────── report mode ──────────────────────────────────
 if [ $INSTALL -eq 0 ]; then
   miss=()
-  have ffmpeg || miss+=("ffmpeg")
+  have "$VEVO_FFMPEG" || miss+=("ffmpeg")   # honours $VEVO_FFMPEG if it points elsewhere (issue #44)
   have node   || miss+=("node")
   have uv     || miss+=("uv")
   pyok "import numpy, PIL" || miss+=("python-env (.venv)")
@@ -63,7 +63,7 @@ uv_bootstrap(){
 }
 
 have uv     || { uv_bootstrap || NOTE+=("uv: install manually — https://docs.astral.sh/uv"); }
-have ffmpeg || { line "⏬ ffmpeg…"; sys_install ffmpeg || NOTE+=("ffmpeg: install manually ($PKG unavailable)"); }
+have "$VEVO_FFMPEG" || { line "⏬ ffmpeg…"; sys_install ffmpeg || NOTE+=("ffmpeg: install manually ($PKG unavailable)"); }
 have node   || { line "⏬ node…";   sys_install node   || NOTE+=("node: install manually — need >= 22.12"); }
 . "$(dirname "$0")/lib/platform.sh"          # re-source: pick up a freshly-installed uv
 
@@ -82,7 +82,7 @@ fi
 
 # ─────────────────────────── verify ───────────────────────────────────────
 FAIL=0
-have ffmpeg || { FAIL=1; NOTE+=("ffmpeg still missing"); }
+have "$VEVO_FFMPEG" || { FAIL=1; NOTE+=("ffmpeg still missing"); }
 have node   || { FAIL=1; NOTE+=("node still missing"); }
 pyok "import numpy, PIL" || { FAIL=1; NOTE+=("python deps not importable"); }
 { pyok "import faster_whisper" || pyok "import whisper"; } || NOTE+=("no transcription engine")

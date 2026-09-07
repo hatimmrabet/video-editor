@@ -54,7 +54,9 @@ mkdir -p <work>/build/frames-source && ffmpeg -v error -i <work>/build/video-ref
 `ffprobe` (source `WxH`) · `ffmpeg` (one big `filter_complex`: per-segment
 trim/crop/scale/concat + fps + setparams + optional eq/colorbalance). When the graph
 exceeds ~90 kB (a long-form video tightened to many jump-cut segments) it's passed via
-ffmpeg's `/`-prefix file form instead of the command line.
+ffmpeg's `/`-prefix file form instead of the command line. Both resolve through
+[`lib/platform.py`](lib-platform.md)'s `FFMPEG` / `FFPROBE` (`$VEVO_FFMPEG` /
+`$VEVO_FFPROBE` else PATH, #44).
 
 ## Cross-platform
 

@@ -90,7 +90,7 @@ Milestone #8. Implemented by **PR #37**. See [design/execution.md](design/execut
 | ~~execution: switch to full `puppeteer` (bundled Chromium)~~ | `area:engine-light` `type:chore` `prio:high` | ✅ #41 |
 | ~~execution: `.nvmrc` (Node ≥ 22.12)~~ | `type:chore` | ✅ #42 |
 | ~~execution: `SKILL.md` + docs — `python3` → `uv run`~~ | `area:docs` | ✅ #43 |
-| execution: `VEVO_FFMPEG` / `VEVO_FFPROBE` + static-binary fallback | `area:pipeline` `type:chore` | #44 |
+| execution: `VEVO_FFMPEG` / `VEVO_FFPROBE` + static-binary fallback | `area:pipeline` `type:chore` | ✅ #44 — **scope A** (resolver, no download): `lib/platform.{sh,js,py}` + `run.py` `{ffmpeg}`/`{ffprobe}` + `fx/behind_text.js`; all ~25 call sites. `setup.sh` honours `$VEVO_FFMPEG`. Static-binary fallback (scope B) deferred. |
 | execution: commit a lockfile for the Remotion template | `area:engine-remotion` `type:chore` | ✅ #45 — `scripts/remotion/template/package-lock.json` (Remotion `4.0.521`, React `18.3.1`); `remotion.sh` copies it in with `package.json`, `setup` runs `npm ci` |
 | execution: optional CPU-only `Dockerfile` | `area:pipeline` `type:chore` | #46 |
 

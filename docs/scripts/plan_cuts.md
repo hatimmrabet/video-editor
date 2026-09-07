@@ -40,7 +40,8 @@ Segments shorter than `0.30 s` after all of the above are dropped.
 
 ## External tools
 
-`ffprobe` (source duration) · `ffmpeg` (`silencedetect=noise=-32dB:d=0.35`, parsed from stderr).
+`ffprobe` (source duration) · `ffmpeg` (`silencedetect=noise=-32dB:d=0.35`, parsed from
+stderr) — both via [`lib/platform.py`](lib-platform.md) (`$VEVO_FFMPEG` / `$VEVO_FFPROBE`, #44).
 
 ## Cross-platform
 

@@ -32,7 +32,8 @@ Temp dir `<work>/build/.sheet` is removed at the end.
 
 ## External tools
 
-`ffmpeg` (frame grabs, `scale=300:-1` for token economy), Python + PIL. PIL font search
+`"$VEVO_FFMPEG"` (frame grabs, `scale=300:-1` for token economy; set by `lib/platform.sh`,
+#44), Python + PIL. PIL font search
 includes `C:\Windows\Fonts\arialbd.ttf` / `segoeuib.ttf` (Windows-aware) and the macOS /
 DejaVu equivalents.
 

@@ -46,7 +46,9 @@ None of its own. Each stage writes what `docs/pipeline.md` says it does. `run.py
 
 `scripts/pipeline/reel-speech.json` · `scripts/pipeline/broll-montage.json` ·
 `scripts/pipeline/long-form.json` — `{ _doc, world, stages[] }`. Per stage: `id`, `title`, `run` (argv with `{work}`
-`{source}` `{language}` `{skill}` substituted — omit for a checkpoint), `needs` / `makes`
+`{source}` `{language}` `{skill}` `{ffmpeg}` `{ffprobe}` substituted — omit for a checkpoint;
+`{ffmpeg}` / `{ffprobe}` resolve via [`lib/platform.py`](lib-platform.md), `$VEVO_FFMPEG` /
+`$VEVO_FFPROBE` else PATH, issue #44), `needs` / `makes`
 (work-relative; `{source}` = the rush file; trailing `/` = non-empty directory),
 optional `block` (halt a checkpoint until `makes` exists), `note`, `when` (gate on a
 config value). Full contract: [data-contracts.md](../data-contracts.md#scriptspipelineworldjson--the-stage-manifest-static-skill-file).

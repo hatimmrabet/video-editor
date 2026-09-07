@@ -25,6 +25,12 @@ else
 fi
 # (VEVO_PY est un tableau bash — pas exportable ; les scripts qui sourcent ce fichier l'ont directement.)
 
+# ffmpeg / ffprobe : $VEVO_FFMPEG / $VEVO_FFPROBE l'emportent (mêmes noms côté Python/JS),
+# sinon le nom nu résolu via PATH — sinon le nom nu tel quel (peut arriver avant setup.sh).
+: "${VEVO_FFMPEG:=$(command -v ffmpeg 2>/dev/null || echo ffmpeg)}"
+: "${VEVO_FFPROBE:=$(command -v ffprobe 2>/dev/null || echo ffprobe)}"
+export VEVO_FFMPEG VEVO_FFPROBE
+
 # OS courant : mac | windows | linux
 case "$(uname -s 2>/dev/null)" in
   Darwin*)               VEVO_OS=mac ;;

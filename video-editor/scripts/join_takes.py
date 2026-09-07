@@ -27,6 +27,7 @@ import subprocess
 
 _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lib import rush as _rush  # noqa: E402
+from lib import platform as _plat  # noqa: E402
 
 
 def main():
@@ -49,7 +50,7 @@ def main():
         for c in clips:
             f.write("file '%s'\n" % c.replace("'", "'\\''"))
     r = subprocess.run(
-        ["ffmpeg", "-v", "error", "-f", "concat", "-safe", "0", "-i", lst,
+        [_plat.FFMPEG, "-v", "error", "-f", "concat", "-safe", "0", "-i", lst,
          "-c", "copy", "-movflags", "+faststart", "-y", out])
     if r.returncode != 0:
         raise SystemExit(

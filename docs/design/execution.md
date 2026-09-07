@@ -63,6 +63,7 @@ it) and exports:
 |---|---|
 | `VEVO_SKILL_DIR` | absolute path of the skill root (`.../video-editor`) |
 | `VEVO_PY` | a bash array: `uv run --project "$VEVO_SKILL_DIR" python` if `uv` is on PATH; else `$VEVO_SKILL_DIR/.venv/bin/python` (or `Scripts/python.exe` on Windows); else `python3` |
+| `VEVO_FFMPEG`, `VEVO_FFPROBE` | the ffmpeg / ffprobe binary — a pre-set value wins, else `command -v`, else the bare name. Mirrored in `lib/platform.py` (`FFMPEG` / `FFPROBE`) and `lib/platform.js` (`ffmpegPath()` / `ffprobePath()`); `run.py` feeds them into the stage manifests as `{ffmpeg}` / `{ffprobe}` (#44) |
 | `PUPPETEER_CACHE_DIR` | `$VEVO_SKILL_DIR/node_modules/.cache/puppeteer` — keeps the browser with the skill |
 
 Shell scripts use `"${VEVO_PY[@]}" -c "…"` for their inline Python instead of a bare
@@ -73,19 +74,22 @@ Shell scripts use `"${VEVO_PY[@]}" -c "…"` for their inline Python instead of 
 prefers, in order: `$CHROME_PATH` → puppeteer's bundled `executablePath()` → a
 system-Chrome path → `channel: 'chrome'`.
 
-## Deferred (tracked as issues in Pass 1)
-
-- **`VEVO_FFMPEG` / `VEVO_FFPROBE` + a static-binary fallback** — thread a resolver through
-  the ~20 ffmpeg / ~9 ffprobe call sites and download a static build when the OS package
-  is missing. Not done because ffmpeg is a well-behaved OS package and the change is broad.
-  (#44)
-- **An optional CPU-only `Dockerfile`** for "don't touch my machine at all" / CI. Not the
-  default: GPU passthrough on Windows/macOS is painful and the skill writes files the user
-  wants locally.
-
 ## Done in Pass 1
 
 - **Isolated execution** (#37) — `uv` + bundled Chromium, no `--break-system-packages`.
+- **`VEVO_FFMPEG` / `VEVO_FFPROBE` resolver** (#44) — one override points every ffmpeg /
+  ffprobe call site at a specific binary, threaded through `lib/platform.{sh,js,py}`,
+  `run.py`'s `{ffmpeg}` / `{ffprobe}` manifest vars, and `fx/behind_text.js`. **Scope A**
+  only — no static-binary download (ffmpeg is a well-behaved OS package; `setup.sh`
+  installs it and now honours `$VEVO_FFMPEG`).
 - **A committed lockfile for the Remotion template** (#45) —
   `scripts/remotion/template/package-lock.json` (Remotion `4.0.521`, React `18.3.1`);
   `remotion.sh` copies it in with `package.json` and `setup` runs `npm ci` against it.
+
+## Deferred (tracked as issues in Pass 1)
+
+- **A static-binary ffmpeg fallback** — download a build to `~/.cache/video-editor/bin/`
+  when the OS package is absent (the "scope B" half of #44, left out for now).
+- **An optional CPU-only `Dockerfile`** for "don't touch my machine at all" / CI (#46).
+  Not the default: GPU passthrough on Windows/macOS is painful and the skill writes files
+  the user wants locally.

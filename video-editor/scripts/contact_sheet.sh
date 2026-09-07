@@ -14,8 +14,8 @@ TMP="$W/build/.sheet"; rm -rf "$TMP"; mkdir -p "$TMP"; i=0; IN=""
 for t in "$@"; do
   i=$((i+1)); f="$TMP/$(printf %02d $i).jpg"
   V="${SRC:-$W/build/video-raw.mp4}"
-  if [ -f "$V" ]; then ffmpeg -v error -ss "$t" -i "$V" -frames:v 1 -vf "scale=300:-1" -y "$f"
-  else ffmpeg -v error -i "$W/build/prev/t$(printf %.2f $t).jpg" -vf "scale=300:-1" -y "$f"; fi
+  if [ -f "$V" ]; then "$VEVO_FFMPEG" -v error -ss "$t" -i "$V" -frames:v 1 -vf "scale=300:-1" -y "$f"
+  else "$VEVO_FFMPEG" -v error -i "$W/build/prev/t$(printf %.2f $t).jpg" -vf "scale=300:-1" -y "$f"; fi
   IN="$IN -i $f"
 done
 
@@ -46,7 +46,7 @@ sheet.save(out, quality=88)
 PY
 then echo "✅ $OUT  ($i shot(s) · timestamp on each one)"
 else
-  ffmpeg -v error $IN -filter_complex "hstack=inputs=$i" -y "$OUT"
+  "$VEVO_FFMPEG" -v error $IN -filter_complex "hstack=inputs=$i" -y "$OUT"
   echo "✅ $OUT  ($i shot(s) · no label — order from the left: $*)"
 fi
 rm -rf "$TMP"

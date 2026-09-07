@@ -23,7 +23,7 @@ Selection is about the shot itself: sharpness · motion by amount (no freeze, no
 No transcription, no captions — this mode is independent of the speech-ad flow.
 """
 import json, os, re, subprocess, sys, shutil, math
-from lib import transitions as _trans
+from lib import transitions as _trans, platform as _plat
 
 VID_EXT = (".mov", ".mp4", ".m4v", ".avi", ".mkv", ".webm", ".mts", ".m2ts")
 AR = {"9:16": (1080, 1920), "1:1": (1080, 1080), "16:9": (1920, 1080), "4:5": (1080, 1350)}
@@ -39,8 +39,17 @@ def natkey(s):
     return [int(x) if x.isdigit() else x.lower() for x in re.split(r"(\d+)", s)]
 
 
+def ff(cmd):
+    """Resolve a leading 'ffmpeg'/'ffprobe' to $VEVO_FFMPEG / $VEVO_FFPROBE (issue #44)."""
+    if cmd and cmd[0] == "ffmpeg":
+        return [_plat.FFMPEG, *cmd[1:]]
+    if cmd and cmd[0] == "ffprobe":
+        return [_plat.FFPROBE, *cmd[1:]]
+    return cmd
+
+
 def run(cmd, **kw):
-    return subprocess.run(cmd, capture_output=True, text=True, **kw)
+    return subprocess.run(ff(cmd), capture_output=True, text=True, **kw)
 
 
 def probe(path):
@@ -613,7 +622,7 @@ def cmd_build(W, args):
     print(f"🎬 Building {len(plan)} shot(s) → {total:.1f}s · {ar} · {tdesc}"
           + ("" if not zoom else (" · no zoom (source isn't bigger than the output)" if nozoom == len(plan)
                                   else f" · zoom on {len(plan)-nozoom} shot(s)")))
-    r = subprocess.run(cmd)
+    r = subprocess.run(ff(cmd))
     if r.returncode:
         die("Build failed.")
     print(f"✅ {out}")
