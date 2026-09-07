@@ -40,11 +40,13 @@ v2.5 stays on `majed-v2.5`.
    `.cjs` / `.mjs`; `python -m compileall` on every `.py`; `bash -n` on every `.sh`; every
    `.json` parses; `npm ci --ignore-scripts` on `scripts/remotion/template/` (the `#45`
    lockfile stays valid).
-2. **The headless suite** — [`video-editor/test/`](../video-editor/test/README.md): ffmpeg
-   is on the runner image, `node_modules` (with Puppeteer's Chromium) is cached, the
-   tested scripts are stdlib so **no `uv sync`** — then `xvfb-run node test/run.mjs`. Covers
-   the web UI screens, `lint_compose.js`, `fx/behind_text.js plan`, the ffmpeg resolver,
-   the motifs. Add a `*.test.js` there when you add moving JavaScript.
+2. **The headless suite** — [`video-editor/test/`](../video-editor/test/README.md): a static
+   ffmpeg is downloaded and cached (ubuntu-latest ships none; `curl --retry` + an apt
+   fallback keep a bad download from reddening CI), `node_modules` (with Puppeteer's
+   Chromium) is cached, the tested scripts are stdlib so **no `uv sync`** — then
+   `xvfb-run node test/run.mjs`. Covers the web UI screens, `lint_compose.js`,
+   `fx/behind_text.js plan`, the ffmpeg resolver, the motifs. Add a `*.test.js` there when
+   you add moving JavaScript.
 
 **Not covered:** the pipeline output itself — a pipeline change is still verified by
 running it on a real video (repo `CLAUDE.md`).
