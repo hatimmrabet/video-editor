@@ -1,8 +1,9 @@
 name: ci
 
-# Lightweight gate — the checks that need no ffmpeg / whisper / a browser. The headless
-# Puppeteer suite (spatest / sndtest / lctest / …) is not here yet: it lives in a
-# scratchpad and needs committing as scripts/test/ first (tracked as a follow-up).
+# One job, kept under ~2 min. Fast static checks, then the headless suite in
+# video-editor/test/ (web UI + lint_compose + behind_text + the ffmpeg resolver + the
+# motifs). The suite needs only ffmpeg (on the runner image), Chromium (cached), and the
+# system python3 — no `uv sync` (the tested scripts are stdlib + lib/).
 
 on:
   pull_request:
@@ -14,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  checks:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,31 +28,35 @@ jobs:
         with:
           python-version-file: video-editor/.python-version
 
-      - name: doc coverage — every script has a docs/scripts/ page
-        run: node docs/check-script-coverage.mjs
+      - name: cache node_modules (incl. Puppeteer's Chromium under .cache/)
+        id: nm
+        uses: actions/cache@v4
+        with:
+          path: video-editor/node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('video-editor/package-lock.json') }}
 
-      - name: docs script-page checks
-        run: |
-          for f in docs/*.mjs; do node --check "$f"; done
-
+      # --- fast static checks ---
+      - run: node docs/check-script-coverage.mjs
+      - run: for f in docs/*.mjs; do node --check "$f"; done
       - name: node --check every .js / .cjs / .mjs
-        run: |
-          find video-editor/scripts \( -name '*.js' -o -name '*.cjs' -o -name '*.mjs' \) -print0 \
-            | xargs -0 -n1 -t node --check
-
-      - name: python -m compileall (syntax) on every .py
+        run: find video-editor/scripts video-editor/test \( -name '*.js' -o -name '*.cjs' -o -name '*.mjs' \) -print0 | xargs -0 -n1 node --check
+      - name: python -m compileall on every .py
         run: python -m compileall -q video-editor/scripts
-
       - name: bash -n every .sh
-        run: |
-          find video-editor/scripts -name '*.sh' -print0 | xargs -0 -n1 -t bash -n
-
-      - name: every .json under video-editor/ parses (utf-8-sig tolerant)
-        run: |
-          find video-editor -name '*.json' -not -path '*/node_modules/*' -print0 \
-            | xargs -0 -r -n1 -t python -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8-sig'))"
-
+        run: find video-editor/scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
+      - name: every .json under video-editor/ parses
+        run: find video-editor -name '*.json' -not -path '*/node_modules/*' -print0 | xargs -0 -r -n1 python -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8-sig'))"
       - name: Remotion template — package-lock.json installs cleanly (#45)
-        run: |
-          cd video-editor/scripts/remotion/template
-          npm ci --silent --ignore-scripts   # --ignore-scripts skips @remotion/renderer's Chromium download
+        run: cd video-editor/scripts/remotion/template && npm ci --silent --ignore-scripts
+
+      # --- the headless suite ---
+      - name: ffmpeg (cached static build)
+        uses: FedericoCarboni/setup-ffmpeg@v3
+      - name: node deps + bundled Chromium (skipped on a cache hit)
+        if: steps.nm.outputs.cache-hit != 'true'
+        working-directory: video-editor
+        run: npm ci --silent
+      - name: headless suite
+        working-directory: video-editor
+        run: xvfb-run -a node test/run.mjs
+

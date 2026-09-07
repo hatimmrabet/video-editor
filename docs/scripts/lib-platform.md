@@ -96,16 +96,19 @@ from lib import platform as _plat
 subprocess.run([_plat.FFMPEG, "-v", "error", "-i", src, ...])
 ```
 
-The Python mirror — only the ffmpeg / ffprobe resolver so far (before #44 the Python side
-had no platform lib). Module-level `FFMPEG` / `FFPROBE` are resolved once at import
+The Python mirror. Module-level `FFMPEG` / `FFPROBE` resolve once at import
 (`shutil.which($VEVO_FFMPEG or "ffmpeg") or the bare name`); `ffmpeg()` / `ffprobe()`
-re-resolve on call.
+re-resolve on call. **`python_argv()`** — how to spawn one of the skill's own Python
+scripts: `["uv", "run", "--project", SKILL, "python"]` if `uv` is on PATH, else the
+skill's `.venv` python, else `["python3"]`. The Python mirror of `platform.js`'s
+`pythonCmd()` / `platform.sh`'s `VEVO_PY`; `web.py` uses it so it runs without `uv` (CI).
 
 ### Imported by
 
 `run.py` (feeds `{ffmpeg}` / `{ffprobe}` into the stage-manifest substitution), `reframe.py`,
 `plan_cuts.py`, `join_takes.py`, `assemble_longform.py`, `montage_mode.py` (via its `ff()`
-helper, which swaps a leading `"ffmpeg"` / `"ffprobe"` in any `run()` argv).
+helper, which swaps a leading `"ffmpeg"` / `"ffprobe"` in any `run()` argv), and `web.py`
+(`python_argv()` for the scripts it shells out to).
 
 ## Gotchas
 

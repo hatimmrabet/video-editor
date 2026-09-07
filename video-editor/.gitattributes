@@ -1,0 +1,4 @@
+# Keep the test harness out of the published video-editor.skill
+# (release.yml builds it with `git archive HEAD:video-editor/`).
+test/ export-ignore
+test export-ignore
