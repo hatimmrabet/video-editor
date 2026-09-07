@@ -36,21 +36,19 @@ T.web("montage-longform", async ({ base, page, J, work, check }) => {
   T.touchFuture(LW);
 
   await page.evaluate(x => open(x), lfId);
-  await T.sleep(1500);
+  await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => h.textContent === "tighten the talk"), { timeout: 8000 });
   check("long-form world", await page.evaluate(() => S.state.world === "long-form"));
   check("broll stage is before reframe", await page.evaluate(() => {
     const ids = S.state.stages.map(s => s.id); return ids.indexOf("broll") < ids.indexOf("reframe");
   }));
 
   // tighten: no plan -> Propose runs tighten.py -> review lists the "um" filler
-  await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => h.textContent === "tighten the talk"), { timeout: 8000 });
   check("tighten panel offers Propose", await page.evaluate(() => [...document.querySelectorAll("button")].some(x => /Propose the cuts/.test(x.textContent))));
   await page.evaluate(() => [...document.querySelectorAll("button")].find(x => /Propose the cuts/.test(x.textContent)).click());
   await page.waitForFunction(() => [...document.querySelectorAll("button")].some(x => /Apply the cuts/.test(x.textContent)), { timeout: 20000 });
   check("tighten review lists the filler", await page.evaluate(() => /"um"/.test(document.body.textContent)));
   check("tighten-plan.json written by Propose", fs.existsSync(path.join(LW, "build", "tighten-plan.json")));
   await page.evaluate(() => [...document.querySelectorAll("button")].find(x => /Continue without applying/.test(x.textContent)).click());
-  await T.sleep(1500);
 
   // chapters
   await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => h.textContent === "chapter markers"), { timeout: 8000 });
@@ -63,7 +61,7 @@ T.web("montage-longform", async ({ base, page, J, work, check }) => {
   await page.evaluate(() => [...document.querySelectorAll("button")].find(x => x.textContent === "+ chapter").click());
   await fillChapterRow(1, 1, "Part two");
   await page.evaluate(() => [...document.querySelectorAll("button")].find(x => /Save & continue/.test(x.textContent)).click());
-  await T.sleep(1200);
+  await T.waitFile(path.join(LW, "config", "chapters.json"));
   const chapters = JSON.parse(fs.readFileSync(path.join(LW, "config", "chapters.json")));
   check("chapters.json: [{ref:{sentence}, title}]",
     chapters.length === 2 && chapters[0].ref.sentence === 0 && chapters[0].title === "Intro" && chapters[1].ref.sentence === 1,
@@ -77,7 +75,7 @@ T.web("montage-longform", async ({ base, page, J, work, check }) => {
     row.querySelector('input[placeholder*="clip"]').value = "screen.mp4";
     [...document.querySelectorAll("button")].find(x => /Save & continue/.test(x.textContent)).click();
   });
-  await T.sleep(1200);
+  await T.waitFile(path.join(LW, "config", "broll.json"));
   const broll = JSON.parse(fs.readFileSync(path.join(LW, "config", "broll.json")));
   check("broll.json: [{ref:{sentence}, clip, at}]",
     broll.length === 1 && broll[0].ref.sentence === 1 && broll[0].clip === "screen.mp4" && broll[0].at === 0.4, JSON.stringify(broll));
@@ -92,7 +90,7 @@ T.web("montage-longform", async ({ base, page, J, work, check }) => {
     return S.pid;
   });
   await page.evaluate(x => open(x), mId);
-  await T.sleep(800);
+  await page.waitForFunction(() => document.querySelector(".drop") != null, { timeout: 8000 });
   check("montage kind remembered", await page.evaluate(() => localStorage.getItem("ve-kind-" + S.pid) === "montage"));
   check("drop zone is multi-file + montage-labelled + audio input", await page.evaluate(() =>
     !!document.querySelector('input[type=file][multiple]')
@@ -109,19 +107,18 @@ T.web("montage-longform", async ({ base, page, J, work, check }) => {
   T.touchFuture(MW);
 
   await page.evaluate(x => open(x), mId);
-  await T.sleep(1500);
+  await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => h.textContent === "pick the shots"), { timeout: 8000 });
   check("montage world inferred", await page.evaluate(() => S.state.world === "broll-montage"));
   check("currentStep = pick", await page.evaluate(() => (currentStep(S.state.stages) || {}).id === "pick"));
-
-  await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => h.textContent === "pick the shots"), { timeout: 8000 });
   check("contact sheet shown", await page.evaluate(() => !!document.querySelector('img[src*="montage-contact-sheet"]')));
   check("a checkbox per clip", await page.evaluate(() => [...document.querySelectorAll('input[type=checkbox]')].length === 3));
   await page.evaluate(() => {
     document.querySelectorAll('input[type=checkbox]')[1].checked = false;
     [...document.querySelectorAll("button")].find(x => /Apply & continue/.test(x.textContent)).click();
   });
-  await T.sleep(1800);
-  const mplan = JSON.parse(fs.readFileSync(path.join(MW, "build", "montage-plan.json")));
+  const planPath = path.join(MW, "build", "montage-plan.json");
+  await T.poll(() => JSON.parse(fs.readFileSync(planPath)).clips.find(c => c.i === 2).skip === true, 6000);
+  const mplan = JSON.parse(fs.readFileSync(planPath));
   check("dropping clip 2 wrote skip via montage_mode.py keep",
     mplan.clips.find(c => c.i === 2).skip === true && mplan.clips.find(c => c.i === 1).skip === false,
     mplan.clips.map(c => `${c.i}:${c.skip}`).join(" "));

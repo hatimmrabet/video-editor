@@ -15,9 +15,10 @@ node test/run.mjs sound scenes    # only files whose name contains an argument
 node test/run.mjs --list
 ```
 
-Needs the toolchain from `bash scripts/setup.sh --install`: **ffmpeg** (fixture clips),
-**Node + `npm ci`** (Puppeteer's bundled Chromium), and the **`.venv`** (`uv sync` — the
-tests spawn `scripts/web.py` and shell `run.py` / `tighten.py` / `montage_mode.py`).
+Needs **ffmpeg** (fixture clips) and **Node + `npm ci`** (Puppeteer's bundled Chromium).
+The Python side is stdlib only — the tests spawn `scripts/web.py` and it shells `run.py` /
+`tighten.py` / `montage_mode.py` via `lib.platform.python_argv()` (`uv run`, else the
+`.venv`, else `python3`), so **no `uv sync` is required** for the suite.
 
 ## Layout
 
@@ -25,7 +26,7 @@ tests spawn `scripts/web.py` and shell `run.py` / `tighten.py` / `montage_mode.p
 |---|---|
 | `_lib.js` | the shared harness — `T.web(name, body)` (server + a Puppeteer page), `T.withBrowser(name, body)` (a page only), `T.node(name, body)` (neither). Plus `mkVideo` / `mkAudio` / `writeFiles` / `touchFuture` / `killTree` and a cross-platform venv-python resolver. Cross-platform (Linux CI + Windows). |
 | `*.test.js` | one file per area. Each is a standalone Node script: it prints per-assertion `ok` / `FAIL` lines, then `PASS` / `FAIL`, and exits 0 / 1. |
-| `run.mjs` | the runner — runs each `*.test.js` in turn (they each bind a port), applies `VE_TEST_TIMEOUT` (default 180 s), exits non-zero on any failure. |
+| `run.mjs` | the runner — runs each `*.test.js` in turn (they each bind a port), applies `VE_TEST_TIMEOUT` (default 180 s), exits non-zero on any failure. Whole suite ≈ 35 s locally. |
 
 | file | covers |
 |---|---|

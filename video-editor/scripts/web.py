@@ -44,6 +44,9 @@ SCRIPTS = os.path.dirname(os.path.abspath(__file__))
 SKILL = os.path.dirname(SCRIPTS)
 _sys.path.insert(0, SCRIPTS)
 from lib import config as _config  # noqa: E402
+from lib import platform as _plat  # noqa: E402
+
+PY = _plat.python_argv()   # `uv run` if uv is on PATH, else the venv, else python3
 
 ROOT = os.path.abspath(os.environ.get(
     "VEVO_PROJECTS_DIR", os.path.join(os.path.expanduser("~"), ".video-editor", "projects")))
@@ -81,7 +84,7 @@ def _jailed(work, rel):
 
 
 def _run_py(work, *args):
-    return subprocess.run(["uv", "run", "scripts/run.py", work, *args],
+    return subprocess.run([*PY, "scripts/run.py", work, *args],
                           cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
 
 
@@ -131,7 +134,7 @@ class H(BaseHTTPRequestHandler):
             self.wfile.flush()
 
         proc = subprocess.Popen(
-            ["uv", "run", "scripts/run.py", work, *args],
+            [*PY, "scripts/run.py", work, *args],
             cwd=SKILL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, encoding="utf-8", errors="replace", bufsize=1,
             env=dict(os.environ, PYTHONUNBUFFERED="1"))
@@ -279,7 +282,7 @@ class H(BaseHTTPRequestHandler):
             if op not in ("drop", "keep", "undo"):
                 return self._err(400, "op must be drop / keep / undo")
             nums = [str(int(x)) for x in b.get("sentences", [])]
-            r = subprocess.run(["uv", "run", "scripts/edit_script.py", work, op, *nums],
+            r = subprocess.run([*PY, "scripts/edit_script.py", work, op, *nums],
                                cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
             return self._send(200 if r.returncode == 0 else 400,
                               {"exit": r.returncode, "output": (r.stdout or "") + (r.stderr or "")})
@@ -290,7 +293,7 @@ class H(BaseHTTPRequestHandler):
             if op not in ("drop", "keep", "undo"):
                 return self._err(400, "op must be drop / keep / undo")
             nums = [str(int(x)) for x in b.get("clips", [])]
-            r = subprocess.run(["uv", "run", "scripts/montage_mode.py", work, op, *nums],
+            r = subprocess.run([*PY, "scripts/montage_mode.py", work, op, *nums],
                                cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
             return self._send(200 if r.returncode == 0 else 400,
                               {"exit": r.returncode, "output": (r.stdout or "") + (r.stderr or "")})
@@ -298,7 +301,7 @@ class H(BaseHTTPRequestHandler):
         if sub == "/tighten" and method == "POST":   # the long-form `tighten` checkpoint
             b = self._json_body() or {}
             args = ["apply"] if b.get("apply") else []
-            r = subprocess.run(["uv", "run", "scripts/tighten.py", work, *args],
+            r = subprocess.run([*PY, "scripts/tighten.py", work, *args],
                                cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
             return self._send(200 if r.returncode == 0 else 400,
                               {"exit": r.returncode, "output": (r.stdout or "") + (r.stderr or "")})

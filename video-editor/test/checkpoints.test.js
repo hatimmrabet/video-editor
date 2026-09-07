@@ -41,8 +41,9 @@ T.web("checkpoints", async ({ base, page, vid, J, work, check }) => {
     r[0].value = "hello world today"; r[0].dispatchEvent(new Event("input"));
   });
   await page.evaluate(() => [...document.querySelectorAll("button")].find(x => /Save & continue/.test(x.textContent)).click());
-  await T.sleep(1200);
-  const fx = JSON.parse(fs.readFileSync(path.join(W, "build", "transcript-fixes.json")));
+  const fxPath = path.join(W, "build", "transcript-fixes.json");
+  await T.waitFile(fxPath);
+  const fx = JSON.parse(fs.readFileSync(fxPath));
   check("transcript-fixes.json: typo fixed, word count kept",
     fx.fix.length === 2 && fx.fix[0].join(" ") === "hello world today" && fx.fix[1].length === 2, JSON.stringify(fx));
 
@@ -57,7 +58,7 @@ T.web("checkpoints", async ({ base, page, vid, J, work, check }) => {
 
   await page.evaluate(() => document.querySelectorAll("label.row input[type=checkbox]")[0].click());
   await page.evaluate(() => [...document.querySelectorAll("button")].find(x => /Apply & continue/.test(x.textContent)).click());
-  await T.sleep(1500);
+  await T.poll(() => JSON.parse(fs.readFileSync(path.join(W, "build", "captions.json"))).cards.length === 2, 4000);
   const caps2 = JSON.parse(fs.readFileSync(path.join(W, "build", "captions.json")));
   check("dropping sentence 1 rewrote captions.json",
     caps2.cards.length === 2 && !caps2.cards[0].w.map(w => w.t).includes("solve"),

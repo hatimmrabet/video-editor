@@ -40,7 +40,7 @@ T.web("scenes", async ({ base, page, vid, J, work, check }) => {
     card.querySelector("input").value = '{"to": 42, "suffix": "%"}';
     [...document.querySelectorAll("button")].find(x => /Save & continue/.test(x.textContent)).click();
   });
-  await T.sleep(1200);
+  await T.waitFile(path.join(W, "config", "scenes.json"));
   const scenes = JSON.parse(fs.readFileSync(path.join(W, "config", "scenes.json")));
   check("config/scenes.json: motif + params + sentence ref",
     scenes.length === 1 && scenes[0].motif === "counter" && scenes[0].params.to === 42 && scenes[0].ref.sentence === 0,

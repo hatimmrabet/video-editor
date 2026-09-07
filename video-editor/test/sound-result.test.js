@@ -29,14 +29,14 @@ T.web("sound-result", async ({ base, page, vid, J, work, check }) => {
   await page.evaluate(() => { S.passed.add("script-review"); S.passed.add("scenes"); render(); });
   await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => h.textContent === "sound"), { timeout: 8000 });
   check("sound panel renders a <canvas>", await page.$("canvas") != null);
-  await T.sleep(800);   // let the waveform decode
+  await T.sleep(400);   // let the waveform decode
 
   await page.evaluate(() => { [...document.querySelectorAll("input[type=number]")][0].value = "4.5"; });
   const bb = await (await page.$("canvas")).boundingBox();
   // cue chips carry the ✕ glyph; the stage-list "world" pill does not
   const cueChips = () => page.evaluate(() => [...document.querySelectorAll(".pill")].filter(x => /✕/.test(x.textContent)).length);
   await page.mouse.click(Math.round(bb.x + bb.width * 0.3), Math.round(bb.y + bb.height / 2));
-  await T.sleep(300);
+  await T.sleep(200);
   let marks = await cueChips();
   if (!marks) {
     await page.evaluate(() => {
@@ -45,13 +45,13 @@ T.web("sound-result", async ({ base, page, vid, J, work, check }) => {
       Object.defineProperty(ev, "offsetX", { value: c.clientWidth * 0.3 });
       c.dispatchEvent(ev);
     });
-    await T.sleep(200);
+    await T.sleep(150);
     marks = await cueChips();
   }
   check("clicking the waveform drops a cue", marks >= 1, marks);
 
   await page.evaluate(() => [...document.querySelectorAll("button")].find(x => /Save & continue/.test(x.textContent)).click());
-  await T.sleep(1200);
+  await T.waitFile(path.join(W, "build", "sound-cues.json"));
   const cues = JSON.parse(fs.readFileSync(path.join(W, "build", "sound-cues.json")));
   check("sound-cues.json: outro + one whoosh_up at ~30% of the timeline",
     cues.outro === 4.5 && Array.isArray(cues.whoosh_up) && cues.whoosh_up.length === 1
@@ -65,7 +65,9 @@ T.web("sound-result", async ({ base, page, vid, J, work, check }) => {
   fs.writeFileSync(path.join(W, "video-final.mp4"), Buffer.alloc(1_500_000));
   T.touchFuture(W);
   await page.evaluate(async () => { await refresh(); });
-  await T.sleep(1000);
+  await T.poll(() => page.evaluate(() =>
+    [...document.querySelectorAll("h3")].some(h => h.textContent === "result") && document.querySelector("video") != null), 4000)
+    .catch(() => {});
   const isResult = await page.evaluate(() =>
     [...document.querySelectorAll("h3")].some(h => h.textContent === "result") && document.querySelector("video") != null);
   check("Result panel shows once the deliverable is ready", isResult,

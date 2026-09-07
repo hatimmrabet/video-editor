@@ -52,10 +52,12 @@ deliverable) — a project made in the UI is fully usable from the CLI and vice-
 
 ## Cross-platform
 
-Pure stdlib `http.server` + `subprocess`. Spawns `uv run` for `run.py` / `edit_script.py`
-/ `montage_mode.py` / `tighten.py` and `node` for `render_frames.js`, with `cwd` = the
-skill dir; the `/run` stream sets `PYTHONUNBUFFERED=1` so lines arrive live. `web.sh`
-sources `lib/platform.sh` for `VEVO_SKILL_DIR`.
+Pure stdlib `http.server` + `subprocess`. Shells out to `run.py` / `edit_script.py` /
+`montage_mode.py` / `tighten.py` via `lib.platform.python_argv()` (`uv run` if `uv` is on
+PATH, else the `.venv`, else `python3` — so it also runs without `uv`, e.g. in CI) and
+`node` for `render_frames.js`, with `cwd` = the skill dir; the `/run` stream sets
+`PYTHONUNBUFFERED=1` so lines arrive live. `web.sh` sources `lib/platform.sh` for
+`VEVO_SKILL_DIR`.
 
 ## The SPA — `scripts/web/`
 

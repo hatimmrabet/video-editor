@@ -142,10 +142,10 @@ than reading it whole.
   and cuts a GitHub Release named from `/VERSION`. To release, bump `VERSION` in the
   `develop → main` PR (idempotent — no bump, no release).
 
-`.github/workflows/ci.yml` gates every PR: `checks` (coverage + `node --check` /
-`compileall` / `bash -n` / JSON parse / the Remotion lockfile) then `e2e`
-(`video-editor/test/` — the headless suite: web UI, `lint_compose`, `behind_text`, the
-ffmpeg resolver, the motifs). Add a `*.test.js` there when you touch moving JavaScript.
+`.github/workflows/ci.yml` gates every PR (one job, < 2 min): the static checks (coverage
++ `node --check` / `compileall` / `bash -n` / JSON parse / the Remotion lockfile) then the
+headless suite `video-editor/test/` (web UI, `lint_compose`, `behind_text`, the ffmpeg
+resolver, the motifs). Add a `*.test.js` there when you touch moving JavaScript.
 
 `main` still carries the fork's line (reset to upstream v2.4 as the base for the rename +
 Passes 0–7; upstream v2.5 stays on `majed-v2.5`). Upstream references to

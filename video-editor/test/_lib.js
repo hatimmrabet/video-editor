@@ -17,6 +17,16 @@ const FFMPEG = platform.ffmpegPath();
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+/* wait until `fn()` is truthy (a UI action fetches, then writes a file / mutates state) */
+async function poll(fn, ms = 4000, step = 100) {
+  for (let waited = 0; waited < ms; waited += step) {
+    try { if (await fn()) return; } catch { /* not ready */ }
+    await sleep(step);
+  }
+  throw new Error("poll timed out after " + ms + " ms");
+}
+const waitFile = (p, ms = 4000) => poll(() => fs.existsSync(p), ms).then(() => sleep(80));
+
 /* the skill's isolated Python — venv binary if synced, else `uv run`, else system */
 function pythonArgv() {
   const venv = path.join(SKILL, ".venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
@@ -189,6 +199,6 @@ async function web(name, body) {
 
 module.exports = {
   SKILL, SCRIPTS, PY, FFMPEG, platform,
-  sleep, harden, freePort, killTree, tmp, mkVideo, mkAudio, writeFiles, touchFuture, waitHealthy,
+  sleep, poll, waitFile, harden, freePort, killTree, tmp, mkVideo, mkAudio, writeFiles, touchFuture, waitHealthy,
   node: nodeTest, withBrowser, web,
 };
