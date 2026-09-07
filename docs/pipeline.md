@@ -74,6 +74,7 @@ flowchart TD
 | 7 | *design scenes* | edit `<work>/compose.html` | rewrite the scene functions; each is a visual metaphor for what's said |
 | 7.5/7.6 | [`fx/behind_text.js`](scripts/fx-behind_text.md) | `build/captions.json` + `frames-source/` → `build/person-cutout.json` + `person-cutout/person/*.png` | macOS only. `build` / `cutout` / `headout`. Then re-render the window |
 | 8 | [`sound_fx.py`](scripts/sound_fx.md) | `build/sound-cues.json` → `build/sound-effects.wav` | numpy-synthesized whoosh / thud / tap |
+| — | [`lint_compose.js`](scripts/lint_compose.md) | reads `compose.html` + `build/captions.json` → findings | optional static check before 9a — `wordsOf` range, `SCENES` coverage, scene-dispatch refs, behind-text placement. **exit 2** on an error |
 | 9a | [`render_frames.js`](scripts/render_frames.md) | `compose.html` + `frames-source/` → `build/frames-composited/*.jpg` | `all` (resume) · `range a b` · `preview t…` · `--force` |
 | 9a | [`encode.sh`](scripts/encode.md) | `frames-composited/` + `video-reframed.mp4` + `sound-effects.wav` → `build/video-raw.mp4` | h264 crf 21, aac 160k |
 | 9b | [`remotion/remotion.sh`](scripts/remotion-remotion_sh.md) | `build/captions.json` + assets → `build/video-raw.mp4` | replaces 9a if the user edits visually |

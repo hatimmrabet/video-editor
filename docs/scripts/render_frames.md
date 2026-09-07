@@ -74,7 +74,8 @@ The Remotion engine (`remotion.sh render`) replaces this stage entirely.
 ## Gotchas
 
 - Full 48 s render ≈ 12 min / 1461 frames. Editing one scene? Re-render its window
-  (`range a b`), don't re-render everything.
+  (`range a b`), don't re-render everything. Run [`lint_compose.js`](lint_compose.md)
+  first — it catches a broken `wordsOf` / `SCENES` / scene reference in under a second.
 - **Migrated to `config.load()` (issue #55, 2026-09-05)** — no longer reads `theme.json`
   directly; same treatment as `reframe.py` (#8) and `safe_check.js` (#56). No
   `project.config.json` yet? Falls back to `defaults.config.json`, same numbers as before.
