@@ -37,6 +37,7 @@ video-editor/                 ← the skill dir (== ~/.claude/skills/video-edito
   .venv/                      gitignored — uv-managed
   package.json / -lock.json   puppeteer (bundles a matched Chromium)
   node_modules/.cache/puppeteer/   gitignored — the browser lives here
+  scripts/remotion/template/package-lock.json   committed — `remotion.sh setup` runs `npm ci` (#45)
 ```
 
 - **Python → `uv`.** `uv run scripts/X.py <work>` discovers `./pyproject.toml` from the
@@ -77,8 +78,14 @@ system-Chrome path → `channel: 'chrome'`.
 - **`VEVO_FFMPEG` / `VEVO_FFPROBE` + a static-binary fallback** — thread a resolver through
   the ~20 ffmpeg / ~9 ffprobe call sites and download a static build when the OS package
   is missing. Not done because ffmpeg is a well-behaved OS package and the change is broad.
-- **A committed lockfile for the Remotion template** (`scripts/remotion/template/` — its
-  `remotion.sh setup` does an unpinned `npm install`).
+  (#44)
 - **An optional CPU-only `Dockerfile`** for "don't touch my machine at all" / CI. Not the
   default: GPU passthrough on Windows/macOS is painful and the skill writes files the user
   wants locally.
+
+## Done in Pass 1
+
+- **Isolated execution** (#37) — `uv` + bundled Chromium, no `--break-system-packages`.
+- **A committed lockfile for the Remotion template** (#45) —
+  `scripts/remotion/template/package-lock.json` (Remotion `4.0.521`, React `18.3.1`);
+  `remotion.sh` copies it in with `package.json` and `setup` runs `npm ci` against it.
