@@ -33,20 +33,21 @@ v2.5 stays on `majed-v2.5`.
 
 ## CI
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every PR to `develop`
-or `main` (and on pushes to both). It's the **lightweight gate** — no ffmpeg, no whisper,
-no browser:
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) — one job, on every PR to
+`develop` / `main` (and on pushes to both), kept under ~2 minutes:
 
-- `docs/check-script-coverage.mjs` — every script has a `docs/scripts/` page;
-- `node --check` on every `.js` / `.cjs` / `.mjs`;
-- `python -m compileall` on every `.py`;
-- `bash -n` on every `.sh`;
-- every `.json` parses;
-- `npm ci` (no scripts) on `scripts/remotion/template/` — the `#45` lockfile stays valid.
+1. **Static checks** — `docs/check-script-coverage.mjs`; `node --check` on every `.js` /
+   `.cjs` / `.mjs`; `python -m compileall` on every `.py`; `bash -n` on every `.sh`; every
+   `.json` parses; `npm ci --ignore-scripts` on `scripts/remotion/template/` (the `#45`
+   lockfile stays valid).
+2. **The headless suite** — [`video-editor/test/`](../video-editor/test/README.md): ffmpeg
+   is on the runner image, `node_modules` (with Puppeteer's Chromium) is cached, the
+   tested scripts are stdlib so **no `uv sync`** — then `xvfb-run node test/run.mjs`. Covers
+   the web UI screens, `lint_compose.js`, `fx/behind_text.js plan`, the ffmpeg resolver,
+   the motifs. Add a `*.test.js` there when you add moving JavaScript.
 
-**Not yet in CI:** the headless Puppeteer suite (`spatest` / `sndtest` / `lctest` / …).
-Those tests currently live outside the repo; committing them as `video-editor/test/` with
-a runner is the follow-up that unlocks a real end-to-end CI job.
+**Not covered:** the pipeline output itself — a pipeline change is still verified by
+running it on a real video (repo `CLAUDE.md`).
 
 ## Versioning
 

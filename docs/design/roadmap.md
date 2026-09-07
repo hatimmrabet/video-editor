@@ -232,8 +232,8 @@ Tracked as issues, not milestones — see [../project-tracking.md](../project-tr
 
 **Done:** the engine-drift fixes (#25–29), the `.skill` package + a release workflow
 (#30 / #33 — a push to `main` publishes; see [../releasing.md](../releasing.md)), a CI
-gate, `#52` / `#53`. **Closed not-planned:** the two Adobe features (#31 / #32).
+gate + the headless suite (`video-editor/test/`, run by the `e2e` job), `#52` / `#53`.
+**Closed not-planned:** the two Adobe features (#31 / #32).
 
-**Open:** commit the headless test suite (unlocks a real end-to-end CI job); one real
-long-form run; a real Remotion render; montage on varied clips (#34); `#63`; the
-"delete the 3 inline scene-code copies" follow-up.
+**Open:** one real long-form run; a real Remotion render; montage on varied clips (#34);
+`#63`; the "delete the 3 inline scene-code copies" follow-up.
