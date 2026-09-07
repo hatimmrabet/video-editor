@@ -50,8 +50,8 @@ jobs:
         run: cd video-editor/scripts/remotion/template && npm ci --silent --ignore-scripts
 
       # --- the headless suite ---
-      - name: ffmpeg
-        run: ffmpeg -version >/dev/null 2>&1 || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg; }
+      - name: ffmpeg (cached static build)
+        uses: FedericoCarboni/setup-ffmpeg@v3
       - name: node deps + bundled Chromium (skipped on a cache hit)
         if: steps.nm.outputs.cache-hit != 'true'
         working-directory: video-editor
