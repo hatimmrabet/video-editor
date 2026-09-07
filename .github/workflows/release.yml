@@ -1,0 +1,56 @@
+name: release
+
+# A push to main is a release (see docs/releasing.md). Build video-editor.skill from the
+# tracked contents of video-editor/ and publish it as a GitHub Release named from VERSION.
+# Idempotent: if v<VERSION> already exists, nothing happens — bump VERSION in the
+# develop -> main PR to cut a new one.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # manual re-run
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: read VERSION
+        id: v
+        run: echo "tag=v$(tr -d ' \n\r' < VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: skip if the release already exists
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.v.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${{ steps.v.outputs.tag }} already released — bump VERSION to cut a new one."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: build video-editor.skill
+        if: steps.gate.outputs.exists == 'false'
+        run: |
+          # only tracked files under video-editor/ (no .venv, no node_modules) — SKILL.md
+          # lands at the archive root so it installs to ~/.claude/skills/video-editor/
+          git archive --format=zip -o video-editor.skill "HEAD:video-editor/"
+          unzip -l video-editor.skill | tail -n 3
+
+      - name: publish the GitHub Release
+        if: steps.gate.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.v.outputs.tag }}" video-editor.skill \
+            --title "video-editor ${{ steps.v.outputs.tag }}" \
+            --target "${{ github.sha }}" \
+            --generate-notes

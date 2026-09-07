@@ -1,0 +1,57 @@
+name: ci
+
+# Lightweight gate — the checks that need no ffmpeg / whisper / a browser. The headless
+# Puppeteer suite (spatest / sndtest / lctest / …) is not here yet: it lives in a
+# scratchpad and needs committing as scripts/test/ first (tracked as a follow-up).
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: video-editor/.nvmrc
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: video-editor/.python-version
+
+      - name: doc coverage — every script has a docs/scripts/ page
+        run: node docs/check-script-coverage.mjs
+
+      - name: docs script-page checks
+        run: |
+          for f in docs/*.mjs; do node --check "$f"; done
+
+      - name: node --check every .js / .cjs / .mjs
+        run: |
+          find video-editor/scripts \( -name '*.js' -o -name '*.cjs' -o -name '*.mjs' \) -print0 \
+            | xargs -0 -n1 -t node --check
+
+      - name: python -m compileall (syntax) on every .py
+        run: python -m compileall -q video-editor/scripts
+
+      - name: bash -n every .sh
+        run: |
+          find video-editor/scripts -name '*.sh' -print0 | xargs -0 -n1 -t bash -n
+
+      - name: every .json under video-editor/ parses (utf-8-sig tolerant)
+        run: |
+          find video-editor -name '*.json' -not -path '*/node_modules/*' -print0 \
+            | xargs -0 -r -n1 -t python -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8-sig'))"
+
+      - name: Remotion template — package-lock.json installs cleanly (#45)
+        run: |
+          cd video-editor/scripts/remotion/template
+          npm ci --silent --ignore-scripts   # --ignore-scripts skips @remotion/renderer's Chromium download

@@ -228,7 +228,12 @@ to English — both cosmetic cleanup, pick up whenever.)*
 
 ## Also on the backlog (not passes)
 
-Tracked as issues, not milestones — see [../project-tracking.md](../project-tracking.md):
-Adobe audio cleanup (`media_enhance_speech`), Adobe-stock B-roll auto-convert, plugin
-packaging, engine-drift fixes, the stale root `.skill` package, montage testing on real
-varied clips.
+Tracked as issues, not milestones — see [../project-tracking.md](../project-tracking.md).
+
+**Done:** the engine-drift fixes (#25–29), the `.skill` package + a release workflow
+(#30 / #33 — a push to `main` publishes; see [../releasing.md](../releasing.md)), a CI
+gate, `#52` / `#53`. **Closed not-planned:** the two Adobe features (#31 / #32).
+
+**Open:** commit the headless test suite (unlocks a real end-to-end CI job); one real
+long-form run; a real Remotion render; montage on varied clips (#34); `#63`; the
+"delete the 3 inline scene-code copies" follow-up.
