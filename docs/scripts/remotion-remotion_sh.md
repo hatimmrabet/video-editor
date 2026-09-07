@@ -63,7 +63,8 @@ see [project-config.md](../design/project-config.md)) but now live in `config/`.
 ## External tools
 
 `npm` (`npm ci` on first `setup` — needs `template/package-lock.json`), `npx remotion`,
-`"${VEVO_PY[@]}"` (inline — generates `project.json`), `ffprobe`, `grep`.
+`"${VEVO_PY[@]}"` (inline — generates `project.json`), `"$VEVO_FFPROBE"` (`render` summary;
+set by `lib/platform.sh`, #44), `grep`.
 
 ## Cross-platform
 

@@ -51,7 +51,8 @@ uv run scripts/assemble_longform.py <work>
 
 ## External tools
 
-`ffprobe` (resolution + clip durations) · `ffmpeg` (`overlay` + `fade` alpha).
+`ffprobe` (resolution + clip durations) · `ffmpeg` (`overlay` + `fade` alpha) — both via
+[`lib/platform.py`](lib-platform.md) (`$VEVO_FFMPEG` / `$VEVO_FFPROBE`, #44).
 
 ## Place in the flow
 

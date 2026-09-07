@@ -33,6 +33,7 @@ _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from lib import rush as _rush           # noqa: E402
 from lib import scenes as _scn          # noqa: E402
 from lib import transitions as _trans   # noqa: E402
+from lib import platform as _plat       # noqa: E402
 
 W = os.path.abspath(_sys.argv[1]) if len(_sys.argv) > 1 else _sys.exit("usage: assemble_longform.py <work>")
 B = lambda n: os.path.join(W, "build", n)
@@ -41,7 +42,7 @@ REFRAMED = B("video-reframed.mp4")
 
 
 def _probe(path, entries):
-    return subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+    return subprocess.run([_plat.FFPROBE, "-v", "error", "-select_streams", "v:0",
                            "-show_entries", entries, "-of", "csv=p=0:s=x", path],
                           capture_output=True, text=True).stdout.strip()
 
@@ -70,7 +71,7 @@ def main():
                      "at": float(e.get("at", 0.4)), "fade": max(0.05, fade)})
 
     if not plan:
-        subprocess.check_call(["ffmpeg", "-v", "error", "-i", REFRAMED, "-c", "copy",
+        subprocess.check_call([_plat.FFMPEG, "-v", "error", "-i", REFRAMED, "-c", "copy",
                                "-movflags", "+faststart", "-y", OUT])
         print(f"no B-roll — {OUT}")
         return
@@ -78,7 +79,7 @@ def main():
     dims = _probe(REFRAMED, "stream=width,height").split("x")
     OW, OH = int(dims[0]), int(dims[1])
 
-    cmd = ["ffmpeg", "-v", "error", "-stats", "-i", REFRAMED]
+    cmd = [_plat.FFMPEG, "-v", "error", "-stats", "-i", REFRAMED]
     for p in plan:
         cmd += ["-i", p["src"]]
 
@@ -87,7 +88,7 @@ def main():
         a, b, T = p["a"], p["b"], p["fade"]
         d = b - a
         cdur = float(_probe(p["src"], "format=duration") or subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", p["src"]],
+            [_plat.FFPROBE, "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", p["src"]],
             capture_output=True, text=True).stdout.strip() or "0")
         at = p["at"]
         if at + d > cdur:                       # clip too short for the whole span

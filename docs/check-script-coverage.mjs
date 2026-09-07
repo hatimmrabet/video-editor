@@ -43,7 +43,7 @@ const COVERAGE = [
   ['master_audio',        ['master_audio.sh']],
   ['contact_sheet',       ['contact_sheet.sh']],
   ['setup',               ['setup.sh']],
-  ['lib-platform',        ['lib/platform.sh', 'lib/platform.js']],
+  ['lib-platform',        ['lib/platform.sh', 'lib/platform.js', 'lib/platform.py']],
   ['lib-config',          ['lib/config.py', 'lib/config.js']],
   ['lib-transitions',     ['lib/transitions.py', 'lib/transitions.js']],
   ['lib-scenes',          ['lib/scenes.py', 'lib/scenes.js']],

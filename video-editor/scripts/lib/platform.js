@@ -71,6 +71,11 @@ function skillDir() {
   return path.join(__dirname, '..', '..');
 }
 
+/* ffmpeg / ffprobe — honour $VEVO_FFMPEG / $VEVO_FFPROBE (same names platform.sh exports),
+   else the bare name (PATH resolves it). Issue #44. */
+function ffmpegPath()  { return process.env.VEVO_FFMPEG  || 'ffmpeg'; }
+function ffprobePath() { return process.env.VEVO_FFPROBE || 'ffprobe'; }
+
 function commandExists(cmd) {
   try {
     execFileSync(process.platform === 'win32' ? 'where' : 'which', [cmd], { stdio: 'ignore' });
@@ -107,4 +112,4 @@ function resolvePuppeteer() {
   throw new Error('puppeteer not found — run: bash scripts/setup.sh --install  (or: npm ci)');
 }
 
-module.exports = { fileUrl, chromePath, launchOptions, resolvePuppeteer, hasFullPuppeteer, pythonCmd, skillDir };
+module.exports = { fileUrl, chromePath, launchOptions, resolvePuppeteer, hasFullPuppeteer, pythonCmd, skillDir, ffmpegPath, ffprobePath };

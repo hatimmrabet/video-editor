@@ -43,6 +43,7 @@ if SCRIPTS not in _sys.path:
     _sys.path.insert(0, SCRIPTS)
 from lib import config as _config  # noqa: E402
 from lib import rush as _rush      # noqa: E402
+from lib import platform as _plat  # noqa: E402
 
 
 def die(msg, code=3):
@@ -175,7 +176,8 @@ def main():
     sel = [only] if only else ids[lo:hi + 1]
 
     ctx = {"work": work, "skill": SKILL, "source": source,
-           "language": cfg.get("language")}
+           "language": cfg.get("language"),
+           "ffmpeg": _plat.FFMPEG, "ffprobe": _plat.FFPROBE}
 
     if as_json:
         out, nxt = [], None

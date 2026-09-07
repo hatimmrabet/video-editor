@@ -19,7 +19,7 @@
     {
       "id": "audio",
       "title": "Extract the speech audio",
-      "run": ["ffmpeg", "-v", "error", "-i", "{work}/build/source-joined.mp4", "-vn", "-ac", "1", "-ar", "16000", "-y", "{work}/build/transcribe-input.wav"],
+      "run": ["{ffmpeg}", "-v", "error", "-i", "{work}/build/source-joined.mp4", "-vn", "-ac", "1", "-ar", "16000", "-y", "{work}/build/transcribe-input.wav"],
       "needs": ["build/source-joined.mp4"],
       "makes": ["build/transcribe-input.wav"]
     },

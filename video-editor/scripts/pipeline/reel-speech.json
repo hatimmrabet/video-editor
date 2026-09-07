@@ -1,5 +1,5 @@
 {
-  "_doc": "Canonical stage list for the reel-speech world (one talking-head video -> one 9:16 captioned ad). Read by scripts/run.py; mirrors docs/pipeline.md's stage table and SKILL.md steps 3-11. `run` is the argv to spawn (cwd = skill dir), with {work} {source} {language} {skill} substituted. A stage with no `run` is a checkpoint: `block:true` halts run.py until `makes` exists (a genuine human decision); a checkpoint with no `makes` is advisory - printed once, never blocks. A stage runs when any `makes` path is missing or older than any `needs` path; else it is skipped. `needs`/`makes` are work-relative; a trailing / means 'non-empty directory'; {source} is the rush/ source file. `when` gates a stage on a config value.",
+  "_doc": "Canonical stage list for the reel-speech world (one talking-head video -> one 9:16 captioned ad). Read by scripts/run.py; mirrors docs/pipeline.md's stage table and SKILL.md steps 3-11. `run` is the argv to spawn (cwd = skill dir), with {work} {source} {language} {skill} {ffmpeg} {ffprobe} substituted ({ffmpeg}/{ffprobe} resolve via lib/platform.py — $VEVO_FFMPEG / $VEVO_FFPROBE else PATH, issue #44). A stage with no `run` is a checkpoint: `block:true` halts run.py until `makes` exists (a genuine human decision); a checkpoint with no `makes` is advisory - printed once, never blocks. A stage runs when any `makes` path is missing or older than any `needs` path; else it is skipped. `needs`/`makes` are work-relative; a trailing / means 'non-empty directory'; {source} is the rush/ source file. `when` gates a stage on a config value.",
   "world": "reel-speech",
   "stages": [
     {
@@ -12,7 +12,7 @@
     {
       "id": "audio",
       "title": "Extract the speech audio",
-      "run": ["ffmpeg", "-v", "error", "-i", "{source}", "-vn", "-ac", "1", "-ar", "16000", "-y", "{work}/build/transcribe-input.wav"],
+      "run": ["{ffmpeg}", "-v", "error", "-i", "{source}", "-vn", "-ac", "1", "-ar", "16000", "-y", "{work}/build/transcribe-input.wav"],
       "needs": ["{source}"],
       "makes": ["build/transcribe-input.wav"]
     },
@@ -54,7 +54,7 @@
     {
       "id": "frames",
       "title": "Extract source frames (30 fps)",
-      "run": ["ffmpeg", "-v", "error", "-i", "{work}/build/video-reframed.mp4", "-vf", "fps=30", "-q:v", "3", "-y", "{work}/build/frames-source/%05d.jpg"],
+      "run": ["{ffmpeg}", "-v", "error", "-i", "{work}/build/video-reframed.mp4", "-vf", "fps=30", "-q:v", "3", "-y", "{work}/build/frames-source/%05d.jpg"],
       "needs": ["build/video-reframed.mp4"],
       "makes": ["build/frames-source/"]
     },

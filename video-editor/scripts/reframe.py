@@ -17,7 +17,7 @@ project.config.json (optional): crop.xAnchor (0-1, horizontal · default 0.5) ·
 crop.yAnchor (0-1, vertical · default 0.30) · grade (bool · default false)
 """
 import json, subprocess, sys, os
-from lib import config as _cfg, rush as _rush
+from lib import config as _cfg, rush as _rush, platform as _plat
 W=os.path.abspath(sys.argv[1]); SRC=_rush.find_source(W)
 os.makedirs(os.path.join(W,"build"),exist_ok=True)
 k=json.load(open(os.path.join(W,"build","cut-plan.json")))["keep"]
@@ -28,7 +28,7 @@ OW,OH = (1920,1080) if LONG else (1080,1920)
 _crop=_cfg_data.get("crop",{})
 XANCH=float(_crop.get("xAnchor",0.5)); YANCH=float(_crop.get("yAnchor",0.30))
 Z=[1.00,1.08,1.00,1.06,1.00,1.12,1.04,1.14,1.00,1.08,1.00,1.05,1.10,1.00]
-p=subprocess.run(["ffprobe","-v","error","-select_streams","v:0","-show_entries",
+p=subprocess.run([_plat.FFPROBE,"-v","error","-select_streams","v:0","-show_entries",
    "stream=width,height","-of","csv=p=0:s=x",SRC],capture_output=True,text=True).stdout.strip()
 SW,SH=[int(x) for x in p.split("x")[:2]]
 TARGET=OW/OH
@@ -63,7 +63,7 @@ print("color grade:", "on" if GRADE else "off (original colors)")
 fc.append("[ac]afade=t=in:st=0:d=0.06,dynaudnorm=f=200:g=5:p=0.9[ao]")
 print(f"{len(k)} segment(s) → {os.path.join(W,'build','video-reframed.mp4')}")
 graph=";".join(fc)
-cmd=["ffmpeg","-v","error","-stats","-i",SRC,"-filter_complex",graph,
+cmd=[_plat.FFMPEG,"-v","error","-stats","-i",SRC,"-filter_complex",graph,
      "-map","[vo]","-map","[ao]","-c:v","libx264","-preset","medium","-crf","16",
      "-c:a","aac","-b:a","192k","-movflags","+faststart","-y",os.path.join(W,"build","video-reframed.mp4")]
 # A long-form video tightened to many jump-cut segments makes a big filter graph; if it

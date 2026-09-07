@@ -155,7 +155,8 @@ order — `docs/pipeline.md`'s stage table and `SKILL.md`'s steps are the prose 
 
 - **Placeholders** in `run`: `{work}` · `{source}` (`lib.rush.find_source`) · `{language}`
   (`config.load()["language"]`; a stage needing it with none set fails, pointing at
-  `SKILL.md` step 1) · `{skill}`.
+  `SKILL.md` step 1) · `{skill}` · `{ffmpeg}` / `{ffprobe}` (`lib.platform` — `$VEVO_FFMPEG`
+  / `$VEVO_FFPROBE` else PATH, issue #44).
 - **Checkpoint** = no `run`. `block:true` → `run.py` halts (exit 2) while `makes` is
   absent. A checkpoint with **no `makes`** is advisory — its `note` reprints every run,
   never blocks (`script-review`, `scenes`).

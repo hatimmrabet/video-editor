@@ -11,6 +11,7 @@
    it, then draw their body back on top — so the kashida alone passes behind the head and
    the letters stay visible on either side.  Needs: macOS + swiftc (free with Xcode tools) + ffmpeg. */
 const path=require('path'), fs=require('fs'), cp=require('child_process');
+const FFMPEG=require('../lib/platform').ffmpegPath();   // $VEVO_FFMPEG else 'ffmpeg' (issue #44)
 const W=path.resolve(process.argv[2])+path.sep, MODE=process.argv[3]||'plan';
 const SC=path.dirname(path.resolve(process.argv[1]))+path.sep;
 const caps=JSON.parse(fs.readFileSync(W+'build/captions.json','utf8'));
@@ -73,7 +74,7 @@ if(MODE==='cutout'||MODE==='headout'){
     if(fs.existsSync(W+'build/frames-source/'+id+'.jpg')){ fs.copyFileSync(W+'build/frames-source/'+id+'.jpg', W+'build/person-cutout/src/'+id+'.jpg'); n++; } }
   console.log('Cutout frames:',n,'— cutting you out from the background…');
   cp.execSync(JSON.stringify(BIN2)+' '+JSON.stringify(W+'build/person-cutout/src')+' '+JSON.stringify(W+'build/person-cutout/mask')+' accurate 2.5',{stdio:'inherit'});
-  cp.execSync('ffmpeg -v error -start_number '+f0+' -i '+JSON.stringify(W+'build/person-cutout/src/%05d.jpg')+
+  cp.execSync(FFMPEG+' -v error -start_number '+f0+' -i '+JSON.stringify(W+'build/person-cutout/src/%05d.jpg')+
     ' -start_number '+f0+' -i '+JSON.stringify(W+'build/person-cutout/mask/%05d.png')+' -frames:v '+(f1-f0+1)+
     ' -filter_complex "[1:v]format=gray,scale=1080:1920[a];[0:v][a]alphamerge,format=rgba"'+
     ' -start_number '+f0+' -y '+JSON.stringify(W+'build/person-cutout/person/%05d.png'),{stdio:'pipe'});
@@ -139,7 +140,7 @@ cp.execSync(JSON.stringify(BIN)+' '+JSON.stringify(W+'build/person-cutout/src')+
 
 /* 4) merge the mask as transparency → the person alone (each range on its own) */
 for(const [f0,f1] of ranges){
-  cp.execSync('ffmpeg -v error -start_number '+f0+' -i '+JSON.stringify(W+'build/person-cutout/src/%05d.jpg')+
+  cp.execSync(FFMPEG+' -v error -start_number '+f0+' -i '+JSON.stringify(W+'build/person-cutout/src/%05d.jpg')+
     ' -start_number '+f0+' -i '+JSON.stringify(W+'build/person-cutout/mask/%05d.png')+
     ' -frames:v '+(f1-f0+1)+
     ' -filter_complex "[1:v]format=gray,scale=1080:1920[a];[0:v][a]alphamerge,format=rgba"'+

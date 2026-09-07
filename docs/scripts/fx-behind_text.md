@@ -57,7 +57,8 @@ redrawn on top, `personStage`, `headOut` — lives in `compose.reference.html`, 
 
 ## External tools
 
-`swiftc` (Xcode command-line tools), the compiled `personmask` binary, `ffmpeg`. Uses
+`swiftc` (Xcode command-line tools), the compiled `personmask` binary, `ffmpeg`
+(`require('../lib/platform').ffmpegPath()` — `$VEVO_FFMPEG` else `'ffmpeg'`, #44). Uses
 `cp.execSync` with Unix-style command strings.
 
 ## Cross-platform

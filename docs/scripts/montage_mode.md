@@ -89,7 +89,8 @@ The first and last third-second of every clip are trimmed (hand-on-device moment
 
 ## External tools
 
-`ffprobe`, `ffmpeg` (`blurdetect`, `signalstats`, `metadata=print`, `crop`/`scale`/`xfade`/
+`ffprobe`, `ffmpeg` (via `lib/platform.py` — its `ff()` helper swaps a leading `"ffmpeg"` /
+`"ffprobe"` for `$VEVO_FFMPEG` / `$VEVO_FFPROBE`, #44) (`blurdetect`, `signalstats`, `metadata=print`, `crop`/`scale`/`xfade`/
 `concat`/`tile`), Python `PIL` (optional — numbered sheet, else ffmpeg `tile`),
 `ThreadPoolExecutor` (4 parallel probes).
 

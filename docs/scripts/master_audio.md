@@ -47,7 +47,8 @@ Temp files `<work>/build/.master-mix.wav` and `.master-norm.wav` are created the
 
 ## External tools
 
-`ffmpeg` (two-pass loudnorm, sidechaincompress, amix), `ffprobe`, `"${VEVO_PY[@]}"` (inline JSON
+`"$VEVO_FFMPEG"` (two-pass loudnorm, sidechaincompress, amix), `"$VEVO_FFPROBE"` (both set
+by `lib/platform.sh`, #44), `"${VEVO_PY[@]}"` (inline JSON
 parsing of the loudnorm stats), `grep`.
 
 ## Cross-platform
