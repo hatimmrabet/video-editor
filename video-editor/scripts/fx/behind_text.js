@@ -15,21 +15,40 @@ const W=path.resolve(process.argv[2])+path.sep, MODE=process.argv[3]||'plan';
 const SC=path.dirname(path.resolve(process.argv[1]))+path.sep;
 const caps=JSON.parse(fs.readFileSync(W+'build/captions.json','utf8'));
 const FPS=30, MAXW=4, MINDUR=0.85;
+const MAX_MOMENTS=2, MIN_GAP=8;   /* invariant #8: ≤ 2 behind-text moments per video, ≥ 8 s apart */
 
 const words=c=>c.w.map(w=>w.t).join(' ');
 if(MODE==='off'){ try{fs.unlinkSync(W+'build/person-cutout.json');}catch(e){} console.log('Effect cancelled.'); process.exit(0); }
 
+/* time spans already committed to build/person-cutout.json (a `build` line, a cutout, a headout) */
+function committed(){
+  try{
+    const pc=JSON.parse(fs.readFileSync(W+'build/person-cutout.json','utf8'));
+    return [...(pc.lines||[]).map(l=>[l.s,l.e]), ...(pc.cutouts||[]), ...(pc.headouts||[])]
+      .filter(r=>Array.isArray(r)&&r.length===2).sort((a,b)=>a[0]-b[0]);
+  }catch(e){ return []; }
+}
+/* seconds between [a,b] and the nearest committed span (0 if they overlap, Infinity if none) */
+const gapToCommitted=(a,b,done)=>done.reduce((g,[x,y])=>Math.min(g,Math.max(0,x-b,a-y)),Infinity);
+
 if(MODE==='plan'){
+  const done=committed();
   console.log('Sentences suitable for having their speech pass behind the person (short and clear):');
+  if(done.length>=MAX_MOMENTS)
+    console.log(`\n⚠️ ${done.length} behind-text moment(s) already built — that is the whole budget (invariant #8: ${MAX_MOMENTS} per video at most). Another one dilutes the effect.`);
   let n=0;
   caps.cards.forEach((c,i)=>{
     const dur=c.w[c.w.length-1].e-c.w[0].s;
     if(c.w.length>MAXW||dur<MINDUR) return;
     n++;
-    console.log(`  ${i+1}  [${c.s.toFixed(2)}]  ${words(c)}   (${c.w.length} words · ${dur.toFixed(2)}s)${i===0?'  ← the hook, the strongest one':''}`);
+    const a=Math.max(0,c.w[0].s-0.20), b=Math.min(caps.total,c.w[c.w.length-1].e+0.45);
+    const g=gapToCommitted(a,b,done);
+    let flag=i===0?'  ← the hook, the strongest one':'';
+    if(g<MIN_GAP) flag+=`  ⚠️ ${g.toFixed(1)}s from a moment already built (want ≥ ${MIN_GAP}s apart)`;
+    console.log(`  ${i+1}  [${c.s.toFixed(2)}]  ${words(c)}   (${c.w.length} words · ${dur.toFixed(2)}s)${flag}`);
   });
   if(!n) console.log('  No short sentence found — pick specific words instead: build 2:6-8 (words 6→8 of sentence 2)');
-  console.log('\n⚠️ Pick one or two at most — repeated every sentence, it loses its effect.');
+  console.log(`\n⚠️ ${MAX_MOMENTS} at most per video, spaced ≥ ${MIN_GAP}s apart — closer together it loses its effect.`);
   console.log('Then: node fx/behind_text.js <work> build <sentence numbers>');
   process.exit(0);
 }
@@ -99,6 +118,14 @@ for(const sel of pick){
   const f0=Math.max(1,Math.floor(a*FPS)+1), f1=Math.min(NVF,Math.ceil(b*FPS)+1);
   ranges.push([f0,f1]);
   lines.push({card:sel.i, s:a, e:b, words:ws.map(w=>({t:w.t,s:w.s,e:w.e}))});
+}
+/* invariant #8 — warn (don't block) on overuse: too many moments, or two closer than MIN_GAP */
+if(lines.length>MAX_MOMENTS)
+  console.log(`⚠️ ${lines.length} behind-text moments in one build — invariant #8 is ${MAX_MOMENTS} per video at most. Repeated, the effect flattens.`);
+const _byStart=[...lines].sort((x,y)=>x.s-y.s);
+for(let k=1;k<_byStart.length;k++){
+  const g=_byStart[k].s-_byStart[k-1].e;
+  if(g<MIN_GAP) console.log(`⚠️ sentences ${_byStart[k-1].card+1} and ${_byStart[k].card+1} are ${g.toFixed(1)}s apart — want ≥ ${MIN_GAP}s between two behind-text moments.`);
 }
 let copied=0;
 for(const [f0,f1] of ranges) for(let f=f0;f<=f1;f++){

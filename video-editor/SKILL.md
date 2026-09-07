@@ -409,7 +409,8 @@ node scripts/fx/behind_text.js <work> off         # cancel
 ```
 
 **When to use it — the rule:**
-1. **Once or twice in the whole video.** Repeated every sentence, it flips from "wow" to noise.
+1. **Twice in the whole video at most, and ≥ 8 s apart.** Close together, or every
+   sentence, it flips from "wow" to noise. `plan` flags a pick too near one already built.
 2. **Best on the hook** (the first sentence) or the idea's peak — the sentence you want
    them to remember.
 3. The conditions the script checks: the sentence is **one to four words** · its duration
@@ -696,7 +697,8 @@ and after tightening, the number of fillers cut, the chapter list, and the final
 6. **Don't invent content the speaker didn't say.** Every text comes from their speech;
    and if you need to describe something you don't know, generalize rather than guess.
 7. **No publishing, no scheduling** — delivery is a file only.
-8. **"Behind the person" once or twice in the video** — no more, or it loses its effect.
+8. **"Behind the person" twice in the video at most, ≥ 8 s apart** — closer together it
+   loses its effect. `fx/behind_text.js plan` flags picks that are too near one already built.
 9. **Call it a "background audio file"** — not "music". The user decides its content (a
    human voice, ambience, or anything), and you name it by its neutral form and put it in
    `rush/bg-audio.mp3`.

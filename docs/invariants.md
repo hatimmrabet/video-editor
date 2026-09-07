@@ -21,7 +21,10 @@ found in real production runs — each is fixed in code, and the fix must not be
 6. **Do not invent content the speaker didn't say.** Every on-screen text comes from their
    speech; generalize rather than guess.
 7. **No publishing, no scheduling** — deliver a file only.
-8. **"Behind the person" once or twice per video** — no more, or it loses its effect.
+8. **"Behind the person": twice per video at most, and ≥ 8 s between two moments** —
+   closer together (or every sentence) it reads as an over-used gimmick. A candidate is a
+   1–4 word sentence lasting ≥ 0.85 s; `fx/behind_text.js plan` filters those and flags a
+   pick that lands within 8 s of one already in `build/person-cutout.json`.
 9. **Call it "background audio file", not "music"** — the user decides the content.
 10. **Invent new scenes every time.** `compose.reference.html` is a pattern library, not a
     template to copy.
