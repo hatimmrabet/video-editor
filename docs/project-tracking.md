@@ -182,20 +182,22 @@ originally-planned reverse-compat issue was closed as not-planned instead of imp
 Remotion side (#25/#27/#28) is verified by parity port only — a real render is still owed
 (sandbox has no Remotion install).
 
-### Chores
+### CI & release — **done** (2026-09-07)
 
-| Title | Labels |
-|---|---|
-| chore: build & publish a `video-editor.skill` package as a GitHub Release | `type:chore` |
+| Title | Labels | Status |
+|---|---|---|
+| chore: build & publish a `video-editor.skill` package as a GitHub Release | `type:chore` | ✅ #30 — `.github/workflows/release.yml`: a push to `main` builds `video-editor.skill` (`git archive` of `video-editor/`) and cuts `v<VERSION>`. Started at `0.1.0`. See [releasing.md](releasing.md). |
+| feat: plugin package for distribution (like `content-engine-v4.plugin`) | `type:chore` | ✅ #33 — folded into #30; the `.skill` is the distribution artifact. |
+| chore: CI gate (`.github/workflows/ci.yml`) | `type:chore` | ✅ — coverage + `node --check` / `compileall` / `bash -n` / JSON parse / Remotion lockfile on every PR to `develop` / `main`. |
+| test: commit the headless Puppeteer suite as `video-editor/test/` + a runner | `type:chore` | open — unlocks a real end-to-end CI job |
 
 ### Carried over from the previous handoff notes
 
 | Title | Labels | Notes |
 |---|---|---|
-| feat: optional Adobe speech cleanup (`media_enhance_speech`) before `master_audio.sh` | `area:pipeline` | ⚠️ uploads audio to an Adobe server — against the "local only" default; needs a consent gate |
-| feat: Adobe-stock B-roll — auto-convert on download (ProRes → h264) | `area:pipeline` | test clip `broll/AdobeStock_739776879.mov` |
-| feat: plugin package for distribution (like `content-engine-v4.plugin`) | `type:chore` |
-| test: montage mode on real varied clips | `area:montage` | today's test clips are all from one video |
+| ~~feat: optional Adobe speech cleanup (`media_enhance_speech`)~~ | `area:pipeline` | ❌ #31 not planned — uploads audio to Adobe, breaks "local only". |
+| ~~feat: Adobe-stock B-roll auto-convert (ProRes → h264)~~ | `area:pipeline` | ❌ #32 not planned — Adobe Stock is paid; moving off Adobe. |
+| test: montage mode on real varied clips | `area:montage` | #34 — today's test clips are all from one video |
 
 ---
 

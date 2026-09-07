@@ -28,6 +28,7 @@ Start here, in order:
 | [scripts/](scripts/) | Read the reference page for one specific script. |
 | [design/](design/) | See the target architecture — where the project is going, not where it is. |
 | [project-tracking.md](project-tracking.md) | See how work is tracked (GitHub Issues + Projects) and the seed backlog. |
+| [releasing.md](releasing.md) | The `develop` / `main` branch model, the CI gate, and how a push to `main` publishes a `video-editor.skill` release. |
 
 ## One-paragraph summary
 

@@ -128,9 +128,20 @@ than reading it whole.
 
 ## Git / workflow
 
-`main` is the fork's line (reset to v2.4 as the base for the rename + docs work; the
-upstream v2.5 is preserved on the `majed-v2.5` branch, to be ported into the renamed
-structure later). Upstream references to `majedphotos/video-ad-editor` are left as-is.
-Branch names: `docs/<topic>`, `feat/<topic>`, `fix/<topic>`, `chore/<topic>`. Work is
-tracked as GitHub Issues + the "video-editor roadmap" Project (see
-`docs/project-tracking.md`).
+**Two long-lived branches — see [`docs/releasing.md`](docs/releasing.md).**
+
+- **`develop`** — integration. Cut every `feat/` `fix/` `docs/` `chore/<topic>` branch
+  from here, PR back into here (squash). Day-to-day work lands on `develop`.
+- **`main`** — the release line. Only a `develop → main` PR touches it, and **every push
+  to `main` publishes a release**: `.github/workflows/release.yml` builds `video-editor.skill`
+  and cuts a GitHub Release named from `/VERSION`. To release, bump `VERSION` in the
+  `develop → main` PR (idempotent — no bump, no release).
+
+`.github/workflows/ci.yml` gates every PR (coverage + `node --check` / `compileall` /
+`bash -n` / JSON parse / the Remotion lockfile). The headless Puppeteer suite is **not**
+in CI yet (tests aren't committed — the follow-up).
+
+`main` still carries the fork's line (reset to upstream v2.4 as the base for the rename +
+Passes 0–7; upstream v2.5 stays on `majed-v2.5`). Upstream references to
+`majedphotos/video-ad-editor` are left as-is. Work is tracked as GitHub Issues + the
+"video-editor roadmap" Project (see `docs/project-tracking.md`).
