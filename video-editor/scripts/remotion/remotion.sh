@@ -14,7 +14,7 @@ R="$W/remotion"
 sync_all(){
   mkdir -p "$R/src" "$R/public"
   # Structural files: always updated, except what the user edits
-  for f in package.json tsconfig.json remotion.config.ts .gitignore README.md; do
+  for f in package.json package-lock.json tsconfig.json remotion.config.ts .gitignore README.md; do
     [ -f "$TPL/$f" ] && cp "$TPL/$f" "$R/$f"; done
   for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts util.tsx Chrome.tsx Captions.tsx Outro.tsx Guides.tsx SceneList.tsx; do
     cp "$TPL/src/$f" "$R/src/$f"; done
@@ -76,7 +76,8 @@ case "$CMD" in
     sync_all
     if [ -d "$R/node_modules" ]; then echo "Libraries already installed — ready."; else
       echo "⏬ Downloading Remotion libraries (~500 MB, once)…"
-      ( cd "$R" && npm install --silent ) || { echo "❌ Download failed"; exit 12; }
+      # npm ci — installs the exact tree in template/package-lock.json (just copied in by sync_all)
+      ( cd "$R" && npm ci --silent ) || { echo "❌ Download failed"; exit 12; }
       echo "✅ Ready."
     fi ;;
   sync) sync_all ;;

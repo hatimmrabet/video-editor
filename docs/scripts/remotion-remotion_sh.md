@@ -9,7 +9,7 @@
 ## CLI
 
 ```
-remotion.sh <work> setup            # sync + npm install in <work>/remotion (~500 MB, once)
+remotion.sh <work> setup            # sync + npm ci in <work>/remotion (~500 MB, once — pinned to template/package-lock.json)
 remotion.sh <work> sync             # refresh data/assets only
 remotion.sh <work> studio [port]    # npx remotion studio (default port 3000)
 remotion.sh <work> render [out.mp4] # npx remotion render Ad <out> --codec h264 --crf 21 --jpeg-quality 95
@@ -49,9 +49,11 @@ see [project-config.md](../design/project-config.md)) but now live in `config/`.
 ## `sync_all`
 
 - `mkdir -p <work>/remotion/src <work>/remotion/public`
-- Always overwrites: `package.json tsconfig.json remotion.config.ts .gitignore README.md`
-  and `index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts util.tsx Chrome.tsx Captions.tsx
-  Outro.tsx Guides.tsx SceneList.tsx`, plus `src/motifs/*.tsx` (issue #18)
+- Always overwrites: `package.json package-lock.json tsconfig.json remotion.config.ts
+  .gitignore README.md` and `index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts util.tsx
+  Chrome.tsx Captions.tsx Outro.tsx Guides.tsx SceneList.tsx`, plus `src/motifs/*.tsx`
+  (issue #18). The lockfile and `package.json` stay in lockstep — `setup` runs `npm ci`
+  against it (issue #45)
 - **`src/Scenes.tsx` copied once only** — a project's hand-written scene components are
   never wiped. With `config/scenes.json` the scenes are data and `SceneList.tsx` dispatches
   motifs instead (`Ad.tsx` renders one or the other)
@@ -60,7 +62,8 @@ see [project-config.md](../design/project-config.md)) but now live in `config/`.
 
 ## External tools
 
-`npm`, `npx remotion`, `"${VEVO_PY[@]}"` (inline — generates `project.json`), `ffprobe`, `grep`.
+`npm` (`npm ci` on first `setup` — needs `template/package-lock.json`), `npx remotion`,
+`"${VEVO_PY[@]}"` (inline — generates `project.json`), `ffprobe`, `grep`.
 
 ## Cross-platform
 

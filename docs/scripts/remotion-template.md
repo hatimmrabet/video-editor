@@ -10,6 +10,7 @@
 | File | Overwritten on sync? | Role |
 |---|---|---|
 | `package.json` | yes | deps: `@remotion/cli`, `remotion`, `react`, `react-dom` |
+| `package-lock.json` | yes | committed (issue #45) — Remotion `4.0.521`, React `18.3.1`; `remotion.sh setup` runs `npm ci` against it |
 | `remotion.config.ts` | yes | `setVideoImageFormat('jpeg')`, `setChromiumOpenGlRenderer('angle')` |
 | `tsconfig.json` | yes | ES2020, `react-jsx`, `resolveJsonModule`, `strict:false` |
 | `src/index.ts` | yes | `registerRoot(RemotionRoot)`, imports `./font` |
