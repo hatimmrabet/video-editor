@@ -1,8 +1,8 @@
 name: ci
 
-# Lightweight gate — the checks that need no ffmpeg / whisper / a browser. The headless
-# Puppeteer suite (spatest / sndtest / lctest / …) is not here yet: it lives in a
-# scratchpad and needs committing as scripts/test/ first (tracked as a follow-up).
+# `checks` — the fast gate (no ffmpeg / whisper / browser).
+# `e2e`  — the headless suite (video-editor/test/): web UI + lint_compose + behind_text +
+#          the ffmpeg resolver + the motif renderers. Needs ffmpeg + Chromium + the venv.
 
 on:
   pull_request:
@@ -36,7 +36,7 @@ jobs:
 
       - name: node --check every .js / .cjs / .mjs
         run: |
-          find video-editor/scripts \( -name '*.js' -o -name '*.cjs' -o -name '*.mjs' \) -print0 \
+          find video-editor/scripts video-editor/test \( -name '*.js' -o -name '*.cjs' -o -name '*.mjs' \) -print0 \
             | xargs -0 -n1 -t node --check
 
       - name: python -m compileall (syntax) on every .py
@@ -55,3 +55,35 @@ jobs:
         run: |
           cd video-editor/scripts/remotion/template
           npm ci --silent --ignore-scripts   # --ignore-scripts skips @remotion/renderer's Chromium download
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: checks
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: video-editor/.nvmrc
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: video-editor/.python-version
+
+      - name: install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: system ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: python venv (uv sync)
+        working-directory: video-editor
+        run: uv sync --no-progress
+
+      - name: node deps + bundled Chromium (npm ci)
+        working-directory: video-editor
+        run: npm ci --silent
+
+      - name: headless suite
+        working-directory: video-editor
+        run: xvfb-run -a node test/run.mjs

@@ -7,7 +7,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is **not an application** — it is a Claude Code **skill**. `video-editor/SKILL.md` is
 the entry point: it instructs the model to run a pipeline of small scripts
 (`video-editor/scripts/`) that turn a talking-to-camera video into a captioned vertical
-9:16 ad, entirely locally. There is no server, no build step, and no test suite.
+9:16 ad, entirely locally. There is no server and no build step. The only automated tests
+are the headless JS suite in `video-editor/test/` (CI); pipeline changes are verified by a
+real run.
 
 The skill installs to `~/.claude/skills/video-editor/` (skill `name: video-editor`). When
 developing, symlink the folder so edits are live:
@@ -33,10 +35,13 @@ The operational spec (`video-editor/SKILL.md`) is in English; on-screen caption 
 end-card copy, and the trigger phrases stay Arabic (that is output content). `GUIDE.pdf`
 is the Arabic end-user guide.
 
-## Running the pipeline (there are no unit tests)
+## Running the pipeline
 
-"Testing" a change means running the relevant pipeline stage on a real video. Every script
-takes a **work directory** `<work>` as its first argument and reads/writes its files there.
+There's a headless suite for the moving JavaScript (`video-editor/test/`, run by CI — the
+web UI, `lint_compose`, `behind_text`, the ffmpeg resolver, the motifs), but **no test for
+the pipeline output**: "testing" a pipeline change means running the relevant stage on a
+real video. Every script takes a **work directory** `<work>` as its first argument and
+reads/writes its files there.
 
 **Python scripts run via `uv run` from the skill dir** (`cd video-editor`); `uv` syncs the
 `.venv/` on demand. Node scripts via `node`, shell steps via `bash`. Dependencies are
@@ -137,9 +142,10 @@ than reading it whole.
   and cuts a GitHub Release named from `/VERSION`. To release, bump `VERSION` in the
   `develop → main` PR (idempotent — no bump, no release).
 
-`.github/workflows/ci.yml` gates every PR (coverage + `node --check` / `compileall` /
-`bash -n` / JSON parse / the Remotion lockfile). The headless Puppeteer suite is **not**
-in CI yet (tests aren't committed — the follow-up).
+`.github/workflows/ci.yml` gates every PR: `checks` (coverage + `node --check` /
+`compileall` / `bash -n` / JSON parse / the Remotion lockfile) then `e2e`
+(`video-editor/test/` — the headless suite: web UI, `lint_compose`, `behind_text`, the
+ffmpeg resolver, the motifs). Add a `*.test.js` there when you touch moving JavaScript.
 
 `main` still carries the fork's line (reset to upstream v2.4 as the base for the rename +
 Passes 0–7; upstream v2.5 stays on `majed-v2.5`). Upstream references to

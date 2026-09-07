@@ -34,8 +34,9 @@ v2.5 stays on `majed-v2.5`.
 ## CI
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every PR to `develop`
-or `main` (and on pushes to both). It's the **lightweight gate** — no ffmpeg, no whisper,
-no browser:
+or `main` (and on pushes to both), in two jobs:
+
+**`checks`** — the lightweight gate, no ffmpeg / whisper / browser:
 
 - `docs/check-script-coverage.mjs` — every script has a `docs/scripts/` page;
 - `node --check` on every `.js` / `.cjs` / `.mjs`;
@@ -44,9 +45,13 @@ no browser:
 - every `.json` parses;
 - `npm ci` (no scripts) on `scripts/remotion/template/` — the `#45` lockfile stays valid.
 
-**Not yet in CI:** the headless Puppeteer suite (`spatest` / `sndtest` / `lctest` / …).
-Those tests currently live outside the repo; committing them as `video-editor/test/` with
-a runner is the follow-up that unlocks a real end-to-end CI job.
+**`e2e`** (after `checks`) — the headless suite in [`video-editor/test/`](../video-editor/test/README.md):
+sets up ffmpeg + the `uv` venv + Puppeteer's Chromium, then `node test/run.mjs`. Covers the
+web UI screens, `lint_compose.js`, `fx/behind_text.js plan`, the ffmpeg resolver, and the
+motif renderers. Add a `*.test.js` there when you add moving JavaScript.
+
+**Still not covered:** the pipeline output itself — a pipeline change is still verified by
+running it on a real video (repo `CLAUDE.md`).
 
 ## Versioning
 

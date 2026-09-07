@@ -188,8 +188,8 @@ Remotion side (#25/#27/#28) is verified by parity port only — a real render is
 |---|---|---|
 | chore: build & publish a `video-editor.skill` package as a GitHub Release | `type:chore` | ✅ #30 — `.github/workflows/release.yml`: a push to `main` builds `video-editor.skill` (`git archive` of `video-editor/`) and cuts `v<VERSION>`. Started at `0.1.0`. See [releasing.md](releasing.md). |
 | feat: plugin package for distribution (like `content-engine-v4.plugin`) | `type:chore` | ✅ #33 — folded into #30; the `.skill` is the distribution artifact. |
-| chore: CI gate (`.github/workflows/ci.yml`) | `type:chore` | ✅ — coverage + `node --check` / `compileall` / `bash -n` / JSON parse / Remotion lockfile on every PR to `develop` / `main`. |
-| test: commit the headless Puppeteer suite as `video-editor/test/` + a runner | `type:chore` | open — unlocks a real end-to-end CI job |
+| chore: CI gate (`.github/workflows/ci.yml`) | `type:chore` | ✅ — `checks` (coverage + `node --check` / `compileall` / `bash -n` / JSON parse / Remotion lockfile) then `e2e` (the headless suite), on every PR to `develop` / `main`. |
+| test: commit the headless suite as `video-editor/test/` + a runner | `type:chore` | ✅ — `video-editor/test/` (`_lib.js` harness + 9 `*.test.js` + `run.mjs`): web UI screens, `lint_compose`, `behind_text plan`, the ffmpeg resolver, the motif renderers. Run by the `e2e` CI job. |
 
 ### Carried over from the previous handoff notes
 
