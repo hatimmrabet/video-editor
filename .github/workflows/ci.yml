@@ -2,8 +2,9 @@ name: ci
 
 # One job, kept under ~2 min. Fast static checks, then the headless suite in
 # video-editor/test/ (web UI + lint_compose + behind_text + the ffmpeg resolver + the
-# motifs). The suite needs only ffmpeg (on the runner image), Chromium (cached), and the
-# system python3 — no `uv sync` (the tested scripts are stdlib + lib/).
+# motifs). The suite needs ffmpeg (installed + cached below — ubuntu-latest has none),
+# Chromium (cached), and the system python3 — no `uv sync` (the tested scripts are
+# stdlib + lib/).
 
 on:
   pull_request:
@@ -50,10 +51,42 @@ jobs:
         run: cd video-editor/scripts/remotion/template && npm ci --silent --ignore-scripts
 
       # --- the headless suite ---
-      - name: ffmpeg (cached static build)
-        # v3.1 still ships the Node 20 runtime; the Node 24 fix (gh-32) is on main but
-        # untagged, so pin the SHA. Move back to a tag once one is cut.
-        uses: FedericoCarboni/setup-ffmpeg@8073ccb51e517ed576e6871c7f2360c6de4ebb7c # main @ 2026-06-01
+      # ffmpeg: cache the static binaries so a bad download can't redden CI. The cache
+      # hits on ~every run (zero network). On a cold cache we pull BtbN's static build
+      # from GitHub Releases — reachable whenever Actions itself is (johnvansickle.com,
+      # which setup-ffmpeg used, is not) — retrying five times, then apt as a last
+      # resort. Bump the key's vN to pull a newer ffmpeg.
+      - name: cache ffmpeg
+        uses: actions/cache@v6
+        with:
+          path: ~/.local/ffmpeg
+          key: ffmpeg-btbn-${{ runner.os }}-v1
+      - name: ffmpeg
+        run: |
+          set -eu
+          DEST="$HOME/.local/ffmpeg"
+          if [ ! -x "$DEST/ffmpeg" ]; then
+            mkdir -p "$DEST"
+            D=ffmpeg-master-latest-linux64-gpl
+            URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/$D.tar.xz"
+            ok=
+            for n in 1 2 3 4 5; do
+              if curl -fL --connect-timeout 30 --max-time 600 -o /tmp/ffmpeg.tar.xz "$URL" \
+                 && tar -xJf /tmp/ffmpeg.tar.xz -C /tmp "$D/bin/ffmpeg" "$D/bin/ffprobe"; then
+                mv "/tmp/$D/bin/ffmpeg" "/tmp/$D/bin/ffprobe" "$DEST/"
+                ok=1; break
+              fi
+              echo "ffmpeg fetch $n/5 failed; retrying in 10s"; sleep 10
+            done
+            if [ -z "$ok" ]; then
+              echo "::warning::ffmpeg download failed 5x — falling back to apt"
+              sudo apt-get update && sudo apt-get install -y ffmpeg
+              rmdir "$DEST" 2>/dev/null || true
+              DEST="$(dirname "$(command -v ffmpeg)")"
+            fi
+          fi
+          printf '%s\n' "$DEST" >> "$GITHUB_PATH"
+          "$DEST/ffmpeg" -version | head -n1 || true
       - name: node deps + bundled Chromium (skipped on a cache hit)
         if: steps.nm.outputs.cache-hit != 'true'
         working-directory: video-editor
