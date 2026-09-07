@@ -22,7 +22,7 @@ the scene split made explicit. `FORK.md` carries the short version of this table
 | 4 | **Scenes as data + motif registry** | `Pass 4 — Scenes` | 2, 3 | ✅ done (#15 schema · #16 registry · #17 light · #18 Remotion · #19 11 motifs · #20 studio) |
 | 5 | **Orchestrator runner** (`run.py`) | `Pass 5 — Orchestrator` | 2 (4 makes it fuller) | ✅ done (#21 `run.py` + stage manifests · #22 subagent design) |
 | 6 | **`long-form` world** (YouTube) | `Pass 6 — Long-form` | 2, 3, 5 | ✅ done (#23 design · #84–#89 impl) |
-| 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | 🚧 in progress (#24 design · #96 done · #97–#103) |
+| 7 | **Web interface** | `Pass 7 — Web` | 2, 5 | ✅ done (#24 design · #96–#103 impl) |
 
 ## Pass 1 — Execution & dependencies
 
