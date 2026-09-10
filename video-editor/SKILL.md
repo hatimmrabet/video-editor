@@ -20,7 +20,7 @@ one publish-ready MP4.
 | Output | 9:16 captioned ad | one rhythmic MP4 | **16:9** edited talk with chapters |
 | Selection driven by | the speech (remove silences + repeats) | the shot itself (sharpness · motion · lighting) | the speech (**tight** jump cuts + filler words) |
 | Captions? | yes, word-synced burned-in | **no** | soft `.srt` only |
-| Steps | 0–11 below | the "Montage mode" section | the "Long-form mode" section |
+| Steps | 1–11 below | the "Montage mode" section | the "Long-form mode" section |
 
 **How do you know the mode without asking?** A **folder** / more than one clip with no
 speech = montage. **A single file with speech** = speech ad. They ask for a **YouTube
@@ -74,24 +74,69 @@ and doesn't want to. Never hand them a list of commands to run.
   "video quality".
 - **Tell them where you are at each step**, with a time estimate: "Removed the silences —
   half the video is gone. Now transcribing your speech, 3 minutes."
-- **Ask for one thing at a time.** Don't ask for the video and the colors and the account
-  in one sentence.
+- **Recap at the end of every step**, in the terminal: what you just did, what you found,
+  and what comes next. You are guiding them all the way through — never rush to the end.
+- **One batch of questions, not a drip.** When you need several answers that belong to the
+  same decision (the whole configuration, say), ask for all of them in one message and let
+  them answer in one go. Don't interleave a question, a command, a question.
+- **When in doubt, ask. Always.** Never decide on a supposition, never act on a guess. If
+  two readings of the input are possible, stop and show both. This outranks every "don't
+  ask" instruction below: those apply only to what the input can actually settle.
 - **Never deliver without showing.** After each major stage, show a frame or a summary.
 
 ---
 
-## Step 0 — prepare silently
+## Step 1 — preflight: where are we, and with what
+
+**One command does the whole step.** It checks the toolchain (it calls `setup.sh` itself),
+probes every file, decides the mode, finds a config sitting beside the footage, and
+prepares the ground. Look first, act second:
 
 ```bash
-bash scripts/setup.sh
+uv run scripts/preflight.py <the path they gave you>            # look only
+uv run scripts/preflight.py <the path they gave you> --apply    # then prepare
 ```
-- Returned "✅ ready." → don't mention it at all, move to the next step.
-- Returned something missing → tell them in one sentence what you'll install and why, get
-  their consent, then:
-```bash
-bash scripts/setup.sh --install
+
+**Branch on the exit code — don't parse the prose:**
+
+| Code | What it means | What you do |
+|---|---|---|
+| `0` | ready | re-run with `--apply`, then go to step 2 |
+| `10` | a tool is missing | one plain sentence about what you'll install and why, get their consent, `bash scripts/setup.sh --install`, then **run preflight again** |
+| `20` | a human has to decide | read the `ASK:` lines and ask exactly that. **Never guess** |
+| `30` | nothing usable | say what you looked at and ask for the right file or folder |
+
+A verdict of `resume` means this project already exists — don't redo it, run
+`uv run scripts/run.py <work> --dry` and tell them where it stopped.
+
+**The work directory — one folder = one project.** The folder holding the footage *is* the
+project; `preflight --apply` creates `work/` next to the footage and **moves** the material
+in (moved, not copied: no quality loss, no duplicated gigabytes, and the folder is left
+clean). Anything it doesn't recognise stays exactly where they left it.
+
 ```
-If something fails tell them the fix in one human sentence, without pasting the error message.
+mon-dossier/                         mon-dossier/
+  video-selfie.mov                     work/
+  project.config.json      ──────▶       rush/    video-selfie.mov
+  logo.png                               config/  project.config.json · logo.png
+                                         build/
+                                       compose.html · studio.html
+```
+
+`<work>` in every later step = that `work/` folder. Full reference: the docstring at the top of `scripts/preflight.py`.
+
+**If the video isn't on their machine yet**, get it there first, then point preflight at
+it. Accept any method:
+
+| Method | When | How |
+|---|---|---|
+| **A file on their machine** ← best | always if possible | they give you the path |
+| **A Google Drive link** | they shoot on their phone and Drive auto-uploads | have them set sharing to "anyone with the link", then:<br>`curl -sL "https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t" -o <folder>/<name>.mov`<br>the ID is the part between `/d/` and `/view`. Tested on a 441 MB file |
+| **Google Drive connector** | the file is private and they don't want to change sharing | use the connector tools available in the session |
+
+**About resolution:** 4K is better because the zoom crops from the original so you lose no
+sharpness. But 1080p works fine — the difference is the zoom range gets tighter. **Do not
+reject a 1080p video and do not ask them to re-shoot.**
 
 **Dependencies are isolated.** `setup.sh --install` installs only **ffmpeg**, **Node** and
 **uv** at the system level (via brew / winget / apt). Everything else is contained:
@@ -103,13 +148,14 @@ separate Chrome install**. `uv run scripts/…` re-syncs the venv on its own if 
 · 7.6 · "speech behind the person") skip themselves automatically elsewhere, and the rest
 of the pipeline runs normally.
 
-Prepare a work directory: create its `rush/`, `config/` and `build/` subfolders, and copy
-`scripts/compose.reference.html` into it as `compose.html`, and `scripts/studio.html` too
-(both stay at the work-dir root — see [`docs/design/file-layout.md`](../docs/design/file-layout.md)).
+**End the step with a recap in the terminal** — no jargon, plain sentences:
+the tools (already there / what you installed), the file(s) you'll work on with their
+length and shape, anything preflight flagged (no audio, rotated, low-res, very long), the
+structure you created and what each folder is for, and what happens next.
 
 ---
 
-## Step 1 — configuration (mandatory, never silent)
+## Step 2 — configuration (mandatory, never silent)
 
 **Never assume the cream-and-clay theme.** That's Claude's theme, not everyone's.
 
@@ -162,31 +208,8 @@ out. If you turn it on, tell them you did.
 for it as a one-off, set `BADGE_UNTIL` directly in that project's `<work>/compose.html`
 (step 7) rather than through the config.
 
-Every script downstream reads this file via `config.load()` (see
-[`docs/scripts/lib-config.md`](../docs/scripts/lib-config.md)) — nothing needs asking twice.
-
----
-
-## Step 2 — get the video from them
-
-Ask for it in one simple sentence, and accept any method:
-
-| Method | When | How |
-|---|---|---|
-| **A file on their machine** ← best | always if possible | they give you the path, you copy it to `<work>/rush/` **keeping its original name** — no upload wait, no renaming |
-| **A Google Drive link** | they shoot on their phone and Drive auto-uploads | have them set sharing to "anyone with the link", then:<br>`curl -sL "https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t" -o <work>/rush/<name>.mov`<br>the ID is the part between `/d/` and `/view`. Tested on a 441 MB file |
-| **Google Drive connector** | the file is private and they don't want to change sharing | use the connector tools available in the session |
-
-**About resolution:** 4K is better because the zoom crops from the original so you lose no
-sharpness. But 1080p works fine — the difference is the zoom range gets tighter. **Do not
-reject a 1080p video and do not ask them to re-shoot.**
-
-`rush/` never renames the file — whatever name it arrives with, it keeps (see
-[`docs/design/file-layout.md`](../docs/design/file-layout.md)). `rush/` must hold **exactly
-one file** for the speech-ad flow (`lib/rush.py`'s `find_source()` enforces this) — put
-`bg-audio.mp3` there too later if they give you one, it's excluded from the count.
-
-Verify it arrived: `ffprobe -v error -show_entries format=duration -of csv=p=0 <work>/rush/<name>`
+Every script downstream reads this file via `lib/config.py`'s `load()` — nothing needs
+asking twice.
 
 ---
 
@@ -197,8 +220,8 @@ order, skips whatever is already up to date, and stops at the four points that n
 and the user — correcting the transcript, dropping sentences, designing the scenes,
 placing the sound cues. It's a convenience for a re-run or a repeat job; the steps below
 are still the source of truth for *how* to do each one, and the conversation stays yours.
-`run.py <work> --dry` shows the plan, `--from <stage>` resumes. See
-[`docs/design/orchestrator.md`](../docs/design/orchestrator.md).
+`run.py <work> --dry` shows the plan, `--from <stage>` resumes. The canonical stage list
+is `scripts/pipeline/<world>.json`.
 
 ### 3) Cut plan
 ```bash
@@ -303,7 +326,7 @@ scene sticks to the word, not to an approximate time.
 the name is on the platform itself and on the end card, and the top of the screen is
 space for the graphics. If someone asks for it, set `BADGE_UNTIL=3` directly in that
 project's `compose.html` — it puts it in the first 3 seconds only. Not a config field
-(see step 1) — it's a rare, per-project exception, not a base setting.
+(see step 2) — it's a rare, per-project exception, not a base setting.
 
 **Layout rule (user-approved — do not break it):**
 
@@ -346,7 +369,7 @@ each other. Panels are drawn at coordinates `130..950 × 278..458` inside `panel
 they scale to 1.2 on their own.
 
 **B-roll shots (optional):** put the cutaway clip(s) in `<work>/rush/broll/` (a folder —
-it may hold several, see [`docs/design/file-layout.md`](../docs/design/file-layout.md)),
+it may hold several,),
 extract the useful segments to frames in `<work>/build/broll-frames/<name>_%04d.jpg`,
 declare their range in `BR_NEED`, and show them with `brCard()` and `R_LOWER`. `BRCROP`
 trims burned-in subtitles from the bottom of a shot. 3–4 shots in a video is enough.
@@ -603,7 +626,7 @@ stops at the four points that need you and the user. Below is what to do at each
 stages between them are automatic.
 
 ### 1) Configuration
-Same as speech-ad step 1, but write **`"format": "long"`** in
+Same as speech-ad step 2, but write **`"format": "long"`** in
 `<work>/config/project.config.json` — that's the switch that selects this world. Ask the
 video's language. Theme colors barely matter here (no cards, no end card); you still need
 the language. The tightening thresholds live under `longform` (`pauseMs` 250, `keepMs` 90,
@@ -720,9 +743,8 @@ confirms the first caption is before half a second. It exits with code 3 if ther
 violation, and produces `build/safe-zone-check.jpg` (only when there's a violation to show)
 with the red shot showing where the problem is. The bounds are adjusted with
 `<work>/config/safe.json` if you need to (a TikTok video with tighter bounds, say) — the
-same rects are reused for every short-form platform by default (see
-[`docs/design/file-layout.md`](../docs/design/file-layout.md)), so this is a rare override,
-not something to set per project.
+same rects are reused for every short-form platform by default, so this is a rare
+override, not something to set per project.
 
 1. **Sync** — transcribe the output audio again and compare sentence starts to
    `build/captions.json`; the difference should be under 0.1 seconds:
@@ -781,6 +803,7 @@ for the post caption). And mention that you didn't publish anything.
 | `setup.sh` | installs ffmpeg/Node/uv (system), then `uv sync` + `npm ci` (isolated) | shared |
 | `lib/platform.sh` · `lib/platform.js` | cross-platform helpers (paths · `VEVO_PY` · browser · OS) | shared |
 | `lib/config.py` · `lib/config.js` | reads/merges `project.config.json` | shared |
+| `preflight.py` | **step 1** — inventory the input, check the tools, build `work/{rush,config,build}` | shared |
 | `lib/rush.py` | finds the input file(s) in `rush/` without assuming a fixed name | shared |
 | `lib/timeline.py` | the cut-plan / caption timeline surgery shared by `edit_script.py` + `tighten.py` | shared |
 | `run.py` | the config-driven conductor — runs the stages, stops at the decisions | shared |
@@ -803,5 +826,5 @@ for the post caption). And mention that you didn't publish anything.
 | `fx/behind_text.js` + `personmask.swift` | the three cutout styles (behind the person · in front of the panel · head outside the card) | light |
 | `montage_mode.py` | **montage mode**: scans a clip folder, picks the best moment of each, and assembles them | independent |
 
-Full contributor documentation (data flow, the two engines, the ten real-run bugs, the
-target architecture): **`../docs/`** at the repo root.
+**This file is the source of truth for the pipeline.** Beyond it: each script's own
+docstring, and the stage lists in `scripts/pipeline/<world>.json`. Nothing else.
