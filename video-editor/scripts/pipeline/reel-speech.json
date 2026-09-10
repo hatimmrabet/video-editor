@@ -62,7 +62,7 @@
       "id": "scenes",
       "title": "Design the scenes",
       "needs": ["build/captions.json"],
-      "note": "The core creative step. Either author config/scenes.json (motif names from scripts/motifs/index.json, params bound to build/captions.json) or rewrite the scene functions in <work>/compose.html. A scenes-less project renders with captions only - that is a valid choice, not a skip. See SKILL.md step 7."
+      "note": "The core creative step. Either author config/scenes.json (motif names from scripts/motifs/index.json, params bound to build/captions.json) or rewrite the scene functions in <work>/compose.html. A scenes-less project renders with captions only - that is a valid choice, not a skip. See SKILL.md step 8."
     },
     {
       "id": "sound-cues",
@@ -70,7 +70,7 @@
       "block": true,
       "needs": ["build/captions.json"],
       "makes": ["build/sound-cues.json"],
-      "note": "Author build/sound-cues.json - at minimum {\"outro\": <end-card seconds>}, plus whoosh/thud/tap arrays at meaningful moments (<= 15 events/min, rule #1). See SKILL.md step 8."
+      "note": "Author build/sound-cues.json - at minimum {\"outro\": <end-card seconds>}, plus whoosh/thud/tap arrays at meaningful moments (<= 15 events/min, rule #1). See SKILL.md step 11."
     },
     {
       "id": "sound",

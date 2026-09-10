@@ -25,6 +25,9 @@ T.web("montage-longform", async ({ base, page, J, work, check }) => {
 
   const LW = work(lfId);
   T.writeFiles(LW, {
+    // this fixture's speech is English, so the project declares it: tighten.py picks its
+    // filler list per language, and the skill default is ar-MA (defaults.config.json)
+    "config/project.config.json": { format: "long", language: "en" },
     "build/source-joined.mp4": "x", "build/cut-plan.json": { keep: [[0, 6]], total: 6, src_dur: 6 },
     "build/transcribe-input.wav": "{}", "build/transcript-raw.json": "{}", "build/transcript-fixes.json": "{}",
     "build/captions.json": { total: 6, cards: [

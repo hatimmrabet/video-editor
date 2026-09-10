@@ -1,7 +1,19 @@
 {
+  "_doc": "Skill-level defaults, merged under <work>/config/project.config.json by lib/config.{py,js}. Today these ARE the configuration: SKILL.md step 2 reads them and asks nothing. The creator's own values (handle, language, theme) live here deliberately — this is a personal fork with one creator; per-project configuration comes back in a later version, and lifting these back out is a one-line change.",
   "format": "short",
   "engine": "light",
+  "language": "ar-MA",
   "grade": false,
   "crop": { "xAnchor": 0.5, "yAnchor": 0.30, "faceAnchor": 0.30 },
+  "theme": {
+    "bg": "#FFFFFF",
+    "ink": "#101828",
+    "acc": "#2563EB",
+    "clay": "#7C3AED",
+    "mut": "#667085",
+    "font": "Cairo",
+    "handle": "@hatim.exp",
+    "grid": true
+  },
   "longform": { "pauseMs": 250, "keepMs": 90, "fillers": true, "captions": "soft" }
 }

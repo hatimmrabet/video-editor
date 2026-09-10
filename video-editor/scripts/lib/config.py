@@ -4,8 +4,12 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""Shared project.config.json — load() reads it and merges it over the skill defaults. Does not invent a missing `theme` or
-`language` — that's the configuration phase's job (SKILL.md), not load()'s.
+"""Shared project.config.json — load() reads it and merges it over the skill defaults.
+
+`defaults.config.json` carries the creator's own handle, language and theme today, so
+load() always returns a usable `theme` and `language` even with no project file at all —
+SKILL.md step 2 reads them and asks nothing. A `<work>/config/project.config.json`, when
+one exists, still wins field by field.
 
 No bridge to the old theme.json/stage.json/outro.json/safe.json: one user, no existing
 project to preserve — the scripts that consume those fields migrate straight to

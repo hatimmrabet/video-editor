@@ -1,9 +1,9 @@
 ---
 name: video-editor
-description: Turns a talking-to-camera video (selfie / teleprompter) into a full vertical 9:16 ad — removes the silences, transcribes the speech with per-word timing, adds synced Arabic captions, builds code-drawn motion graphics and B-roll scenes, and an end card with a call to interact — all in the content creator's own colors. It also has a second montage mode: a folder of speechless clips (cafés, travel, a product, a place) — it picks the best moment of each clip and assembles them into one rhythmic montage. And a third long-form mode: one or more long talking recordings become an edited 16:9 YouTube video — pauses and filler words cut tight, chapter markers, optional B-roll cutaways, soft subtitles. ALWAYS use this skill when the user says "منتج هذا المقطع", "سو من هذا الفيديو إعلان", "شيّل السكتات", "حوّل الفيديو لريل", "ركّب كابشن عربي", "ابي موشن قرافيكس على الفيديو", "اقص الصمت", "عندي ٣٠ مقطع سوّ لي منها فيديو", "ركّب لي مونتاج من هالمقاطع", "اختار أحلى اللقطات", "سو من هذا مقطع يوتيوب", "قص السكتات من المحاضرة", "حط فهرس فصول", or the English equivalents ("edit this clip into an ad", "turn this video into a reel", "remove the silences / dead air", "add Arabic captions", "make a montage from these clips", "pick the best shots", "edit this into a YouTube video", "tighten this talk", "cut the pauses out of this lecture", "add chapters"), or sends a talking video, a folder of clips, or a long recording and asks for an edit. NOT for carousels (use carousel-creator) or video covers (use animated-video-cover).
+description: Edits a talking-to-camera video (selfie / teleprompter) into a finished vertical 9:16 reel for Instagram, TikTok or YouTube Shorts — removes the silences, transcribes the speech with per-word timing, adds synced captions in the speaker's own dialect, builds code-drawn motion graphics and B-roll scenes, and an end card. Whatever the video is for — explaining a subject, a lesson, an announcement, a promotion — it is an edit, not an ad format. It also has a second montage mode: a folder of speechless clips (cafés, travel, a product, a place) — it picks the best moment of each clip and assembles them into one rhythmic montage. And a third long-form mode: one or more long talking recordings become an edited 16:9 YouTube video — pauses and filler words cut tight, chapter markers, optional B-roll cutaways, soft subtitles. ALWAYS use this skill when the user says "منتج هذا المقطع", "شيّل السكتات", "حوّل الفيديو لريل", "ركّب كابشن عربي", "ابي موشن قرافيكس على الفيديو", "اقص الصمت", "عندي ٣٠ مقطع سوّ لي منها فيديو", "ركّب لي مونتاج من هالمقاطع", "اختار أحلى اللقطات", "سو من هذا مقطع يوتيوب", "قص السكتات من المحاضرة", "حط فهرس فصول", or the English equivalents ("edit this clip", "montage this video", "turn this video into a reel", "make a short out of this", "remove the silences / dead air", "add captions", "make a montage from these clips", "pick the best shots", "edit this into a YouTube video", "tighten this talk", "cut the pauses out of this lecture", "add chapters"), or sends a talking video, a folder of clips, or a long recording and asks for an edit. NOT for carousels (use carousel-creator) or video covers (use animated-video-cover).
 ---
 
-# Video ad montage — no editing app
+# Video editing — no editing app
 
 ## The idea
 
@@ -11,23 +11,28 @@ The whole edit is code: ffmpeg cuts, Whisper transcribes with per-word timing, a
 drawing engine composites the captions and motion graphics over the video. The output is
 one publish-ready MP4.
 
+**This is an editing skill, not an ad format.** The creator is making a reel for Instagram,
+TikTok or YouTube Shorts — usually explaining a subject, sometimes a lesson or an
+announcement, occasionally a promotion. Never call the result "an ad" and never assume the
+video is selling something. It is *their video*, edited.
+
 ## Three modes — decide which one you're in, in your first line
 
-| | **Speech ad** (default) | **Clip montage** | **Long-form** |
+| | **Talking video** (default) | **Clip montage** | **Long-form** |
 |---|---|---|---|
 | Input | one video of a person talking | a folder with many speechless clips | one or more long talking recordings |
 | Example | selfie · teleprompter · explainer | café · trip · product · place · event | a YouTube talk · a lesson · a podcast |
-| Output | 9:16 captioned ad | one rhythmic MP4 | **16:9** edited talk with chapters |
+| Output | 9:16 captioned reel | one rhythmic MP4 | **16:9** edited talk with chapters |
 | Selection driven by | the speech (remove silences + repeats) | the shot itself (sharpness · motion · lighting) | the speech (**tight** jump cuts + filler words) |
 | Captions? | yes, word-synced burned-in | **no** | soft `.srt` only |
-| Steps | 1–11 below | the "Montage mode" section | the "Long-form mode" section |
+| Steps | 1–13 below | the "Montage mode" section | the "Long-form mode" section |
 
 **How do you know the mode without asking?** A **folder** / more than one clip with no
-speech = montage. **A single file with speech** = speech ad. They ask for a **YouTube
+speech = montage. **A single file with speech** = talking video. They ask for a **YouTube
 edit**, "tighten this talk", "cut the pauses in this lecture", "add chapters", or hand you
 a long recording for YouTube = long-form — and you set `"format": "long"` in the config
 (it's the one thing that can't be read from the footage). If a folder turns out to have
-audible speech and they want captions, run the speech-ad flow on the main clip.
+audible speech and they want captions, run the talking-video flow on the main clip.
 
 **Do not ask "which mode do you want?"** — read the input, go, and tell them in one
 sentence what you understood.
@@ -38,11 +43,11 @@ The skill is one thing; the engine that draws the scenes is two. **The choice is
 not theirs.**
 
 **Always start with the light engine, silently.** Never say the word "Remotion" or
-"canvas" or "engine", and never offer two options — the person in front of you wants an
-ad, not to pick a technology.
+"canvas" or "engine", and never offer two options — the person in front of you wants their
+video edited, not to pick a technology.
 
 **When do you open the second one?** Only if **they** say something like this, after
-seeing the ad:
+seeing the result:
 > "I want to edit it myself" · "I don't like where this sits, I want to move it" · "is
 > there a screen where I can see the edit?" · "I want to try things myself"
 
@@ -72,17 +77,44 @@ and doesn't want to. Never hand them a list of commands to run.
   minutes — start?" After they agree, install them yourself.
 - **No jargon.** Don't say "puppeteer" or "codec" — say "a tool that draws the slides" and
   "video quality".
-- **Tell them where you are at each step**, with a time estimate: "Removed the silences —
-  half the video is gone. Now transcribing your speech, 3 minutes."
-- **Recap at the end of every step**, in the terminal: what you just did, what you found,
-  and what comes next. You are guiding them all the way through — never rush to the end.
-- **One batch of questions, not a drip.** When you need several answers that belong to the
-  same decision (the whole configuration, say), ask for all of them in one message and let
-  them answer in one go. Don't interleave a question, a command, a question.
 - **When in doubt, ask. Always.** Never decide on a supposition, never act on a guess. If
   two readings of the input are possible, stop and show both. This outranks every "don't
   ask" instruction below: those apply only to what the input can actually settle.
 - **Never deliver without showing.** After each major stage, show a frame or a summary.
+
+### How every message is laid out — this is not a suggestion
+
+**Always name the step you are on, and the step that comes next.** The person must never
+have to wonder where they are in the flow. Head every message with `Step N/13 — <name>`,
+and end it with the next one.
+
+**Facts go in a list, never in a paragraph.** One line per item, a dash, the thing's name,
+a colon, then its facts separated by `·`. Never a sentence that buries three numbers in
+prose.
+
+```
+Step 1/13 — Preparation                                          done
+
+Tools: everything already installed.
+
+File taken:
+- VID_20260908_122908.mp4 : 1080x1920 · 2 min 22 s · 30 fps · audio present
+
+Folders prepared:
+- work/rush/    the video
+- work/config/  the settings
+- work/build/   the working files
+
+Next — step 2/13, the settings (defaults, nothing to do).
+```
+
+**Never write a paragraph announcing everything you are about to do.** No "I'll cut the
+silences, transcribe your speech, add captions and animations…". That decision is not
+yours: show the flow as a list and let them switch steps off (see "The flow is a list of
+switches" below).
+
+**One time estimate per step, on the step that is running** — not a forecast of the whole
+pipeline: "transcribing, about 3 minutes".
 
 ---
 
@@ -144,8 +176,8 @@ Python packages go in a `uv`-managed `.venv/` (never the system Python), and the
 that draws the scenes is downloaded by `npm` into the skill's `node_modules/` — **no
 separate Chrome install**. `uv run scripts/…` re-syncs the venv on its own if needed.
 
-**Platforms:** macOS, Windows (Git-Bash/WSL) and Linux. The macOS-only features (steps 7.5
-· 7.6 · "speech behind the person") skip themselves automatically elsewhere, and the rest
+**Platforms:** macOS, Windows (Git-Bash/WSL) and Linux. The macOS-only features (steps 9
+and 10 — the person cutouts) skip themselves automatically elsewhere, and the rest
 of the pipeline runs normally.
 
 **End the step with a recap in the terminal** — no jargon, plain sentences:
@@ -155,81 +187,117 @@ structure you created and what each folder is for, and what happens next.
 
 ---
 
-## Step 2 — configuration (mandatory, never silent)
+## Step 2 — settings (silent, no questions)
 
-**Never assume the cream-and-clay theme.** That's Claude's theme, not everyone's.
+**Ask nothing.** The settings come from `scripts/defaults.config.json` and they are already
+correct. Read them, show them in three lines, move on:
 
-This step is never skipped and never silent — it always ends in an explicit confirmation
-before anything downstream runs.
-
-**`<work>/config/project.config.json` already exists?** Read it, show a short recap
-(language, theme colors, handle), and ask: "Still good, or does anything change?" Don't
-move on until they confirm.
-
-**No config yet?** Build it one question at a time, then reconfirm before saving:
-1. Ask **one question** about their account colors: "What are your account's colors? Give
-   me the background color, the accent color, and your logo (or your account link and
-   I'll pull them)."
-2. Ask the video's language (see step 4 for why it matters): `ar` · `fr` · `en` · or a hard
-   dialect (`ar-MA` / `ar-DZ` / `darija`).
-3. Copy their logo into `<work>/config/logo.png`, and set `theme.logo` to `"config/logo.png"`
-   in the file you write below (a path relative to the work-dir root — where `compose.html`
-   and `remotion.sh` resolve it from — not relative to `config/` itself).
-4. **Before writing anything**, give one final complete recap and get an explicit
-   confirmation — only then save the file. It becomes the single source everything
-   downstream reads; there's no second place any of this lives.
-
-Write `<work>/config/project.config.json`:
-```json
-{
-  "format": "short",
-  "engine": "light",
-  "language": "ar",
-  "grade": false,
-  "crop": { "xAnchor": 0.5, "yAnchor": 0.30, "faceAnchor": 0.30 },
-  "theme": { "bg":"#101828", "ink":"#F5F7FA", "acc":"#F2B33D", "clay":"#C98B18", "mut":"#98A2B3",
-             "font":"Tajawal", "handle":"@his_handle", "logo":"config/logo.png", "grid": true }
-}
 ```
-`format` is always `"short"` today — `"long"` is reserved for a future long-form pipeline
-that doesn't exist yet; it's not a real choice to offer. `engine` is always `"light"` —
-never ask, never write `"auto"` (see "Two engines" above: the choice is yours, not
-theirs). Every scene derives its colors from `theme` automatically — the cards, the
-shadows, and the text color over the accent pills (computed from the color's luminance).
-A dark or a light background both work.
+Step 2/13 — Settings                                             done
 
-**The color grade (`grade`) is off by default** — the video keeps its original colors.
-Don't turn it on unless they explicitly ask, or complain the image looks cold / washed
-out. If you turn it on, tell them you did.
+- language : ar-MA (northern-Morocco darija — hard-dialect mode on)
+- font     : Cairo
+- colours  : white background · blue accent · purple second · @hatim.exp
 
-`crop`'s defaults (0.5 / 0.30 / 0.30) are right for almost every video — only revisit
-`xAnchor` / `faceAnchor` after previewing a frame, if the speaker turns out off-center
-(step 6). **There is no account badge field** — it's off by default, and if someone asks
-for it as a one-off, set `BADGE_UNTIL` directly in that project's `<work>/compose.html`
-(step 7) rather than through the config.
+Next — step 3/13, cutting the silences.
+```
 
-Every script downstream reads this file via `lib/config.py`'s `load()` — nothing needs
-asking twice.
+The defaults today:
+
+| Field | Value | |
+|---|---|---|
+| `language` | `ar-MA` | northern-Morocco **darija**, not standard Arabic. `transcribe.py` maps it to `ar` and turns hard-dialect mode on by itself |
+| `theme.font` | `Cairo` | |
+| `theme.bg` / `ink` | `#FFFFFF` / `#101828` | light background, dark ink |
+| `theme.acc` / `clay` | `#2563EB` / `#7C3AED` | blue accent, purple second |
+| `theme.mut` | `#667085` | |
+| `theme.handle` | `@hatim.exp` | the same handle everywhere |
+| `format` · `engine` · `grade` | `short` · `light` · `false` | never ask about these |
+
+**Do not write a `<work>/config/project.config.json`, and do not ask for colours, a logo,
+a font or a language.** Per-project configuration is deliberately switched off in this
+version. `lib/config.py`'s `load()` returns the defaults on its own, so every downstream
+script already has what it needs.
+
+**The one thing you may still choose: the accent colour.** If the subject clearly calls for
+it, propose a different `acc` in one line and let them say yes or no — never a
+questionnaire. Everything else stays as it is.
+
+Every scene derives its colours from `theme` automatically — the cards, the shadows, and
+the text colour over the accent pills (computed from the colour's luminance). A light or a
+dark background both work.
+
+**The colour grade (`grade`) is off** — the video keeps its original colours. Only turn it
+on if they explicitly ask, or complain the image looks cold / washed out, and say so when
+you do.
+
+`crop`'s defaults (0.5 / 0.30 / 0.30) suit almost every video — only revisit `xAnchor` /
+`faceAnchor` after previewing a frame, if the speaker turns out off-centre (step 7).
+**There is no account-badge field** — it is off, and if it is ever wanted for one video,
+set `BADGE_UNTIL` directly in that project's `<work>/compose.html` (step 8).
 
 ---
 
-## Steps 3–11 — production
+## The flow is a list of switches — show it, then follow it
 
-**Optional conductor.** `uv run scripts/run.py <work>` runs the mechanical stages below in
-order, skips whatever is already up to date, and stops at the four points that need you
-and the user — correcting the transcript, dropping sentences, designing the scenes,
-placing the sound cues. It's a convenience for a re-run or a repeat job; the steps below
-are still the source of truth for *how* to do each one, and the conversation stays yours.
-`run.py <work> --dry` shows the plan, `--from <stage>` resumes. The canonical stage list
-is `scripts/pipeline/<world>.json`.
+**Right after step 1, show the whole flow as a list and let them turn steps off.** Never a
+paragraph announcing what you will do. This is the message:
 
-### 3) Cut plan
+```
+Here is the flow. Tell me if you want to drop any of it.
+
+  1  Preparation                                       done
+  2  Settings (defaults)                               done
+  3  Cut the silences                                  on
+  4  Transcribe the speech                             on
+  5  Correct the text with you                         on
+  6  Choose which sentences to keep                    on
+  7  Reframe to vertical 9:16                          on
+  8  On-screen captions                                on   (language: darija)
+  9  Animations illustrating what you say              on
+ 10  Effects on the person (macOS only)                off
+ 11  Sound effects                                     on
+ 12  Final render + audio mastering                    on
+ 13  Subtitle file (.srt) + post caption               on
+
+Say "everything" and I start, or name what to drop
+("no animations", "captions in French", "no sound effects").
+```
+
+**Every step is a switch except 1, 2, 7 and 12** — preparation, settings, reframing and the
+render are what make a file at all. Everything else is the creator's call, and the answer is
+theirs, not yours.
+
+**When a switch is off, say what it changes** in one line, and honour the dependencies:
+
+| Turned off | What happens |
+|---|---|
+| 3 cut the silences | the original pace is kept, the video stays its full length |
+| 4 transcribe | **forces 5, 6, 8, 13 off** — no text means no captions and no `.srt` |
+| 5 correct the text | Whisper's raw text is used, mistakes and all — in darija that is a lot |
+| 6 choose the sentences | repetitions and false starts stay in |
+| 8 captions + animations | **two switches in one step.** "No animations" gives a captions-only reel — a valid choice, not a failure. "No captions" gives picture only. The caption language is chosen here, not in the settings |
+| 9 / 10 effects on the person | nothing lost; both are off by default and need macOS |
+| 11 sound effects | a silent bed, the speaker's voice untouched |
+| 13 subtitle file | no `.srt`, no post caption text |
+
+**Running the mechanical stages.** `uv run scripts/run.py <work>` runs them in order, skips
+whatever is already up to date, and stops at the points that need the creator. `run.py
+<work> --dry` shows the plan, `--from <stage>` resumes, `--only <stage>` runs one. The
+canonical stage list is `scripts/pipeline/<world>.json`; the steps below say *how* to do
+each one, and the conversation stays yours.
+
+---
+
+## Steps 3–13 — production
+
+### 3) Cut the silences
 ```bash
 uv run scripts/plan_cuts.py <work>
 ```
 Tell them how much was removed: "Removed 52 seconds of dead air — the video is 46 now, not 98."
 
-### 4) Transcription with per-word timing
+### 4) Transcribe the speech
 ```bash
 mkdir -p <work>/build
 ffmpeg -v error -i <work>/rush/<name> -vn -ac 1 -ar 16000 -y <work>/build/transcribe-input.wav
@@ -246,7 +314,7 @@ transcription comes out in another language or empty, the language is probably w
 Moroccan / Algerian darija: Whisper makes a lot of mistakes even with the best model —
 warn the user up front, and show them the full text to correct (step 5).
 
-### 5) Correction and captions
+### 5) Correct the text — and build the caption timings
 Read `build/transcript-raw.json`, correct every sentence (Whisper makes mistakes in
 colloquial Arabic — Gulf and Maghrebi especially), and write `<work>/build/transcript-fixes.json`:
 ```json
@@ -259,7 +327,7 @@ script stops you if they differ).
 uv run scripts/captions.py <work>
 ```
 
-### 5.5) Show them the text — and drop any sentence they don't want ← a strong feature, don't skip it
+### 6) Choose which sentences to keep  ← a strong feature, don't skip it
 ```bash
 uv run scripts/edit_script.py <work> show
 ```
@@ -287,7 +355,7 @@ The sentence is removed from the video and the audio, everything after it shifts
 the scenes, all their times shift and you have to redo them. And after any deletion: re-run
 `reframe.py`, re-extract the frames, and re-render with `--force`.
 
-### 6) Cut and reframe
+### 7) Reframe to vertical 9:16
 ```bash
 uv run scripts/reframe.py <work>
 mkdir -p <work>/build/frames-source && ffmpeg -v error -i <work>/build/video-reframed.mp4 -vf fps=30 -q:v 3 -y <work>/build/frames-source/%05d.jpg
@@ -297,7 +365,7 @@ mkdir -p <work>/build/frames-source && ffmpeg -v error -i <work>/build/video-ref
   isn't centered, set `crop.xAnchor` in `project.config.json` (0 = left · 0.5 = center · 1 = right).
   Preview one frame before continuing.
 
-### 7) Design the scenes ← the most important step
+### 8) Design the scenes and the on-screen captions ← the most important step
 Copy `compose.reference.html` to `<work>/compose.html` and rewrite the scene functions.
 
 **The structure is ready, don't touch it:** shrinking the video into a card (`R_FULL` /
@@ -417,7 +485,7 @@ Interactive studio (scrub the timeline, draw live):
 uv run python -m http.server 8791 --directory <work>   # then /studio.html
 ```
 
-### 7.5) Speech passing behind the person (optional — but powerful)
+### 9) Speech passing behind the person (macOS only — off by default)
 
 The word is written large and stretched with the Arabic kashida to the width of the
 speaker's body, so the elongation alone passes behind their head and the letters stay
@@ -449,7 +517,7 @@ node scripts/fx/behind_text.js <work> off         # cancel
 macOS + Xcode CLT (`xcode-select --install`); if unavailable, the script tells you in one
 sentence and the rest of the pipeline runs normally.
 
-### 7.6) The three cutout styles (optional — need macOS)
+### 10) The three cutout styles (macOS only — off by default)
 
 Same person-cutout technique, in three uses. Each is one command then re-rendering only
 its window:
@@ -475,7 +543,7 @@ is image, not text.
 bar hides · the size and position are computed from the person's body bounds every frame
 so it doesn't jitter.
 
-### 8) Sound effects
+### 11) Sound effects
 Write `<work>/build/sound-cues.json`:
 ```json
 { "outro": 5.2, "whoosh_up": [3.1,11.25], "whoosh_down": [7.85],
@@ -485,7 +553,7 @@ Write `<work>/build/sound-cues.json`:
 uv run scripts/sound_fx.py <work>
 ```
 
-### 9) Final render and assembly
+### 12) Final render, assembly and audio mastering
 
 **Light:**
 ```bash
@@ -505,7 +573,7 @@ before assembly.)
 bash scripts/remotion/remotion.sh <work> render <work>/build/video-raw.mp4
 ```
 
-### 10) Audio mastering (+ optional background audio)
+#### Audio mastering (+ optional background audio)
 ```bash
 bash scripts/master_audio.sh <work> <work>/build/video-raw.mp4 <work>/video-final.mp4
 ```
@@ -517,7 +585,7 @@ speak** is mixed in, coming back in the pauses. The video is copied as-is, no re
 **Naming:** say "background audio file", not "music" — they decide the content, and you
 handle the file as-is.
 
-### 11) Subtitle file
+### 13) Subtitle file + post caption
 ```bash
 uv run scripts/subtitles.py <work>
 ```
@@ -626,7 +694,7 @@ stops at the four points that need you and the user. Below is what to do at each
 stages between them are automatic.
 
 ### 1) Configuration
-Same as speech-ad step 2, but write **`"format": "long"`** in
+Same as talking-video step 2, but write **`"format": "long"`** in
 `<work>/config/project.config.json` — that's the switch that selects this world. Ask the
 video's language. Theme colors barely matter here (no cards, no end card); you still need
 the language. The tightening thresholds live under `longform` (`pauseMs` 250, `keepMs` 90,
