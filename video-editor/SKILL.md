@@ -190,8 +190,9 @@ structure you created and what each folder is for, and what happens next.
 
 ## Step 2 — settings (silent, no questions)
 
-**Ask nothing.** The settings come from `scripts/defaults.config.json` and they are already
-correct. Read them, show them in three lines, move on:
+**Ask nothing.** Step 1 already wrote `<work>/config/project.config.json` from the skill
+defaults — that file is now the single source for this project. Read it, show it in three
+lines, move on:
 
 ```
 Step 2/13 — Settings — DONE
@@ -199,11 +200,12 @@ Step 2/13 — Settings — DONE
 - language : ar-MA (northern-Morocco darija — hard-dialect mode on)
 - font     : Cairo
 - colours  : white background · blue accent · purple second · @hatim.exp
+  (written to work/config/project.config.json — edit it there if a render needs a nudge)
 
 Next — step 3/13, cutting the silences.
 ```
 
-The defaults today:
+The defaults these came from:
 
 | Field | Value | |
 |---|---|---|
@@ -215,14 +217,14 @@ The defaults today:
 | `theme.handle` | `@hatim.exp` | the same handle everywhere |
 | `format` · `engine` · `grade` | `short` · `light` · `false` | never ask about these |
 
-**Do not write a `<work>/config/project.config.json`, and do not ask for colours, a logo,
-a font or a language.** Per-project configuration is deliberately switched off in this
-version. `lib/config.py`'s `load()` returns the defaults on its own, so every downstream
-script already has what it needs.
+**Do not ask for colours, a logo, a font or a language.** The per-project *questionnaire*
+is deliberately off in this version — the file is written once from the defaults and left
+alone. `scripts/defaults.config.json` is the template; `<work>/config/project.config.json`
+is the project's own copy, and the only one to edit from here on.
 
 **The one thing you may still choose: the accent colour.** If the subject clearly calls for
 it, propose a different `acc` in one line and let them say yes or no — never a
-questionnaire. Everything else stays as it is.
+questionnaire. If they agree, edit `theme.acc` in `<work>/config/project.config.json`.
 
 Every scene derives its colours from `theme` automatically — the cards, the shadows, and
 the text colour over the accent pills (computed from the colour's luminance). A light or a

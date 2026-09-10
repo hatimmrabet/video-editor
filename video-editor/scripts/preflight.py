@@ -13,7 +13,10 @@ material. Its folder becomes the project and gets a `work/` next to the footage:
 
     <folder>/work/{rush,config,build}                   <- created by --apply
     <folder>/work/rush/<video(s)>                       <- MOVED, never copied, names kept
-    <folder>/work/config/project.config.json + logo.*   <- MOVED if found beside the footage
+    <folder>/work/config/logo.*                         <- MOVED if found beside the footage
+    <folder>/work/config/project.config.json            <- MOVED if found beside the footage,
+                                                           else WRITTEN from the skill defaults
+    <folder>/work/build/{compose,studio}.html           <- copied from the skill
 
 One folder = one project. Without `--apply` nothing is created and nothing moves - it
 only looks and reports.
@@ -237,6 +240,21 @@ def apply(folder, work, picked, found):
     move(found["config"], os.path.join(work, "config"))
     move(found["logo"], os.path.join(work, "config"))
 
+    # materialise the resolved config as the single source for this project. The pipeline
+    # runs fine on defaults.config.json alone (every reader goes through config.load()),
+    # but a written file freezes the settings with the project (a later change to the
+    # skill defaults can't shift a half-done render), gives the creator one file to edit,
+    # and makes the manifests' `needs: [config/project.config.json]` a real contract.
+    cfgp = os.path.join(work, "config", "project.config.json")
+    if not os.path.exists(cfgp):
+        from lib import config as _cfg
+        resolved = {k: v for k, v in _cfg.load(work).items() if k != "_doc"}
+        resolved = {"_doc": "Resolved from the skill defaults at preflight. This is the "
+                            "single source for this project - edit it here, not in "
+                            "scripts/defaults.config.json.", **resolved}
+        with open(cfgp, "w", encoding="utf-8") as f:
+            json.dump(resolved, f, ensure_ascii=False, indent=2)
+
     # the per-project drawing surface, in build/ (scene design rewrites it; reference = the start)
     for src, dst in ((os.path.join(_plat.SCRIPTS, "compose.reference.html"),
                       os.path.join(work, "build", "compose.html")),
@@ -258,8 +276,12 @@ def human(res):
     L.append("work:   " + res["work"] + ("  [exists]" if res["work_exists"] else ""))
     if res["world"]:
         L.append("world:  " + res["world"])
-    L.append("config: " + (res["found"]["config"] or
-                           "none beside the footage - step 1 asks for it"))
+    if res["found"]["config"]:
+        L.append("config: " + res["found"]["config"] + "  (found beside the footage)")
+    elif res["applied"]:
+        L.append("config: config/project.config.json  (written from the skill defaults)")
+    else:
+        L.append("config: none beside the footage - --apply writes one from the defaults")
     for key, label in (("logo", "logo:  "), ("bg_audio", "bg:    "), ("broll", "broll: ")):
         if res["found"].get(key):
             L.append(label + " " + res["found"][key])
