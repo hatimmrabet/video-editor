@@ -88,11 +88,14 @@ cd video-editor
 bash scripts/setup.sh              # report only
 bash scripts/setup.sh --install    # install + sync
 
-# speech-ad pipeline (SKILL.md has the full order + the manual steps)
-uv run scripts/plan_cuts.py <work>                 # src.mov -> cut.json
-uv run scripts/transcribe.py <work> --language ar --model large-v3
-uv run scripts/captions.py <work>                  # -> caps.json
-uv run scripts/edit_script.py <work> show          # drop sentences (BEFORE scene design)
+# reel pipeline (SKILL.md has the full order + the manual steps)
+uv run scripts/plan_cuts.py <work>                 # silences -> build/cut-plan.json
+uv run scripts/settle_check.py <work>              # nudge each cut-in onto a clean frame
+uv run scripts/transcribe.py <work> --language ar-MA   # -> build/transcript-raw.json (model auto-picks)
+# Claude then rewrites build/transcript-fixes.json whole (SKILL.md step 5), not line-by-line
+uv run scripts/captions.py <work>                  # -> build/captions.json
+uv run scripts/retakes.py <work>                   # detect stammers/restarts; `apply` folds them in
+uv run scripts/edit_script.py <work> show          # drop whole sentences (BEFORE scene design)
 uv run scripts/reframe.py <work>                   # -> cutz.mp4
 node  scripts/render_frames.js <work> all          # -> out/*.jpg  (resume; --force re-renders)
 node  scripts/render_frames.js <work> range 12 18  # re-render one window after editing a scene
@@ -119,9 +122,9 @@ than reading it whole.
 
 ## Architecture essentials
 
-- **Two modes, chosen from the input, never asked:** a single file with speech → speech
-  ad (steps 1–11); a folder of clips → `montage_mode.py` (no transcription, no captions,
-  no theme).
+- **Two modes, chosen from the input, never asked:** a single file with speech → the reel
+  pipeline (SKILL.md steps 1–13); a folder of clips → `montage_mode.py` (no transcription,
+  no captions, no theme). `format:"long"` in the config forces the long-form world instead.
 - **Two rendering engines with identical visual style:** the *light* engine
   (`render_frames.js` drives `compose.html` in headless Chrome, frame-by-frame to JPEGs)
   is always the default; the *Remotion* engine (`remotion.sh`, a live studio) is opened

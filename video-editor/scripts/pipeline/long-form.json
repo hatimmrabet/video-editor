@@ -17,6 +17,14 @@
       "makes": ["build/cut-plan.json"]
     },
     {
+      "id": "settle",
+      "title": "Nudge each cut-in onto a clean frame",
+      "run": ["uv", "run", "scripts/settle_check.py", "{work}"],
+      "needs": ["build/cut-plan.json"],
+      "makes": ["build/.settled"],
+      "note": "Same as reel-speech: moves each segment start to the first sharp, low-motion frame. cut.settle=false skips it."
+    },
+    {
       "id": "audio",
       "title": "Extract the speech audio",
       "run": ["{ffmpeg}", "-v", "error", "-i", "{work}/build/source-joined.mp4", "-vn", "-ac", "1", "-ar", "16000", "-y", "{work}/build/transcribe-input.wav"],
@@ -26,7 +34,7 @@
     {
       "id": "transcribe",
       "title": "Transcribe with per-word timing",
-      "run": ["uv", "run", "scripts/transcribe.py", "{work}", "--language", "{language}", "--model", "large-v3"],
+      "run": ["uv", "run", "scripts/transcribe.py", "{work}", "--language", "{language}"],
       "needs": ["build/transcribe-input.wav"],
       "makes": ["build/transcript-raw.json"]
     },
@@ -36,7 +44,7 @@
       "block": true,
       "needs": ["build/transcript-raw.json"],
       "makes": ["build/transcript-fixes.json"],
-      "note": "Read build/transcript-raw.json and correct every sentence with the user (rule #5). Write build/transcript-fixes.json ({fix:[[...]], hot:[...]}). Each sentence's word count must equal Whisper's. See SKILL.md step 5."
+      "note": "Claude re-reads the whole transcript and rewords every garbled sentence in the video's own language/register. Write build/transcript-fixes.json ({fix:[[...]], hot:[...]}) - one entry per Whisper segment; per-sentence word count need not match Whisper (captions.py spreads reworded sentences). See SKILL.md step 5."
     },
     {
       "id": "captions",

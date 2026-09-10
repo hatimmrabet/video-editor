@@ -251,10 +251,10 @@ Here is the flow. Tell me if you want to drop any of it.
 
   1  Preparation                                       done
   2  Settings (defaults)                               done
-  3  Cut the silences                                  on
+  3  Cut the silences + clean-frame the cut points     on
   4  Transcribe the speech                             on
-  5  Correct the text with you                         on
-  6  Choose which sentences to keep                    on
+  5  Correct the transcript + cut the retakes (I do it) on
+  6  Choose which whole sentences to keep              on
   7  Reframe to vertical 9:16                          on
   8  On-screen captions                                on   (language: darija)
   9  Animations illustrating what you say              on
@@ -275,10 +275,10 @@ theirs, not yours.
 
 | Turned off | What happens |
 |---|---|
-| 3 cut the silences | the original pace is kept, the video stays its full length |
+| 3 cut the silences | the original pace is kept, the video stays its full length; the clean-frame pass goes with it |
 | 4 transcribe | **forces 5, 6, 8, 13 off** — no text means no captions and no `.srt` |
-| 5 correct the text | Whisper's raw text is used, mistakes and all — in darija that is a lot |
-| 6 choose the sentences | repetitions and false starts stay in |
+| 5 correct + cut retakes | Whisper's raw text is used, mistakes and all (in darija that is a lot), and the stammers / false starts stay in the video |
+| 6 choose the sentences | whole sentences the speaker wanted gone stay in |
 | 8 captions + animations | **two switches in one step.** "No animations" gives a captions-only reel — a valid choice, not a failure. "No captions" gives picture only. The caption language is chosen here, not in the settings |
 | 9 / 10 effects on the person | nothing lost; both are off by default and need macOS |
 | 11 sound effects | a silent bed, the speaker's voice untouched |
@@ -297,37 +297,64 @@ each one, and the conversation stays yours.
 ### 3) Cut the silences
 ```bash
 uv run scripts/plan_cuts.py <work>
+uv run scripts/settle_check.py <work>
 ```
+`plan_cuts.py` removes the silences (asymmetric pad — more air before each line than after,
+tunable in the `cut` config block). Then `settle_check.py` walks every cut-in point and
+nudges it to the first sharp, still frame — so a line never starts on a blurred frame or
+mid-reposition. It only ever eats into the lead-in pad, never a spoken word.
+
 Tell them how much was removed: "Removed 52 seconds of dead air — the video is 46 now, not 98."
 
 ### 4) Transcribe the speech
 ```bash
 mkdir -p <work>/build
 ffmpeg -v error -i <work>/rush/<name> -vn -ac 1 -ar 16000 -y <work>/build/transcribe-input.wav
-uv run scripts/transcribe.py <work> --language <LANG> --model large-v3
+uv run scripts/transcribe.py <work> --language <LANG>
 ```
 - `<LANG>` = the video's language: `ar` · `fr` · `en` · or a hard dialect `ar-MA` /
-  `ar-DZ` / `darija` (which enables hard-dialect mode on its own).
-- The engine picks itself: faster-whisper on GPU (fastest) ← CPU ← openai-whisper fallback.
-- On GPU it finishes in seconds; on CPU it takes minutes — run it in the background.
-- Produces `<work>/build/transcript-raw.json` in the openai-whisper shape (segments · words · timings).
+  `ar-DZ` / `darija` (which turns hard-dialect mode on by itself).
+- The model picks itself: `transcribe.model` in the config, else a darija fine-tune when
+  one is set (issue #126), else `large-v3`. Engine: faster-whisper GPU ← CPU ← openai-whisper.
+- CPU takes minutes — run it in the background.
+- Produces `<work>/build/transcript-raw.json` (segments · words · timings).
 
-**Ask about the language before this step** — if the video is in a dialect and the
-transcription comes out in another language or empty, the language is probably wrong.
-Moroccan / Algerian darija: Whisper makes a lot of mistakes even with the best model —
-warn the user up front, and show them the full text to correct (step 5).
+**Confirm the language before this step** — if the transcript comes out in the wrong
+language or empty, `<LANG>` is wrong. Darija is rough even with a fine-tune; that is what
+step 5 is for — and it is *your* job, not the user's.
 
-### 5) Correct the text — and build the caption timings
-Read `build/transcript-raw.json`, correct every sentence (Whisper makes mistakes in
-colloquial Arabic — Gulf and Maghrebi especially), and write `<work>/build/transcript-fixes.json`:
+### 5) Correct the transcript, cut the retakes, build the captions — Claude does it
+
+**5a — correct the whole transcript.** Read `build/transcript-raw.json` end to end. For
+every sentence: if it is garbled, first try to recover what was actually said; if you
+cannot, **reword it so it reads correctly and means what they were saying**, in the
+video's own language and register — darija stays darija, same level of speech. Do **not**
+switch to Modern Standard Arabic or another language unless the user explicitly asked for
+the captions in that language. Write `<work>/build/transcript-fixes.json`:
 ```json
-{ "fix": [["كل","شي","تشوفه"], ["الكابشن","الزوم"]], "hot": ["تشوفه","الزوم"] }
+{ "fix": [["كل","شي","كتشوفو"], ["الكابشن","و","الزوم"]], "hot": ["كتشوفو","الزوم"] }
 ```
-`hot` = the words that get held in the accent pill when spoken. **The word count of each
-sentence must equal Whisper's word count for that sentence** or the timings break (the
-script stops you if they differ).
+- One `fix` entry per Whisper segment (that structure must match). The **word count per
+  sentence no longer has to match Whisper** — `captions.py` spreads a reworded sentence
+  across its span.
+- `hot` = words held in the accent pill when spoken.
+- **This is not a line-by-line session with the user.** Do it yourself, then show a short
+  summary: "23 sentences · 6 reworded (Whisper had them garbled) · the rest as spoken".
+
+**5b — build the caption timings**
 ```bash
 uv run scripts/captions.py <work>
+```
+
+**5c — cut the retakes** (the "I said it wrong, let me start over" runs)
+```bash
+uv run scripts/retakes.py <work>
+```
+Detects restarts, stammers and stall words → `build/retakes.json`. **Append the ones only
+meaning catches** — the ones you spotted in 5a — as extra entries, and set `cut: false` on
+anything that is real content. Show the user the list (before / after text), then:
+```bash
+uv run scripts/retakes.py <work> apply     # terminal — folds into cut-plan.json + captions.json (don't re-run captions.py after)
 ```
 
 ### 6) Choose which sentences to keep  ← a strong feature, don't skip it
@@ -337,10 +364,10 @@ uv run scripts/edit_script.py <work> show
 Prints their speech, numbered and timecoded, and writes `build/transcript-editable.txt`.
 **Show them the list in the chat and say: "What do you want me to remove?"**
 
-**And the important one — the repeated sentence:** the script warns you automatically
-about any two similar sentences within two sentences of each other. When the speaker
-rephrases a sentence, **the first is the mistake and the second is the correction** — show
-them the pair and suggest dropping the first:
+This step is for **whole sentences the speaker wants gone** — a tangent, a point that
+didn't land. Mid-sentence retakes and stammers are already handled in step 5 (`retakes.py`);
+`edit_script.py dupes` still flags any two whole sentences that rephrase each other within
+two of each other, in case one slipped through:
 > "You said the sentence twice — 'we could solve the cause' then 'we could identify the
 > cause'. Drop the first?"
 ```bash
@@ -714,9 +741,11 @@ resolution / codec — a single session split into files is the normal case).
 uv run scripts/run.py <work>          # runs join → cut → audio → transcribe, then stops
 ```
 
-### 3) Correct the transcript ← same as the reel
-Read `build/transcript-raw.json`, fix every sentence with the user, write
-`build/transcript-fixes.json` (word count per sentence must match Whisper's). Then:
+### 3) Correct the transcript ← same as the reel (steps 4–5)
+Read `build/transcript-raw.json` whole and reword every garbled sentence yourself, in the
+video's own language and register; write `build/transcript-fixes.json` (one entry per
+Whisper segment — the per-sentence word count need not match). Show a summary, not a
+line-by-line session. Then: 
 
 ```bash
 uv run scripts/run.py <work>          # runs captions, then stops at the tighten checkpoint
@@ -789,9 +818,12 @@ and after tightening, the number of fillers cut, the chapter list, and the final
 4. **No color or filter over their image** — no grade, no tint, no LUT, no colored layer
    over the video. The image always comes out in its original colors, unless they
    explicitly ask. (Colors are for cards and text only.)
-5. **Correct the Whisper transcript** before captioning.
-6. **Don't invent content the speaker didn't say.** Every text comes from their speech;
-   and if you need to describe something you don't know, generalize rather than guess.
+5. **Correct the Whisper transcript** before captioning — Claude reads it whole and rewords
+   every garbled sentence itself (step 5), not line by line with the user.
+6. **Reword for readability, never for new meaning.** A garbled sentence may be rephrased
+   so it reads correctly — same language, same register, same point. Do **not** add a
+   claim, a number, or a fact the speaker didn't say; if something is unclear, generalize
+   rather than invent.
 7. **No publishing, no scheduling** — delivery is a file only.
 8. **"Behind the person" twice in the video at most, ≥ 8 s apart** — closer together it
    loses its effect. `fx/behind_text.js plan` flags picks that are too near one already built.

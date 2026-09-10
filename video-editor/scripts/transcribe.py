@@ -10,7 +10,7 @@ except Exception:
                                [--engine auto|faster-whisper|whisper]
                                [--device auto|cuda|cpu] [--hard-dialect]
 
-Reads : <work>/build/transcribe-input.wav
+Reads : <work>/build/transcribe-input.wav · <work>/config/project.config.json (transcribe.model)
 Writes: <work>/build/transcript-raw.json  = {"text":..., "segments":[{id,start,end,text,words:[{word,start,end}]}], "language":...}
 
 Engines (auto = tries the fastest first):
@@ -18,9 +18,13 @@ Engines (auto = tries the fastest first):
   faster-whisper on CPU  ← ~4x faster than openai-whisper, same quality
   openai-whisper on CPU  ← fallback
 
---hard-dialect : for Moroccan/Algerian darija etc. — enables VAD + a repetition penalty + a
-                 higher silence threshold, and prints a warning that the automatic
-                 transcription will need manual correction.
+Model: --model wins; else `transcribe.model` in project.config.json; else the per-dialect
+fine-tune in DIALECT_MODEL (issue #126); else large-v3.
+
+--hard-dialect : for Moroccan/Algerian darija etc. — enables VAD + no cross-segment
+                 priming (kept deliberately WITHOUT a repetition penalty, so retakes.py
+                 can still see the stammers). The transcript is still rough — Claude
+                 re-reads and rewrites it whole before captioning (SKILL.md step 5).
 """
 import argparse, importlib.util, json, os, wave
 
@@ -29,6 +33,14 @@ import argparse, importlib.util, json, os, wave
 HARD_DIALECTS = {
     "ar-ma": "ar", "ar-dz": "ar", "ar-tn": "ar", "ar-ly": "ar",
     "darija": "ar", "maghrebi": "ar", "moroccan": "ar",
+}
+
+# ── a fine-tuned model to use instead of large-v3 for a hard dialect (issue #126) ──
+# faster-whisper needs a CTranslate2 model dir or a HF repo id of a CT2-converted model.
+# Empty until the darija spike picks one; `transcribe.model` in project.config.json, or
+# --model on the CLI, overrides this.
+DIALECT_MODEL = {
+    # "ar-ma": "<hf-id-of-a-ct2-converted-darija-whisper>",
 }
 
 
@@ -92,8 +104,9 @@ def run_faster_whisper(wav, language, model, device, hard):
     m = WhisperModel(model, device=device, compute_type=compute)
     kw = dict(language=language, word_timestamps=True, temperature=0)
     if hard:
-        kw.update(condition_on_previous_text=False, repetition_penalty=1.3,
-                  no_repeat_ngram_size=3, vad_filter=True,
+        # VAD + no cross-segment priming. NO repetition_penalty / no_repeat_ngram_size:
+        # those hide the retakes and stammers that retakes.py needs to see (issue #126).
+        kw.update(condition_on_previous_text=False, vad_filter=True,
                   vad_parameters=dict(min_silence_duration_ms=350, speech_pad_ms=200))
     segs_iter, info = m.transcribe(wav, **kw)
     segs = []
@@ -140,8 +153,23 @@ def main():
     lang = args.language.lower()
     hard = args.hard_dialect or lang in HARD_DIALECTS
     language = HARD_DIALECTS.get(lang, args.language)
+
+    # model: --model if the caller set it explicitly, else transcribe.model from the
+    # project config, else a per-dialect fine-tune (issue #126), else large-v3.
+    model = args.model
+    if model == "large-v3":
+        cfg_model = None
+        try:
+            _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from lib import config as _cfg
+            cfg_model = (_cfg.load(W).get("transcribe", {}) or {}).get("model")
+        except Exception:
+            pass
+        model = cfg_model or DIALECT_MODEL.get(lang) or "large-v3"
+
     if hard:
-        print("⚠️  Hard dialect — the automatic transcription is likely wrong: show the text to the user and correct it before captioning.")
+        print(f"⚠️  Hard dialect ({model}) — the automatic transcription is still likely wrong: "
+              "Claude re-reads and corrects the whole transcript before captioning (SKILL.md step 5).")
 
     with wave.open(wav) as wf:
         dur = wf.getnframes() / wf.getframerate()
@@ -161,15 +189,15 @@ def main():
                 _sys.exit("❌ faster-whisper not installed — pip install faster-whisper")
             if device == "cuda":
                 enable_cuda_libs()
-            segs, detected = run_faster_whisper(wav, language, args.model, device, hard)
+            segs, detected = run_faster_whisper(wav, language, model, device, hard)
         else:
             if not have("whisper"):
                 _sys.exit("❌ no engine installed — pip install faster-whisper  (or openai-whisper)")
-            segs, detected = run_openai_whisper(wav, language, args.model, hard)
+            segs, detected = run_openai_whisper(wav, language, model, hard)
     except Exception as e:
         if engine == "faster-whisper" and have("whisper"):
             print(f"⚠️  faster-whisper failed ({e}) — trying openai-whisper…")
-            segs, detected = run_openai_whisper(wav, language, args.model, hard)
+            segs, detected = run_openai_whisper(wav, language, model, hard)
         else:
             raise
 

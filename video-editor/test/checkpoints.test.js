@@ -15,6 +15,7 @@ T.web("checkpoints", async ({ base, page, vid, J, work, check }) => {
 
   T.writeFiles(W, {
     "build/cut-plan.json": { keep: [[0, 3]], total: 3, src_dur: 3 },
+    "build/.settled": "x",                       // skip the settle stage (real frames not needed here)
     "build/transcribe-input.wav": "x",
     "build/transcript-raw.json": { text: "", language: "en", segments: [
       seg(0, 0.0, 1.5, [["hello", 0, .5], ["wrold", .5, 1.0], ["today", 1.0, 1.5]]),
@@ -52,7 +53,7 @@ T.web("checkpoints", async ({ base, page, vid, J, work, check }) => {
     { s: 1.5, e: 2.9, w: [{ t: "we", s: 1.5, e: 1.7 }, { t: "identify", s: 1.7, e: 2.3 }, { t: "the", s: 2.3, e: 2.5 }, { t: "cause", s: 2.5, e: 2.9 }] },
     { s: 3.0, e: 4.0, w: [{ t: "final", s: 3.0, e: 4.0 }] },
   ] } });
-  await page.evaluate(() => refresh());
+  await page.evaluate(() => { S.passed.add("retakes"); refresh(); });   // tick past the advisory retakes checkpoint
   await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => /review the script/.test(h.textContent)), { timeout: 8000 });
   check("restatement pair flagged", await page.evaluate(() => document.body.textContent.includes("looks repeated")));
 
