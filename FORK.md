@@ -6,9 +6,8 @@ multi-langue, bibliothèque de styles, et une interface web locale. Voir la road
 
 Mainteneur du fork : Hatim Mrabet.
 
-**Documentation technique complète : [`docs/`](docs/)** — cartographie des scripts, flux de
-données, moteurs de rendu, invariants, et architecture cible ([`docs/design/`](docs/design/)).
-Suivi d'avancement : [`docs/project-tracking.md`](docs/project-tracking.md).
+**Source de vérité : le code lui-même** — `video-editor/SKILL.md` pour le déroulé,
+`video-editor/scripts/` pour le reste. Suivi d'avancement : les GitHub Issues.
 
 ---
 
@@ -54,20 +53,19 @@ et le paquet de distribution devient `video-editor.skill`.
 
 ## Roadmap
 
-Séquençage détaillé et à jour : [`docs/design/roadmap.md`](docs/design/roadmap.md)
+Séquençage détaillé et à jour : les GitHub Issues
 (chaque passe = un milestone GitHub, son propre plan avant le code). Suivi :
-[`docs/project-tracking.md`](docs/project-tracking.md).
+les GitHub Issues.
 
 | Passe | | État |
 |---|---|---|
-| 0 | **Documentation** — `docs/` (cartographie, contrats de données, moteurs, invariants) | ✅ fait |
-| 1 | **Exécution isolée** — `uv` pour Python, Chromium embarqué, plus de `--break-system-packages` ([`docs/design/execution.md`](docs/design/execution.md)) | ✅ fait |
+| 1 | **Exécution isolée** — `uv` pour Python, Chromium embarqué, plus de `--break-system-packages` | ✅ fait |
 | 2 | **Config par projet** — `project.config.json` (langue, thème, layout, scènes) ; migration directe, sans pont rétro-compat | ✅ fait |
 | 3 | **Bibliothèque de transitions** — vocabulaire nommé et paramétré, commun aux 2 moteurs + montage | ✅ fait |
 | 4 | **Scènes-données + registre de motifs** — une scène = donnée, rendue à l'identique par les 2 moteurs (fin de la triple maintenance) | ✅ fait |
 | 5 | **Runner orchestrateur** — `scripts/run.py` piloté par la config, pauses aux points de décision | ✅ fait (#21 `run.py` + manifestes · #22 conception des sous-agents) |
 | 6 | **Monde `long-form`** — montage YouTube 16:9 (jump cuts, chapitrage, b-roll) | ✅ fait (#23 conception · #84–#89 impl) |
-| 7 | **Interface web** — dépôt vidéo + formulaire → `run.py`, sur le même moteur | ✅ fait (#24 conception · #96–#103 impl — [`docs/design/web.md`](docs/design/web.md)) |
+| 7 | **Interface web** — dépôt vidéo + formulaire → `run.py`, sur le même moteur | ✅ fait (#24 conception · #96–#103 impl) |
 
 Correspondance avec la vision d'origine de ce fork : config par projet → 2 · bibliothèque de
 styles → 4 · agent orchestrateur → 5 · long-format YouTube → 6 · interface web → 7.

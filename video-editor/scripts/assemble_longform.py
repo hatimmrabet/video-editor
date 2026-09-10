@@ -16,7 +16,7 @@ The `assemble` stage of the long-form world. `build/video-reframed.mp4` is alrea
                              rush/broll/ overlaid full-frame over the speaker for that
                              span (the speaker's audio continues), cross-fading in/out.
 
-No frame-by-frame render. Audio is always the speaker's, untouched. See docs/design/long-form.md.
+No frame-by-frame render. Audio is always the speaker's, untouched.
 
 config/broll.json — [ { "ref", "clip", "at"?, "transition"?, "crop"? } ]:
   ref        {sentence:N} | {sentence:N,words:[a,b]} | {range:[t0,t1]}  (build/captions.json timeline)

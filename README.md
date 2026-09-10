@@ -24,7 +24,7 @@ A second, independent **montage mode** takes a folder of speechless clips and cu
 into one rhythmic montage, picking the best moment of each clip.
 
 The captions, end card and trigger phrases are currently **Arabic**. Multi-language output
-is on the [roadmap](docs/design/roadmap.md).
+is on the roadmap.
 
 ---
 
@@ -38,8 +38,7 @@ path.
 
 Download `video-editor.skill` from the latest
 [Release](https://github.com/hatimmrabet/video-editor/releases), double-click it, and
-approve the install when Claude asks. Every push to `main` publishes one (see
-[`docs/releasing.md`](docs/releasing.md)).
+approve the install when Claude asks. Every push to `main` publishes one (see).
 
 ### Option B — manual copy
 
@@ -87,7 +86,7 @@ just type a trigger phrase (below).
 `bash video-editor/scripts/setup.sh` reports what's needed; `--install` installs
 **ffmpeg, Node and uv** at the system level and isolates the rest (Python deps in a
 `uv`-managed `.venv/`, the browser bundled by `npm`). The skill runs this for you and asks
-before installing anything. See [`docs/design/execution.md`](docs/design/execution.md).
+before installing anything.
 
 ---
 
@@ -117,18 +116,19 @@ The skill installs these for you after your approval:
 | Remotion *(optional)* | a live timeline editing screen | `<work>/remotion/` on demand |
 
 Runs on **macOS · Windows (Git-Bash / WSL) · Linux**. See
-[`docs/windows.md`](docs/windows.md) for Windows notes.
 
 ## Privacy
 
 Everything is local. **Your video is never uploaded** — not to us, not to anyone.
 
-## Documentation
+## Where things are documented
 
-- **[`docs/`](docs/)** — technical reference: a page per script, data flow, the two
-  rendering engines, the invariants, and the target architecture.
-- **[`FORK.md`](FORK.md)** — origin and what has changed here.
-- **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — where things live, how work is tracked.
+**The code is the source of truth.** `video-editor/SKILL.md` is the operational spec (what
+the pipeline does, in order); each script carries its own docstring at the top; the stage
+lists live in `video-editor/scripts/pipeline/*.json`. There is no separate documentation
+tree to keep in sync.
+
+Work is tracked in **GitHub Issues**. [`FORK.md`](FORK.md) records this fork's origin.
 
 ## License
 

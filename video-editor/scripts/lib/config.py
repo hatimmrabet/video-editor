@@ -4,13 +4,12 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""Shared project.config.json — load() reads it and merges it over the skill defaults.
-Full schema: docs/design/project-config.md. Does not invent a missing `theme` or
+"""Shared project.config.json — load() reads it and merges it over the skill defaults. Does not invent a missing `theme` or
 `language` — that's the configuration phase's job (SKILL.md), not load()'s.
 
 No bridge to the old theme.json/stage.json/outro.json/safe.json: one user, no existing
 project to preserve — the scripts that consume those fields migrate straight to
-config.load() (see docs/design/roadmap.md, Pass 2)."""
+config.load()."""
 import json
 import os
 

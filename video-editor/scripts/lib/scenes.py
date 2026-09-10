@@ -15,9 +15,7 @@ load(work) -> { "scenes": [...] | None, "schedule": [...] | None }
   layout still applies, the graphic is dropped) — invariant #2 style: a bad reference never
   stops the render.
 - `schedule` is the video-rect timeline derived from the scenes' `layout`, replacing
-  config/stage.json when scenes.json is present.
-
-Schema: docs/design/scenes-as-data.md."""
+  config/stage.json when scenes.json is present."""
 import json
 import os
 

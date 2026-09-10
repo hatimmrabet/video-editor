@@ -12,7 +12,7 @@ Reads the stage list for the work-dir's world (inferred from rush/ - one file
 with speech = reel-speech, many clips = broll-montage), runs each mechanical
 stage whose outputs are stale, and halts at the genuine human decision points
 (transcript correction, sound cues). It spawns the same scripts documented in
-docs/pipeline.md - a conductor, not a reimplementation.
+SKILL.md - a conductor, not a reimplementation.
 
 A stage is skipped when every path it `makes` exists and is newer than every
 path it `needs`; otherwise it runs (`make`-style). A stage with no `run` is a
@@ -117,7 +117,7 @@ def subst(argv, ctx):
         for k, v in ctx.items():
             if "{" + k + "}" in a:
                 if v is None:
-                    die("stage needs {%s} but it is not set - run SKILL.md step 1 "
+                    die("stage needs {%s} but it is not set - run SKILL.md step 2 "
                         "(config/project.config.json)" % k)
                 a = a.replace("{" + k + "}", v)
         out.append(a)
@@ -139,7 +139,7 @@ def main():
     os.makedirs(os.path.join(work, "build"), exist_ok=True)
     cfg = _config.load(work)
     # long-form can't be inferred from rush/ (a folder of takes looks like broll-montage) —
-    # it's the config.format switch, checked first. See docs/design/long-form.md.
+    # it's the config.format switch, checked first.
     world = flag(opt, "--world") or ("long-form" if cfg.get("format") == "long"
                                      else infer_world(work))
     engine = flag(opt, "--engine") or cfg.get("engine", "light")

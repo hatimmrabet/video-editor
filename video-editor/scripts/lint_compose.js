@@ -7,7 +7,7 @@
    and logged once — found only after watching the render. This catches the common
    mistakes in well under a second, before that time is spent.
 
-   Pure Node, no dependencies (same spirit as docs/check-script-coverage.mjs). It reads —
+   Pure Node, no dependencies. It reads —
    never executes — compose.html. safe() stays the runtime backstop regardless; this is
    advisory tooling, not a new invariant.
 

@@ -1,5 +1,5 @@
 {
-  "_doc": "Canonical stage list for the long-form world (one or more 16:9 talking-head recordings -> an edited YouTube video with tight jump cuts, chapters and B-roll). Selected by project.config.json format:\"long\" (NOT inferred from rush/). Same stage grammar as reel-speech.json / broll-montage.json. No motif/scene layer, no sound_fx, no safe_check (short-form concept). Design: docs/design/long-form.md.",
+  "_doc": "Canonical stage list for the long-form world (one or more 16:9 talking-head recordings -> an edited YouTube video with tight jump cuts, chapters and B-roll). Selected by project.config.json format:\"long\" (NOT inferred from rush/). Same stage grammar as reel-speech.json / broll-montage.json. No motif/scene layer, no sound_fx, no safe_check (short-form concept).",
   "world": "long-form",
   "stages": [
     {
@@ -51,19 +51,19 @@
       "block": true,
       "needs": ["build/captions.json"],
       "makes": ["build/tighten-plan.json"],
-      "note": "Run `uv run scripts/tighten.py <work>` to propose word-level cuts (inter-phrase gaps > longform.pauseMs, fillers from scripts/fillers.json). Show the user the summary, then `tighten.py <work> apply` folds it into build/cut-plan.json + build/captions.json. See docs/design/long-form.md."
+      "note": "Run `uv run scripts/tighten.py <work>` to propose word-level cuts (inter-phrase gaps > longform.pauseMs, fillers from scripts/fillers.json). Show the user the summary, then `tighten.py <work> apply` folds it into build/cut-plan.json + build/captions.json."
     },
     {
       "id": "chapters",
       "title": "Chapter markers",
       "needs": ["build/captions.json"],
-      "note": "Optional. Read the transcript, propose chapter breaks to the user, write config/chapters.json ([{ref, title}] — ref binds to a caption sentence). No file -> one continuous video, no markers. See docs/design/long-form.md."
+      "note": "Optional. Read the transcript, propose chapter breaks to the user, write config/chapters.json ([{ref, title}] — ref binds to a caption sentence). No file -> one continuous video, no markers."
     },
     {
       "id": "broll",
       "title": "B-roll cutaways",
       "needs": ["build/captions.json"],
-      "note": "Optional. Put cutaway clips in rush/broll/, mark ranges in config/broll.json ([{ref, clip, crop}]). montage_mode.py's scorer picks the best moment of each. No file -> no cutaways. See docs/design/long-form.md."
+      "note": "Optional. Put cutaway clips in rush/broll/, mark ranges in config/broll.json ([{ref, clip, crop}]). montage_mode.py's scorer picks the best moment of each. No file -> no cutaways."
     },
     {
       "id": "reframe",

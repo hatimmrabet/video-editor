@@ -30,9 +30,9 @@ sync_all(){
   "${VEVO_PY[@]}" - "$W" "$R" <<'PY'
 import json, os, sys
 sys.path.insert(0, os.path.join(os.environ["VEVO_SKILL_DIR"], "scripts"))
-from lib import config as cfg          # project.config.json — see docs/design/project-config.md
-from lib import transitions as trans   # scripts/transitions.json — see docs/design/transitions.md
-from lib import scenes as scn          # config/scenes.json — see docs/design/scenes-as-data.md
+from lib import config as cfg          # project.config.json
+from lib import transitions as trans   # scripts/transitions.json
+from lib import scenes as scn          # config/scenes.json
 W, R = sys.argv[1], sys.argv[2]
 def rd(rel, dflt):
     p = os.path.join(W, rel)

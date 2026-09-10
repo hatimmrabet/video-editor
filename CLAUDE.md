@@ -15,21 +15,34 @@ The skill installs to `~/.claude/skills/video-editor/` (skill `name: video-edito
 developing, symlink the folder so edits are live:
 `ln -s "$(pwd)/video-editor" ~/.claude/skills/video-editor`.
 
-## Documentation is the source of truth for architecture
+## The code is the only source of truth
 
-**`docs/` is comprehensive and current — read it before changing anything non-trivial.**
+**There is no `docs/` tree, and no separate documentation file may be created.** It existed,
+it drifted from the code, and it was deleted. Three places, and only these three:
 
 | Need | Read |
 |---|---|
-| Big picture (modes, engines, work-dir model) | `docs/architecture.md` |
-| Exact stage order + data flow (with diagrams) | `docs/pipeline.md` |
-| Every JSON schema + who reads/writes it | `docs/data-contracts.md` |
-| The two rendering engines + where they've drifted | `docs/engines.md` |
-| **Rules that must not be broken** (ten real-run bugs) | `docs/invariants.md` |
-| Windows-specific gotchas | `docs/windows.md` |
-| One reference page per script | `docs/scripts/` |
-| Where the project is heading (design only, not built) | `docs/design/` |
-| Roadmap → GitHub milestones/issues | `docs/design/roadmap.md`, `docs/project-tracking.md` |
+| What the pipeline does, in order, and how to talk to the user | `video-editor/SKILL.md` |
+| What one script does, its CLI, its inputs/outputs | that script's own docstring, at the top of the file |
+| The canonical stage list per world (`needs` / `makes` / checkpoints) | `video-editor/scripts/pipeline/<world>.json` |
+
+Consequences, and they are not optional:
+
+- **A new script carries its own docstring** — purpose, CLI, exit codes, what it reads and
+  writes. That docstring *is* its documentation. Do not create a `.md` beside it.
+- **A changed JSON shape is documented where it is produced** — in the script that writes
+  it, and in the `_doc` field of the JSON file itself where one exists.
+- **Never write a design document, a plan file, or a status/progress file into the repo.**
+  Design decisions and progress live in **GitHub Issues**, not in tracked Markdown.
+
+## When you find a problem, open a GitHub issue
+
+**A problem detected is an issue created — immediately, in the same session, before moving
+on.** A bug, a regression, a broken invariant, drift between the two engines, something
+that used to work and no longer does: `gh issue create` with what you observed, how to
+reproduce it, and the file involved. Never record it in a Markdown file, a TODO comment,
+or only in the conversation — those get lost. If you fix it in the same change, say so in
+the issue and close it.
 
 The operational spec (`video-editor/SKILL.md`) is in English; on-screen caption text, the
 end-card copy, and the trigger phrases stay Arabic (that is output content). `GUIDE.pdf`
@@ -45,7 +58,7 @@ reads/writes its files there.
 
 **Python scripts run via `uv run` from the skill dir** (`cd video-editor`); `uv` syncs the
 `.venv/` on demand. Node scripts via `node`, shell steps via `bash`. Dependencies are
-isolated — see `docs/design/execution.md`.
+isolated.
 
 ```bash
 cd video-editor
@@ -54,7 +67,7 @@ cd video-editor
 bash scripts/setup.sh              # report only
 bash scripts/setup.sh --install    # install + sync
 
-# speech-ad pipeline (see docs/pipeline.md for the full order + manual steps)
+# speech-ad pipeline (SKILL.md has the full order + the manual steps)
 uv run scripts/plan_cuts.py <work>                 # src.mov -> cut.json
 uv run scripts/transcribe.py <work> --language ar --model large-v3
 uv run scripts/captions.py <work>                  # -> caps.json
@@ -86,35 +99,36 @@ than reading it whole.
 ## Architecture essentials
 
 - **Two modes, chosen from the input, never asked:** a single file with speech → speech
-  ad (stages 0–13); a folder of clips → `montage_mode.py` (no transcription, no captions,
+  ad (steps 1–11); a folder of clips → `montage_mode.py` (no transcription, no captions,
   no theme).
 - **Two rendering engines with identical visual style:** the *light* engine
   (`render_frames.js` drives `compose.html` in headless Chrome, frame-by-frame to JPEGs)
   is always the default; the *Remotion* engine (`remotion.sh`, a live studio) is opened
   only if the user asks to edit visually. They share `caps.json`, `theme.json`, `sfx.wav`,
-  `cutz.mp4`. **They have drifted** (rect values, caption widths — see
-  `docs/engines.md`); a change to one usually needs the mirror change to the other.
+  `cutz.mp4`. **They drift easily** (rect values, caption widths); a change to one almost always
+  needs the mirror change to the other, and a drift found is a GitHub issue.
 - **Scenes are per-video code, not data (yet):** designing scenes = copying
   `compose.reference.html` → `<work>/compose.html` and rewriting the scene functions (and
   `Scenes.tsx` for Remotion). Timestamps are hardcoded per video. `edit_script.py` shifts
   all times, so run it *before* scene design. Making scenes data-driven is the largest
-  item in `docs/design/`.
+  open piece of work — it is tracked in GitHub Issues.
 - **Cross-platform layer:** `scripts/lib/platform.sh` (sourced by every `.sh`; provides
   `VEVO_SKILL_DIR` + the `VEVO_PY` array) and `scripts/lib/platform.js` (required by the
   Node scripts) absorb macOS/Windows/Linux differences. Nothing else may hard-code a path
   or a browser location.
 - **Isolated deps:** Python via `uv` (`.venv/`), browser via `puppeteer`'s bundled
-  Chromium. `setup.sh` installs only ffmpeg/node/uv at system level. See
-  `docs/design/execution.md`.
+  Chromium. `setup.sh` installs only ffmpeg/node/uv at system level.
 - **One hard macOS dependency:** `fx/personmask.swift` (Apple Vision) and therefore
   `fx/behind_text.js`. Everything that needs it skips itself elsewhere.
 
 ## Constraints when editing
 
-- **Read `docs/invariants.md` before touching either engine.** The ten listed bugs are
-  fixed in code and must not regress — especially: every scene call wrapped in `safe()`
-  (save/restore + try/finally); `draw()` resets canvas state every frame; `img.decode()`
-  after `img.src`; `setCacheEnabled(false)`.
+- **Four render-engine rules that must not regress** (each one caused a real broken
+  render): every scene call wrapped in `safe()` (save/restore inside try/finally — without
+  it a throwing scene corrupts the canvas and the video goes black from that point on);
+  `draw()` resets canvas state at the top of every frame; `img.decode()` after `img.src`
+  (`onload` alone races the decode); `setCacheEnabled(false)` in `render_frames.js` and
+  `safe_check.js` (headless Chrome otherwise serves a stale `compose.html`).
 - **No hardcoded colors in scene code** — everything derives from `theme.json` via the
   theme helpers (`rgba`, `lum`, `onACC`).
 - **No color grade / filter over the person's video** by default (`reframe.py` only
@@ -127,13 +141,13 @@ than reading it whole.
 - **`.sh` scripts** need Git-Bash/WSL, source `lib/platform.sh`, and use `"${VEVO_PY[@]}"`
   for inline Python (never a bare `python3`). Python scripts the skill calls directly do
   `os.path.abspath(sys.argv[1])` — the caller must pass a Windows-style path, not `/c/...`.
-- **Docs live with the change:** a new script gets a `docs/scripts/` page (verify with
-  `node docs/check-script-coverage.mjs`); a changed JSON shape updates
-  `docs/data-contracts.md`.
+- **A new script gets a docstring, not a doc page** (see "The code is the only source of
+  truth"). Anything you would have written in a design or status file goes to a GitHub
+  issue.
 
 ## Git / workflow
 
-**Two long-lived branches — see [`docs/releasing.md`](docs/releasing.md).**
+**Two long-lived branches.**
 
 - **`develop`** — integration. Cut every `feat/` `fix/` `docs/` `chore/<topic>` branch
   from here, PR back into here (squash). Day-to-day work lands on `develop`.
@@ -142,12 +156,12 @@ than reading it whole.
   and cuts a GitHub Release named from `/VERSION`. To release, bump `VERSION` in the
   `develop → main` PR (idempotent — no bump, no release).
 
-`.github/workflows/ci.yml` gates every PR (one job, < 2 min): the static checks (coverage
-+ `node --check` / `compileall` / `bash -n` / JSON parse / the Remotion lockfile) then the
+`.github/workflows/ci.yml` gates every PR (one job, < 2 min): the static checks
+(`node --check` / `compileall` / `bash -n` / JSON parse / the Remotion lockfile) then the
 headless suite `video-editor/test/` (web UI, `lint_compose`, `behind_text`, the ffmpeg
 resolver, the motifs). Add a `*.test.js` there when you touch moving JavaScript.
 
 `main` still carries the fork's line (reset to upstream v2.4 as the base for the rename +
 Passes 0–7; upstream v2.5 stays on `majed-v2.5`). Upstream references to
 `majedphotos/video-ad-editor` are left as-is. Work is tracked as GitHub Issues + the
-"video-editor roadmap" Project (see `docs/project-tracking.md`).
+"video-editor roadmap" Project.

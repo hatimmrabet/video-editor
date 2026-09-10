@@ -16,7 +16,7 @@ const {load:loadScenes}=require('./lib/scenes');   // config/scenes.json → the
 const W=path.resolve(process.argv[2])+path.sep;
 const SHOT=process.argv.includes('--shot');
 const CFG=JSON.parse(fs.readFileSync(W+'build/sound-cues.json','utf8'));
-const PCFG=loadConfig(W);   // project.config.json — see docs/design/project-config.md
+const PCFG=loadConfig(W);   // project.config.json
 const THEME=Object.assign({},PCFG.theme||{},{faceAnchor:(PCFG.crop||{}).faceAnchor});
 const caps=JSON.parse(fs.readFileSync(W+'build/captions.json','utf8'));
 const FPS=30, OUT_D=CFG.outro, DUR=caps.total+OUT_D;
