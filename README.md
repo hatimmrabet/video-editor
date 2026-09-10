@@ -1,9 +1,8 @@
 # video-editor — a Claude Code skill
 
-**Record yourself talking. Get back a vertical 9:16 ad, ready to publish.** No editing
-app, and your video is never uploaded to any server — everything runs on your machine.
-
-![a frame from an ad produced by the skill](video-editor/img/behind.jpg)
+**Record yourself talking. Get back a finished vertical 9:16 reel, ready to publish** on
+Instagram, TikTok or YouTube Shorts. No editing app, and your video is never uploaded to
+any server — everything runs on your machine.
 
 ## What it does
 
@@ -23,8 +22,8 @@ app, and your video is never uploaded to any server — everything runs on your 
 A second, independent **montage mode** takes a folder of speechless clips and cuts them
 into one rhythmic montage, picking the best moment of each clip.
 
-The captions, end card and trigger phrases are currently **Arabic**. Multi-language output
-is on the [roadmap](docs/design/roadmap.md).
+Trigger phrases are English and French. On-screen captions and the end card come out in
+the speaker's own language — the current default is northern-Morocco **darija**.
 
 ---
 
@@ -38,8 +37,7 @@ path.
 
 Download `video-editor.skill` from the latest
 [Release](https://github.com/hatimmrabet/video-editor/releases), double-click it, and
-approve the install when Claude asks. Every push to `main` publishes one (see
-[`docs/releasing.md`](docs/releasing.md)).
+approve the install when Claude asks. Every push to `main` publishes one.
 
 ### Option B — manual copy
 
@@ -61,8 +59,8 @@ Resulting path: `~/.claude/skills/video-editor/SKILL.md`.
 
 ### Option C — you forked the repo and want live edits
 
-Symlink your working copy into the skills directory, so every change you make to
-`SKILL.md` or the scripts is picked up on the next Claude Code session — no re-copy.
+Link your working copy into the skills directory, so every change you make to `SKILL.md`
+or the scripts is live on the next Claude Code session — no re-copy.
 
 ```bash
 # macOS / Linux — from the repo root
@@ -70,10 +68,15 @@ ln -s "$(pwd)/video-editor" ~/.claude/skills/video-editor
 ```
 
 ```powershell
-# Windows (PowerShell, as admin or with Developer Mode on) — from the repo root
-New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.claude\skills\video-editor" `
-  -Target "$(Get-Location)\video-editor"
+# Windows (PowerShell) — a directory junction; no admin, no Developer Mode
+$l = "$env:USERPROFILE\.claude\skills\video-editor"
+Remove-Item $l,"$l.lnk" -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Junction -Path $l -Target "$(Get-Location)\video-editor"
 ```
+
+On Windows, **do not** use `ln -s` from Git-Bash (it silently copies) or a `.lnk` shortcut
+(Claude Code does not follow it). Check with `(Get-Item $l).LinkType` → `Junction`. The
+linked skill always reflects your currently checked-out branch.
 
 **Project-scoped instead of personal:** put the link (or copy) under `.claude/skills/` in a
 specific project's directory rather than `~/.claude/skills/` — the skill is then only
@@ -87,7 +90,7 @@ just type a trigger phrase (below).
 `bash video-editor/scripts/setup.sh` reports what's needed; `--install` installs
 **ffmpeg, Node and uv** at the system level and isolates the rest (Python deps in a
 `uv`-managed `.venv/`, the browser bundled by `npm`). The skill runs this for you and asks
-before installing anything. See [`docs/design/execution.md`](docs/design/execution.md).
+before installing anything.
 
 ---
 
@@ -95,13 +98,12 @@ before installing anything. See [`docs/design/execution.md`](docs/design/executi
 
 Open Claude Code and type:
 
-> **منتج هذا المقطع**  *("edit this clip into an ad")*
+> **edit this video into a reel**   ·   *fr:* **monte cette vidéo**
 
-It asks for your video. Other phrasings work too: «سو من هذا الفيديو إعلان» ·
-«شيّل السكتات» · «حوّل الفيديو لريل» · «ركّب كابشن عربي».
+It asks for your video. Other phrasings work too: "remove the silences", "add captions",
+"make a montage from these clips", "cut the pauses out of this talk", "add chapters".
 
-📘 **[Full guide (Arabic, PDF — 13 pages)](video-editor/GUIDE.pdf)** — in plain language,
-with no command you type yourself.
+The skill walks you through it step by step — you never type a command yourself.
 
 ## Requirements
 
@@ -116,19 +118,20 @@ The skill installs these for you after your approval:
 | Xcode CLT *(optional, macOS only)* | the "speech behind the person" effect | system |
 | Remotion *(optional)* | a live timeline editing screen | `<work>/remotion/` on demand |
 
-Runs on **macOS · Windows (Git-Bash / WSL) · Linux**. See
-[`docs/windows.md`](docs/windows.md) for Windows notes.
+Runs on **macOS · Windows (Git-Bash / WSL) · Linux**.
 
 ## Privacy
 
 Everything is local. **Your video is never uploaded** — not to us, not to anyone.
 
-## Documentation
+## Where things are documented
 
-- **[`docs/`](docs/)** — technical reference: a page per script, data flow, the two
-  rendering engines, the invariants, and the target architecture.
-- **[`FORK.md`](FORK.md)** — origin and what has changed here.
-- **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — where things live, how work is tracked.
+**The code is the source of truth.** `video-editor/SKILL.md` is the operational spec (what
+the pipeline does, in order); each script carries its own docstring at the top; the stage
+lists live in `video-editor/scripts/pipeline/*.json`. There is no separate documentation
+tree to keep in sync.
+
+Work is tracked in **GitHub Issues**. [`FORK.md`](FORK.md) records this fork's origin.
 
 ## License
 

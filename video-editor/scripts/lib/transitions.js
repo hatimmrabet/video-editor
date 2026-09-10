@@ -6,7 +6,7 @@
 
    The browser engines (compose.html / studio.html) can't shell out — they read the
    injected table and only ever deal with the object form of a spec, so they don't need
-   the shorthand parser. Full explanation: docs/design/transitions.md. */
+   the shorthand parser. */
 'use strict';
 const path = require('path');
 const { execFileSync } = require('child_process');

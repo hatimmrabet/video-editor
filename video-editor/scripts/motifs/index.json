@@ -1,5 +1,5 @@
 {
-  "_doc": "Motif registry — parameterized scene types, one implementation per engine, selected by name from config/scenes.json. See docs/design/scenes-as-data.md and ./README.md. `kind`: scene = drawn over everything · overlay = drawn on the video card. `bottom`: nominal graphic-bottom y in the 1080x1920 space, feeds the DOWN flex rect (a scene's layout.gb overrides). `params`: a shallow shape hint (number | string | number[] | string[] | boolean) — not JSON Schema; values are hand-authored. `status`: implemented | planned.",
+  "_doc": "Motif registry — parameterized scene types, one implementation per engine, selected by name from config/scenes.json. See ./README.md. `kind`: scene = drawn over everything · overlay = drawn on the video card. `bottom`: nominal graphic-bottom y in the 1080x1920 space, feeds the DOWN flex rect (a scene's layout.gb overrides). `params`: a shallow shape hint (number | string | number[] | string[] | boolean) — not JSON Schema; values are hand-authored. `status`: implemented | planned.",
 
   "motifs": {
     "stamp": {

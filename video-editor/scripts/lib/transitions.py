@@ -8,9 +8,7 @@ except Exception:
 
 `load()` returns the whole table. `resolve(spec, kind)` turns a spec (a shorthand string
 `"push:0.3:up"`, a dict, or None) into a full `{type, duration, easing, params}` dict,
-filling anything missing from the named kind's defaults.
-
-Full explanation: docs/design/transitions.md."""
+filling anything missing from the named kind's defaults."""
 import json
 import os
 

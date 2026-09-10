@@ -37,8 +37,6 @@ jobs:
           key: nm-${{ runner.os }}-${{ hashFiles('video-editor/package-lock.json') }}
 
       # --- fast static checks ---
-      - run: node docs/check-script-coverage.mjs
-      - run: for f in docs/*.mjs; do node --check "$f"; done
       - name: node --check every .js / .cjs / .mjs
         run: find video-editor/scripts video-editor/test \( -name '*.js' -o -name '*.cjs' -o -name '*.mjs' \) -print0 | xargs -0 -n1 node --check
       - name: python -m compileall on every .py

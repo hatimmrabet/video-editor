@@ -21,25 +21,25 @@ const caps = { total: 42, cards: [
 ] };
 
 T.node("lint-compose", async ({ check }) => {
-  let W = mk("clean", { "compose.html": REF, "build/captions.json": caps });
+  let W = mk("clean", { "build/compose.html": REF, "build/captions.json": caps });
   let r = run(W);
   check("reference lints clean, exit 0", (r.code === 0 || r.code === undefined) && !/✗/.test(r.out), r.out);
 
-  r = run(mk("wordsOf", { "compose.html": REF.replace("wordsOf(3)", "wordsOf(9)"), "build/captions.json": caps }));
+  r = run(mk("wordsOf", { "build/compose.html": REF.replace("wordsOf(3)", "wordsOf(9)"), "build/captions.json": caps }));
   check("wordsOf(9) → error + exit 2", r.code === 2 && /wordsOf\(9\)/.test(r.out), r.out);
 
-  r = run(mk("gap", { "compose.html": REF.replace("{s:8.00,e:11.45,m:R_FULL}", "{s:8.00,e:10.00,m:R_FULL}"), "build/captions.json": caps }));
+  r = run(mk("gap", { "build/compose.html": REF.replace("{s:8.00,e:11.45,m:R_FULL}", "{s:8.00,e:10.00,m:R_FULL}"), "build/captions.json": caps }));
   check("SCENES gap → error + exit 2", r.code === 2 && /gap in SCENES/.test(r.out), r.out);
 
-  r = run(mk("ghost", { "compose.html": REF.replace("[['stamp',stamp],", "[['stamp',stamp],['ghost',ghost],"), "build/captions.json": caps }));
+  r = run(mk("ghost", { "build/compose.html": REF.replace("[['stamp',stamp],", "[['stamp',stamp],['ghost',ghost],"), "build/captions.json": caps }));
   check("undefined dispatch fn → error + exit 2", r.code === 2 && /"ghost"|`ghost`/.test(r.out), r.out);
 
-  r = run(mk("behind", { "compose.html": REF, "build/captions.json": caps,
+  r = run(mk("behind", { "build/compose.html": REF, "build/captions.json": caps,
     "build/person-cutout.json": { lines: [{ card: 1, s: 4.0, e: 6.5, words: [] }], ranges: [], faces: {} } }));
   check("behind-text on an R_DOWN scene → warning, exit 0",
     (r.code === 0 || r.code === undefined) && /won't render there|behindText\(\) bails/.test(r.out), r.out);
 
-  r = run(mk("data", { "compose.html": REF, "build/captions.json": caps, "config/scenes.json": [{ ref: { sentence: 0 }, layout: "FULL" }] }));
+  r = run(mk("data", { "build/compose.html": REF, "build/captions.json": caps, "config/scenes.json": [{ ref: { sentence: 0 }, layout: "FULL" }] }));
   check("config/scenes.json present → note, exit 0", (r.code === 0 || r.code === undefined) && /data-driven/.test(r.out), r.out);
 
   r = run(mk("nocompose", { "build/captions.json": caps }));

@@ -10,7 +10,7 @@ const {load:loadTransitions}=require('./lib/transitions');   // scripts/transiti
 const {load:loadScenes}=require('./lib/scenes');             // config/scenes.json (issue #17)
 const W=path.resolve(process.argv[2])+path.sep;
 const CFG=JSON.parse(fs.readFileSync(W+'build/sound-cues.json','utf8'));       // has outro
-const PCFG=loadConfig(W);   // project.config.json — see docs/design/project-config.md
+const PCFG=loadConfig(W);   // project.config.json
 const THEME=Object.assign({},PCFG.theme||{},{faceAnchor:(PCFG.crop||{}).faceAnchor});
 const TRANS=loadTransitions().defaults;   // resolved transition defaults, injected into the engine
 
@@ -41,8 +41,8 @@ const OUT_D=CFG.outro, FPS=30;
   const p=await b.newPage();
   p.on('pageerror',e=>console.log('PAGEERR',e.message));
   await p.setViewport({width:1080,height:1920,deviceScaleFactor:1});
-  await p.setCacheEnabled(false);   // don't read a cached copy of compose.html
-  await p.goto(fileUrl(W+'compose.html'),{waitUntil:'networkidle0'});
+  await p.setCacheEnabled(false);   // don't read a cached copy of build/compose.html
+  await p.goto(fileUrl(W+'build/compose.html'),{waitUntil:'networkidle0'});
   const FF=THEME.font||'Cairo';
   await p.evaluate(()=>new Promise(r=>{const l=document.getElementById('LOGO');l.complete?r():l.onload=r;}));
   await p.evaluate((c,o,t,b,tr,sc,mo)=>window.init({cards:c.cards,total:c.total,outro:o,theme:t,behind:b,transitions:tr,

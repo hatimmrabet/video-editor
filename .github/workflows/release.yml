@@ -1,6 +1,6 @@
 name: release
 
-# A push to main is a release (see docs/releasing.md). Build video-editor.skill from the
+# A push to main is a release. Build video-editor.skill from the
 # tracked contents of video-editor/ and publish it as a GitHub Release named from VERSION.
 # Idempotent: if v<VERSION> already exists, nothing happens — bump VERSION in the
 # develop -> main PR to cut a new one.

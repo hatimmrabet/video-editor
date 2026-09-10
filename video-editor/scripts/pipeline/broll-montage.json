@@ -1,5 +1,5 @@
 {
-  "_doc": "Canonical stage list for the broll-montage world (a folder of speechless clips -> one rhythmic montage). Read by scripts/run.py; mirrors docs/pipeline.md's montage diagram and SKILL.md's Montage-mode section. Same stage grammar as reel-speech.json. No transcription, no captions, no theme. `montage_mode.py plan` rewrites the plan[] array inside build/montage-plan.json in place, so it declares no `makes` and always re-runs (cheap, deterministic).",
+  "_doc": "Canonical stage list for the broll-montage world (a folder of speechless clips -> one rhythmic montage). Read by scripts/run.py; mirrors SKILL.md's Montage-mode section. Same stage grammar as reel-speech.json. No transcription, no captions, no theme. `montage_mode.py plan` rewrites the plan[] array inside build/montage-plan.json in place, so it declares no `makes` and always re-runs (cheap, deterministic).",
   "world": "broll-montage",
   "stages": [
     {

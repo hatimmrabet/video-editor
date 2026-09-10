@@ -20,7 +20,7 @@ Two kinds of word-level cut, both from build/captions.json's per-word timings:
 afterward — rebuild the video with reframe.py. Undo restores the .bak files.
 
 Runs after captions.py, before reframe.py. Only meaningful in the long-form world
-(scripts/pipeline/long-form.json). See docs/design/long-form.md.
+(scripts/pipeline/long-form.json).
 """
 import json
 import os
