@@ -6,14 +6,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is **not an application** — it is a Claude Code **skill**. `video-editor/SKILL.md` is
 the entry point: it instructs the model to run a pipeline of small scripts
-(`video-editor/scripts/`) that turn a talking-to-camera video into a captioned vertical
-9:16 ad, entirely locally. There is no server and no build step. The only automated tests
-are the headless JS suite in `video-editor/test/` (CI); pipeline changes are verified by a
-real run.
+(`video-editor/scripts/`) that edit a talking-to-camera video into a captioned vertical
+9:16 reel, entirely locally. There is no server and no build step. The only automated
+tests are the headless JS suite in `video-editor/test/` (CI); pipeline changes are
+verified by a real run.
 
-The skill installs to `~/.claude/skills/video-editor/` (skill `name: video-editor`). When
-developing, symlink the folder so edits are live:
-`ln -s "$(pwd)/video-editor" ~/.claude/skills/video-editor`.
+### Installing the skill for development — the folder must be *linked*, not copied
+
+The skill loads from `~/.claude/skills/video-editor/` (skill `name: video-editor`). During
+development that path must resolve to `<repo>/video-editor/` so every edit is live with no
+re-copy.
+
+- **Windows** — use a **directory junction** (no admin rights, no Developer Mode, fully
+  transparent):
+  ```powershell
+  $t = "<repo>\video-editor"; $l = "$env:USERPROFILE\.claude\skills\video-editor"
+  Remove-Item $l,"$l.lnk" -Recurse -Force -ErrorAction SilentlyContinue
+  New-Item -ItemType Junction -Path $l -Target $t
+  ```
+  **Do not** use `ln -s` from Git-Bash (it silently *copies* the folder and exits 0 — the
+  skill then freezes at that copy and drifts, issue #125) and **do not** use a `.lnk`
+  shortcut (Claude Code does not follow `.lnk` files). Verify with
+  `(Get-Item $l).LinkType` → `Junction`.
+- **macOS / Linux** — `ln -s "$(pwd)/video-editor" ~/.claude/skills/video-editor`.
+
+A junction/symlink means the installed skill always reflects the **currently checked-out
+branch**. Check `git branch --show-current` before a real run.
 
 ## The code is the only source of truth
 
@@ -47,8 +65,9 @@ the issue and close it.
 The operational spec (`video-editor/SKILL.md`) is in English, **and so are its trigger
 phrases** — the description lists English and French phrasings, no Arabic. What stays in
 the speaker's language is output content only: the on-screen caption text, the end-card
-copy, and the transcript/filler examples that illustrate them. `GUIDE.pdf` is the Arabic
-end-user guide.
+copy, and the transcript/filler examples that illustrate them. There is no separate
+end-user guide (the Arabic `GUIDE.pdf`/`GUIDE.html` were deleted — stale, upstream, and
+3 MB in every release package); the skill walks the user through each step itself.
 
 ## Running the pipeline
 
