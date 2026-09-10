@@ -44,9 +44,11 @@ reproduce it, and the file involved. Never record it in a Markdown file, a TODO 
 or only in the conversation — those get lost. If you fix it in the same change, say so in
 the issue and close it.
 
-The operational spec (`video-editor/SKILL.md`) is in English; on-screen caption text, the
-end-card copy, and the trigger phrases stay Arabic (that is output content). `GUIDE.pdf`
-is the Arabic end-user guide.
+The operational spec (`video-editor/SKILL.md`) is in English, **and so are its trigger
+phrases** — the description lists English and French phrasings, no Arabic. What stays in
+the speaker's language is output content only: the on-screen caption text, the end-card
+copy, and the transcript/filler examples that illustrate them. `GUIDE.pdf` is the Arabic
+end-user guide.
 
 ## Running the pipeline
 
