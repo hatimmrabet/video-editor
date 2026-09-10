@@ -208,7 +208,8 @@ class H(BaseHTTPRequestHandler):
                 for sub in ("rush", "config", "build"):
                     os.makedirs(os.path.join(w, sub), exist_ok=True)
                 for f in ("compose.reference.html", "studio.html"):
-                    dst = os.path.join(w, "compose.html" if f.startswith("compose") else f)
+                    dst = os.path.join(w, "build",
+                                       "compose.html" if f.startswith("compose") else f)
                     shutil.copyfile(os.path.join(SCRIPTS, f), dst)
                 # the project-type picker: long-form is the config.format switch (reframe.py
                 # etc. read it); montage is inferred from rush/ once the clips land, so it

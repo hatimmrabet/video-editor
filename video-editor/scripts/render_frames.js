@@ -41,8 +41,8 @@ const OUT_D=CFG.outro, FPS=30;
   const p=await b.newPage();
   p.on('pageerror',e=>console.log('PAGEERR',e.message));
   await p.setViewport({width:1080,height:1920,deviceScaleFactor:1});
-  await p.setCacheEnabled(false);   // don't read a cached copy of compose.html
-  await p.goto(fileUrl(W+'compose.html'),{waitUntil:'networkidle0'});
+  await p.setCacheEnabled(false);   // don't read a cached copy of build/compose.html
+  await p.goto(fileUrl(W+'build/compose.html'),{waitUntil:'networkidle0'});
   const FF=THEME.font||'Cairo';
   await p.evaluate(()=>new Promise(r=>{const l=document.getElementById('LOGO');l.complete?r():l.onload=r;}));
   await p.evaluate((c,o,t,b,tr,sc,mo)=>window.init({cards:c.cards,total:c.total,outro:o,theme:t,behind:b,transitions:tr,

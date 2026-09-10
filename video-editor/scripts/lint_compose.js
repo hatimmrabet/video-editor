@@ -32,9 +32,9 @@ if (!process.argv[2] || !fs.existsSync(work)) {
 const P = rel => path.join(work, rel);
 const readJSON = rel => { try { return JSON.parse(fs.readFileSync(P(rel), "utf8")); } catch (e) { return null; } };
 
-const composePath = P("compose.html");
+const composePath = P("build/compose.html");
 if (!fs.existsSync(composePath)) {
-  console.error("✗ no " + composePath + " — design the scenes first (copy compose.reference.html).");
+  console.error("✗ no " + composePath + " — run step 1 (preflight) first; scene design edits it in place.");
   process.exit(2);
 }
 const src = fs.readFileSync(composePath, "utf8");

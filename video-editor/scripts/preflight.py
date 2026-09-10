@@ -237,11 +237,11 @@ def apply(folder, work, picked, found):
     move(found["config"], os.path.join(work, "config"))
     move(found["logo"], os.path.join(work, "config"))
 
-    # the per-project drawing surface (scene design rewrites it; the reference is the start)
+    # the per-project drawing surface, in build/ (scene design rewrites it; reference = the start)
     for src, dst in ((os.path.join(_plat.SCRIPTS, "compose.reference.html"),
-                      os.path.join(work, "compose.html")),
+                      os.path.join(work, "build", "compose.html")),
                      (os.path.join(_plat.SCRIPTS, "studio.html"),
-                      os.path.join(work, "studio.html"))):
+                      os.path.join(work, "build", "studio.html"))):
         if os.path.exists(src) and not os.path.exists(dst):
             shutil.copy2(src, dst)
     return moved

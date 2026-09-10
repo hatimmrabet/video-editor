@@ -45,11 +45,11 @@ const FLAT_B='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2
   const hook=first?first.s:99;
   const hookOK=hook<=SAFE.hook_max;
 
-  if(!fs.existsSync(W+'compose.html')){
+  if(!fs.existsSync(W+'build/compose.html')){
     console.log('— hook —');
     console.log(hookOK?`✅ first caption at ${hook.toFixed(2)}s`
       :`❌ first caption at ${hook.toFixed(2)}s — must be before ${SAFE.hook_max}`);
-    console.log('ℹ️  no compose.html — pixel check is for the light engine only.');
+    console.log('ℹ️  no build/compose.html — pixel check is for the light engine only.');
     console.log('   For Remotion: set "guides": true in config/safe.json then remotion/remotion.sh <work> studio — see the red zones live.');
     process.exit(hookOK?0:3);
   }
@@ -60,8 +60,8 @@ const FLAT_B='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2
   const p=await b.newPage();
   p.on('pageerror',e=>console.log('PAGEERR',e.message));
   await p.setViewport({width:1080,height:1920,deviceScaleFactor:1});
-  await p.setCacheEnabled(false);   // don't read a cached copy of compose.html
-  await p.goto(fileUrl(W+'compose.html'),{waitUntil:'networkidle0'});
+  await p.setCacheEnabled(false);   // don't read a cached copy of build/compose.html
+  await p.goto(fileUrl(W+'build/compose.html'),{waitUntil:'networkidle0'});
   const FF=THEME.font||'Cairo';
   await p.evaluate(()=>new Promise(r=>{const l=document.getElementById('LOGO');
     if(!l||l.complete)return r(); l.onload=r; l.onerror=r; setTimeout(r,3000);}));

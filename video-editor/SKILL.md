@@ -85,15 +85,16 @@ and doesn't want to. Never hand them a list of commands to run.
 ### How every message is laid out — this is not a suggestion
 
 **Always name the step you are on, and the step that comes next.** The person must never
-have to wonder where they are in the flow. Head every message with `Step N/13 — <name>`,
-and end it with the next one.
+have to wonder where they are in the flow. Head every message with
+`Step N/13 — <name> — <STATE>`, the state in capitals right after the title with a dash
+(`DONE`, `RUNNING`, `WAITING FOR YOU`, `SKIPPED`). End the message with the next step.
 
 **Facts go in a list, never in a paragraph.** One line per item, a dash, the thing's name,
 a colon, then its facts separated by `·`. Never a sentence that buries three numbers in
 prose.
 
 ```
-Step 1/13 — Preparation                                          done
+Step 1/13 — Preparation — DONE
 
 Tools: everything already installed.
 
@@ -151,8 +152,8 @@ mon-dossier/                         mon-dossier/
   video-selfie.mov                     work/
   project.config.json      ──────▶       rush/    video-selfie.mov
   logo.png                               config/  project.config.json · logo.png
-                                         build/
-                                       compose.html · studio.html
+                                         build/   (compose.html, studio.html and
+                                                  every intermediate file)
 ```
 
 `<work>` in every later step = that `work/` folder. Full reference: the docstring at the top of `scripts/preflight.py`.
@@ -193,7 +194,7 @@ structure you created and what each folder is for, and what happens next.
 correct. Read them, show them in three lines, move on:
 
 ```
-Step 2/13 — Settings                                             done
+Step 2/13 — Settings — DONE
 
 - language : ar-MA (northern-Morocco darija — hard-dialect mode on)
 - font     : Cairo
@@ -234,7 +235,7 @@ you do.
 `crop`'s defaults (0.5 / 0.30 / 0.30) suit almost every video — only revisit `xAnchor` /
 `faceAnchor` after previewing a frame, if the speaker turns out off-centre (step 7).
 **There is no account-badge field** — it is off, and if it is ever wanted for one video,
-set `BADGE_UNTIL` directly in that project's `<work>/compose.html` (step 8).
+set `BADGE_UNTIL` directly in that project's `<work>/build/compose.html` (step 8).
 
 ---
 
@@ -366,7 +367,8 @@ mkdir -p <work>/build/frames-source && ffmpeg -v error -i <work>/build/video-ref
   Preview one frame before continuing.
 
 ### 8) Design the scenes and the on-screen captions ← the most important step
-Copy `compose.reference.html` to `<work>/compose.html` and rewrite the scene functions.
+Step 1 already put `scripts/compose.reference.html` at `<work>/build/compose.html`. Rewrite
+its scene functions (or author `config/scenes.json` instead — the data-driven path).
 
 **The structure is ready, don't touch it:** shrinking the video into a card (`R_FULL` /
 `R_DOWN` / `R_LOWER` with a smooth transition), the account badge, the progress bar, the
@@ -390,10 +392,10 @@ the theme.
 Each scene function takes `t` and draws based on the word timing from `build/captions.json` — the
 scene sticks to the word, not to an approximate time.
 
-**No account badge over the video** (`BADGE_UNTIL=0` in `compose.html` — the default):
+**No account badge over the video** (`BADGE_UNTIL=0` in `build/compose.html` — the default):
 the name is on the platform itself and on the end card, and the top of the screen is
 space for the graphics. If someone asks for it, set `BADGE_UNTIL=3` directly in that
-project's `compose.html` — it puts it in the first 3 seconds only. Not a config field
+project's `build/compose.html` — it puts it in the first 3 seconds only. Not a config field
 (see step 2) — it's a rare, per-project exception, not a base setting.
 
 **Layout rule (user-approved — do not break it):**
@@ -482,7 +484,7 @@ least 6 shots**, and show the sheet to the user.
 
 Interactive studio (scrub the timeline, draw live):
 ```bash
-uv run python -m http.server 8791 --directory <work>   # then /studio.html
+uv run python -m http.server 8791 --directory <work>   # then /build/studio.html
 ```
 
 ### 9) Speech passing behind the person (macOS only — off by default)
@@ -840,7 +842,7 @@ image ≈ 150k characters; the same at 300 wide ≈ 20k.
 4. **The automated check instead of the eye:** `safe_check.js` gives you a one-line verdict
    — use it before you take a screenshot.
 5. **ffmpeg output** is always trimmed: `2>&1 | tail -2`.
-6. **Don't read `compose.html` whole** — `grep -n` for the function you need.
+6. **Don't read `build/compose.html` whole** — `grep -n` for the function you need.
 
 **Don't show an image except for a visual question that nothing else answers.**
 

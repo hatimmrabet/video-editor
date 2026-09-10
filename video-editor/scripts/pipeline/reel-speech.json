@@ -62,7 +62,7 @@
       "id": "scenes",
       "title": "Design the scenes",
       "needs": ["build/captions.json"],
-      "note": "The core creative step. Either author config/scenes.json (motif names from scripts/motifs/index.json, params bound to build/captions.json) or rewrite the scene functions in <work>/compose.html. A scenes-less project renders with captions only - that is a valid choice, not a skip. See SKILL.md step 8."
+      "note": "The core creative step. Either author config/scenes.json (motif names from scripts/motifs/index.json, params bound to build/captions.json) or rewrite the scene functions in <work>/build/compose.html. A scenes-less project renders with captions only - that is a valid choice, not a skip. See SKILL.md step 8."
     },
     {
       "id": "sound-cues",
@@ -84,7 +84,7 @@
       "title": "Render the frames (light engine)",
       "when": { "engine": "light" },
       "run": ["node", "scripts/render_frames.js", "{work}", "all"],
-      "needs": ["compose.html", "build/frames-source/", "build/captions.json"],
+      "needs": ["build/compose.html", "build/frames-source/", "build/captions.json"],
       "makes": ["build/frames-composited/"]
     },
     {
