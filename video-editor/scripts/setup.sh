@@ -30,7 +30,13 @@ if [ $INSTALL -eq 0 ]; then
   pyok "import numpy, PIL" || miss+=("python-env (.venv)")
   { pyok "import faster_whisper" || pyok "import whisper"; } || NOTE+=("no transcription engine yet — 'uv sync' pulls faster-whisper")
   node -e "require.resolve('puppeteer')" 2>/dev/null || miss+=("node-deps (puppeteer + Chromium)")
-  [ $GPU -eq 1 ] && { pyok "import ctranslate2" && line "🎮 NVIDIA GPU + CUDA libs → transcription on GPU"; }
+  if [ $GPU -eq 1 ] && pyok "import ctranslate2"; then
+    if pyok "import nvidia.cublas, nvidia.cudnn"; then
+      line "🎮 NVIDIA GPU + CUDA libs → transcription on GPU"
+    else
+      NOTE+=("GPU detected but CUDA libs not installed (nvidia-cublas/cudnn) — uv sync --extra gpu, or transcription falls back to CPU on its own (issue #130)")
+    fi
+  fi
   [ ${#NOTE[@]} -gt 0 ] && printf 'ℹ️  %s\n' "${NOTE[@]}"
   if [ ${#miss[@]} -eq 0 ]; then line "✅ ready."; exit 0; fi
   line "missing: ${miss[*]}"
@@ -83,12 +89,15 @@ fi
 # ── darija fine-tune (issue #126) — automatic, not a step to remember by hand ──────
 # `--needed` is cheap (no torch/transformers import): exit 0 only if defaults.config.json's
 # language is a hard dialect AND the model isn't built yet. The extra is dropped again
-# right after (plain `uv sync`) so the runtime venv doesn't carry torch/transformers/peft.
+# right after (`uv sync "${EXTRA[@]}"`) so the runtime venv doesn't carry
+# torch/transformers/peft. Re-passing "${EXTRA[@]}" both times keeps the `gpu` extra (if it
+# was synced above) from being stripped by these follow-up syncs — `uv sync` makes the venv
+# match exactly the extras given *this* call, it doesn't add to what's already there (issue #130).
 if have uv && ( cd "$SKILL" && uv run scripts/prepare_darija_model.py --needed ) >/dev/null 2>&1; then
   line "⏬ darija fine-tune (one-time, ~1.7 GB — issue #126)…"
-  ( cd "$SKILL" && uv sync --extra darija-convert \
+  ( cd "$SKILL" && uv sync "${EXTRA[@]}" --extra darija-convert \
       && uv run scripts/prepare_darija_model.py \
-      && uv sync ) \
+      && uv sync "${EXTRA[@]}" ) \
     || NOTE+=("darija model prep failed — retry: cd '$SKILL' && uv sync --extra darija-convert && uv run scripts/prepare_darija_model.py && uv sync")
 fi
 
@@ -99,6 +108,8 @@ have node   || { FAIL=1; NOTE+=("node still missing"); }
 pyok "import numpy, PIL" || { FAIL=1; NOTE+=("python deps not importable"); }
 { pyok "import faster_whisper" || pyok "import whisper"; } || NOTE+=("no transcription engine")
 node -e "require.resolve('puppeteer')" 2>/dev/null || { FAIL=1; NOTE+=("puppeteer not installed"); }
+[ $GPU -eq 1 ] && ! pyok "import nvidia.cublas, nvidia.cudnn" \
+  && NOTE+=("GPU detected but CUDA libs not installed (nvidia-cublas/cudnn) — uv sync --extra gpu, or transcription falls back to CPU on its own (issue #130)")
 
 [ ${#NOTE[@]} -gt 0 ] && printf 'ℹ️  %s\n' "${NOTE[@]}"
 [ $FAIL -eq 0 ] && { line "✅ ready."; exit 0; }

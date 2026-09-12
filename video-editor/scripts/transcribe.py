@@ -207,7 +207,19 @@ def main():
                 _sys.exit("❌ faster-whisper not installed — pip install faster-whisper")
             if device == "cuda":
                 enable_cuda_libs()
-            segs, detected = run_faster_whisper(wav, language, model, device, hard)
+            try:
+                segs, detected = run_faster_whisper(wav, language, model, device, hard)
+            except Exception as e:
+                # CUDA "works" per cuda_available() (driver-level device detection) but a
+                # given model can still fail to load on it — e.g. the nvidia-cublas-cu12 /
+                # nvidia-cudnn-cu12 pip extra (`uv sync --extra gpu`) isn't installed, and
+                # some models need it while others (int8-native CT2 conversions) don't
+                # (issue #130). Retry the SAME model on CPU before giving up on it.
+                if device == "cuda":
+                    print(f"⚠️  CUDA transcription failed ({e}) — retrying on CPU…")
+                    segs, detected = run_faster_whisper(wav, language, model, "cpu", hard)
+                else:
+                    raise
         else:
             if not have("whisper"):
                 _sys.exit("❌ no engine installed — pip install faster-whisper  (or openai-whisper)")
