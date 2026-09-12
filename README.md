@@ -115,6 +115,7 @@ The skill installs these for you after your approval:
 | numpy · Pillow · faster-whisper | sound synthesis · labels · transcription | `uv`-managed `.venv/` |
 | Chromium | drawing the scenes | bundled by `npm` under `node_modules/` |
 | nvidia-cublas-cu12 / nvidia-cudnn-cu12 *(optional)* | GPU transcription (NVIDIA) | `.venv/` (`uv sync --extra gpu`) |
+| darija Whisper fine-tune *(if the default language is a hard dialect)* | better transcription than stock Whisper for Moroccan/Algerian darija (issue #126) | `video-editor/scripts/.models/`, machine-local, not committed |
 | Xcode CLT *(optional, macOS only)* | the "speech behind the person" effect | system |
 | Remotion *(optional)* | a live timeline editing screen | `<work>/remotion/` on demand |
 

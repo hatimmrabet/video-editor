@@ -13,7 +13,7 @@ T.web("sound-result", async ({ base, page, vid, J, work, check }) => {
   await J("PUT", `/projects/${id}/config`, { format: "short", language: "en", engine: "light" });
 
   T.writeFiles(W, {
-    "build/cut-plan.json": { keep: [[0, 3]], total: 3, src_dur: 3 },
+    "build/cut-plan.json": { keep: [[0, 3]], total: 3, src_dur: 3 }, "build/.settled": "x",
     "build/transcript-raw.json": "{}", "build/transcript-fixes.json": "{}", "build/sound-effects.wav": "{}",
     "build/frames-source/00001.jpg": "x", "build/frames-composited/00001.jpg": "x", "build/video-reframed.mp4": "x",
     "build/captions.json": { total: 3, cards: [

@@ -15,6 +15,7 @@ T.web("checkpoints", async ({ base, page, vid, J, work, check }) => {
 
   T.writeFiles(W, {
     "build/cut-plan.json": { keep: [[0, 3]], total: 3, src_dur: 3 },
+    "build/.settled": "x",                       // skip the settle stage (real frames not needed here)
     "build/transcribe-input.wav": "x",
     "build/transcript-raw.json": { text: "", language: "en", segments: [
       seg(0, 0.0, 1.5, [["hello", 0, .5], ["wrold", .5, 1.0], ["today", 1.0, 1.5]]),

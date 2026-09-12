@@ -393,7 +393,7 @@ def main():
             "at least one file is unreadable - confirm it is the right file.")
     if res["world"] == "reel-speech" and res["probes"] and not res["probes"][0]["audio"]:
         res["questions"].append(
-            "the video has no audio track - a captioned speech ad is impossible. "
+            "the video has no audio track - a captioned reel is impossible. "
             "Confirm the mode with the user.")
 
     if res["questions"]:

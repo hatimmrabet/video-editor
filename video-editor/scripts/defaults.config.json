@@ -3,7 +3,9 @@
   "format": "short",
   "engine": "light",
   "language": "ar-MA",
+  "transcribe": { "model": "" },
   "grade": false,
+  "cut": { "noiseDb": -32, "minSilence": 0.35, "merge": 0.20, "padIn": 0.22, "padOut": 0.10, "settle": true, "settleMaxMs": 400 },
   "crop": { "xAnchor": 0.5, "yAnchor": 0.30, "faceAnchor": 0.30 },
   "theme": {
     "bg": "#FFFFFF",

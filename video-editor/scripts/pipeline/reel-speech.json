@@ -1,5 +1,5 @@
 {
-  "_doc": "Canonical stage list for the reel-speech world (one talking-head video -> one 9:16 captioned ad). Read by scripts/run.py; mirrors SKILL.md steps 3-11. `run` is the argv to spawn (cwd = skill dir), with {work} {source} {language} {skill} {ffmpeg} {ffprobe} substituted ({ffmpeg}/{ffprobe} resolve via lib/platform.py — $VEVO_FFMPEG / $VEVO_FFPROBE else PATH, issue #44). A stage with no `run` is a checkpoint: `block:true` halts run.py until `makes` exists (a genuine human decision); a checkpoint with no `makes` is advisory - printed once, never blocks. A stage runs when any `makes` path is missing or older than any `needs` path; else it is skipped. `needs`/`makes` are work-relative; a trailing / means 'non-empty directory'; {source} is the rush/ source file. `when` gates a stage on a config value.",
+  "_doc": "Canonical stage list for the reel-speech world (one talking-head video -> one 9:16 captioned reel). Read by scripts/run.py; mirrors SKILL.md steps 3-13. `run` is the argv to spawn (cwd = skill dir), with {work} {source} {language} {skill} {ffmpeg} {ffprobe} substituted ({ffmpeg}/{ffprobe} resolve via lib/platform.py — $VEVO_FFMPEG / $VEVO_FFPROBE else PATH, issue #44). A stage with no `run` is a checkpoint: `block:true` halts run.py until `makes` exists (a genuine human decision); a checkpoint with no `makes` is advisory - printed once, never blocks. A stage runs when any `makes` path is missing or older than any `needs` path; else it is skipped. `needs`/`makes` are work-relative; a trailing / means 'non-empty directory'; {source} is the rush/ source file. `when` gates a stage on a config value.",
   "world": "reel-speech",
   "stages": [
     {
@@ -8,6 +8,14 @@
       "run": ["uv", "run", "scripts/plan_cuts.py", "{work}"],
       "needs": ["{source}", "config/project.config.json"],
       "makes": ["build/cut-plan.json"]
+    },
+    {
+      "id": "settle",
+      "title": "Nudge each cut-in onto a clean frame",
+      "run": ["uv", "run", "scripts/settle_check.py", "{work}"],
+      "needs": ["build/cut-plan.json"],
+      "makes": ["build/.settled"],
+      "note": "Audio silence alone doesn't know the speaker is still moving / blurry at the cut. settle_check.py moves each segment start to the first sharp, low-motion frame (cap cut.padIn). Config: cut.settle=false skips it. --force redoes it from scratch (after a fresh plan_cuts.py)."
     },
     {
       "id": "audio",
@@ -19,17 +27,17 @@
     {
       "id": "transcribe",
       "title": "Transcribe with per-word timing",
-      "run": ["uv", "run", "scripts/transcribe.py", "{work}", "--language", "{language}", "--model", "large-v3"],
+      "run": ["uv", "run", "scripts/transcribe.py", "{work}", "--language", "{language}"],
       "needs": ["build/transcribe-input.wav"],
       "makes": ["build/transcript-raw.json"]
     },
     {
       "id": "transcript-fix",
-      "title": "Correct the transcript",
+      "title": "Correct the transcript (Claude, whole pass)",
       "block": true,
       "needs": ["build/transcript-raw.json"],
       "makes": ["build/transcript-fixes.json"],
-      "note": "Read build/transcript-raw.json and correct every sentence with the user (rule #5 - Whisper errs badly in colloquial Arabic). Write build/transcript-fixes.json ({fix:[[...]], hot:[...]}). Each sentence's word count must equal Whisper's for that sentence. See SKILL.md step 5."
+      "note": "Claude re-reads the WHOLE transcript. Every incoherent / garbled sentence: recover what was said, else reword it correctly in the video's own language and register (darija stays darija). Write build/transcript-fixes.json ({fix:[[...]], hot:[...]}) - one entry per Whisper segment; the per-sentence word count does NOT have to match Whisper anymore (captions.py spreads reworded sentences). Not a line-by-line session with the user - show a summary. See SKILL.md step 5."
     },
     {
       "id": "captions",
@@ -40,9 +48,9 @@
     },
     {
       "id": "script-review",
-      "title": "Review the script, drop sentences",
+      "title": "Finalize the script - repeats gone, then your edits",
       "needs": ["build/captions.json"],
-      "note": "Run `edit_script.py show`, show the user the numbered script, and drop any repeated or unwanted sentence NOW - before scene design, because a drop shifts every downstream timestamp. `edit_script.py dupes` flags rephrased pairs. Nothing to cut -> continue."
+      "note": "No detection script. Claude reads build/captions.json itself, finds every repeated/abandoned attempt at the same idea (keeping the LAST one as the real source), and calls `uv run scripts/retakes.py <work> apply` with build/retake-cuts.json it wrote itself ({cuts:[{s,e,text,reason}]}) - retakes.py only does the timeline surgery, no guessing. Genuinely unsure about a passage -> ask the user, with the exact timestamps and both texts, don't guess. THEN run `edit_script.py show`, show the numbered (now-clean) script, and drop any whole unwanted sentence the creator asks for - before scene design, because a drop shifts every downstream timestamp. Recap what was auto-removed AFTER, not before. Nothing to cut -> continue. See SKILL.md step 6."
     },
     {
       "id": "reframe",

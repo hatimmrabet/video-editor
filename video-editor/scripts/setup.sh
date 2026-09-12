@@ -80,6 +80,18 @@ if have npm; then
   ( cd "$SKILL" && npm ci --silent ) || ( cd "$SKILL" && npm install --silent ) || NOTE+=("npm failed — retry: cd '$SKILL' && npm ci")
 fi
 
+# ── darija fine-tune (issue #126) — automatic, not a step to remember by hand ──────
+# `--needed` is cheap (no torch/transformers import): exit 0 only if defaults.config.json's
+# language is a hard dialect AND the model isn't built yet. The extra is dropped again
+# right after (plain `uv sync`) so the runtime venv doesn't carry torch/transformers/peft.
+if have uv && ( cd "$SKILL" && uv run scripts/prepare_darija_model.py --needed ) >/dev/null 2>&1; then
+  line "⏬ darija fine-tune (one-time, ~1.7 GB — issue #126)…"
+  ( cd "$SKILL" && uv sync --extra darija-convert \
+      && uv run scripts/prepare_darija_model.py \
+      && uv sync ) \
+    || NOTE+=("darija model prep failed — retry: cd '$SKILL' && uv sync --extra darija-convert && uv run scripts/prepare_darija_model.py && uv sync")
+fi
+
 # ─────────────────────────── verify ───────────────────────────────────────
 FAIL=0
 have "$VEVO_FFMPEG" || { FAIL=1; NOTE+=("ffmpeg still missing"); }
