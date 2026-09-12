@@ -4,10 +4,18 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""One-time setup for the darija Whisper fine-tune (issue #126). Run once per machine.
+"""One-time setup for the darija Whisper fine-tune (issue #126).
 
+`setup.sh --install` calls this automatically — it is not a step to remember by hand. It
+checks `scripts/defaults.config.json`'s `language`: nothing happens unless that language is
+a hard dialect (the same HARD_DIALECTS as transcribe.py), and nothing happens either if the
+model is already built.
+
+    uv run scripts/prepare_darija_model.py --needed   # exit 0 if a build is needed, 1 if not
+                                                        # (cheap — no torch/transformers import)
     uv sync --extra darija-convert         # pulls torch + transformers + peft (~1-2 GB,
-                                            # build-time only — NOT part of the runtime venv)
+                                            # build-time only — setup.sh `uv sync`s again
+                                            # right after to drop them from the runtime venv)
     uv run scripts/prepare_darija_model.py         # downloads, merges, converts (~5-10 min, ~3 GB disk)
     uv run scripts/prepare_darija_model.py --force # redo even if already prepared
 
@@ -33,13 +41,13 @@ Everything here is 100% local once downloaded — no API, no account, no per-min
 """
 import os
 import shutil
-import sys
 
 SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(SKILL_DIR, ".models", "darija-large-v3-turbo-ct2")
 BASE = "openai/whisper-large-v3-turbo"
 ADAPTER = "anaszil/whisper-large-v3-turbo-darija"
-FORCE = "--force" in sys.argv
+FORCE = "--force" in _sys.argv
+CHECK_NEEDED = "--needed" in _sys.argv
 
 
 def have(mod):
@@ -47,15 +55,39 @@ def have(mod):
     return importlib.util.find_spec(mod) is not None
 
 
+def default_language():
+    """scripts/defaults.config.json's `language` — the ONE thing setup.sh needs to decide
+    whether this project even wants darija, without importing anything heavy."""
+    import json
+    p = os.path.join(SKILL_DIR, "defaults.config.json")
+    try:
+        return str(json.load(open(p, encoding="utf-8-sig")).get("language", "")).lower()
+    except Exception:
+        return ""
+
+
+def is_hard_dialect(lang):
+    _sys.path.insert(0, SKILL_DIR)
+    import transcribe   # module-level code only — safe without faster-whisper installed
+    return lang in transcribe.HARD_DIALECTS
+
+
 def main():
+    if CHECK_NEEDED:
+        # exit 0 = build it, exit 1 = nothing to do — setup.sh branches on this
+        _sys.exit(0 if (is_hard_dialect(default_language()) and not os.path.isdir(OUT)) else 1)
+
+    if not is_hard_dialect(default_language()):
+        print(f"language '{default_language()}' isn't a hard dialect — nothing to prepare.")
+        return
     if os.path.isdir(OUT) and not FORCE:
         print(f"✅ already prepared: {OUT}\n   (--force to redo)")
         return
 
     missing = [m for m in ("torch", "transformers", "peft", "ctranslate2") if not have(m)]
     if missing:
-        sys.exit("❌ missing: " + ", ".join(missing) +
-                  "\n   run first: uv sync --extra darija-convert")
+        _sys.exit("❌ missing: " + ", ".join(missing) +
+                   "\n   run first: uv sync --extra darija-convert")
 
     import tempfile
     from transformers import WhisperForConditionalGeneration, WhisperProcessor

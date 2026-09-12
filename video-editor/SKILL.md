@@ -314,8 +314,13 @@ uv run scripts/transcribe.py <work> --language <LANG>
 ```
 - `<LANG>` = the video's language: `ar` · `fr` · `en` · or a hard dialect `ar-MA` /
   `ar-DZ` / `darija` (which turns hard-dialect mode on by itself).
-- The model picks itself: `transcribe.model` in the config, else a darija fine-tune when
-  one is set (issue #126), else `large-v3`. Engine: faster-whisper GPU ← CPU ← openai-whisper.
+- The model picks itself: `transcribe.model` in the config, else the darija fine-tune for
+  a hard dialect, else `large-v3`. **Step 1's `setup.sh --install` already prepared the
+  darija fine-tune** if the default language calls for it (issue #126) — nothing to do
+  here. Engine: faster-whisper GPU ← CPU ← openai-whisper.
+- **The command always prints `model: <name>`** — read it back to the user in one line
+  ("transcribing with the darija fine-tune" / "transcribing with large-v3") so which one
+  ran is never a guess. `build/transcript-raw.json` records it too (`"model"` field).
 - CPU takes minutes — run it in the background.
 - Produces `<work>/build/transcript-raw.json` (segments · words · timings).
 
