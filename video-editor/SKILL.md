@@ -253,8 +253,8 @@ Here is the flow. Tell me if you want to drop any of it.
   2  Settings (defaults)                               done
   3  Cut the silences + clean-frame the cut points     on
   4  Transcribe the speech                             on
-  5  Correct the transcript + cut the retakes (I do it) on
-  6  Choose which whole sentences to keep              on
+  5  Correct the transcript (I do it)                  on
+  6  Finalize the script: repeats gone, your edits      on
   7  Reframe to vertical 9:16                          on
   8  On-screen captions                                on   (language: darija)
   9  Animations illustrating what you say              on
@@ -277,8 +277,8 @@ theirs, not yours.
 |---|---|
 | 3 cut the silences | the original pace is kept, the video stays its full length; the clean-frame pass goes with it |
 | 4 transcribe | **forces 5, 6, 8, 13 off** — no text means no captions and no `.srt` |
-| 5 correct + cut retakes | Whisper's raw text is used, mistakes and all (in darija that is a lot), and the stammers / false starts stay in the video |
-| 6 choose the sentences | whole sentences the speaker wanted gone stay in |
+| 5 correct the transcript | Whisper's raw text is used, mistakes and all — in darija that is a lot |
+| 6 finalize the script | repeats, stammers and false starts stay in, and whole sentences the speaker wanted gone stay in too — **both halves of this step drop together** |
 | 8 captions + animations | **two switches in one step.** "No animations" gives a captions-only reel — a valid choice, not a failure. "No captions" gives picture only. The caption language is chosen here, not in the settings |
 | 9 / 10 effects on the person | nothing lost; both are off by default and need macOS |
 | 11 sound effects | a silent bed, the speaker's voice untouched |
@@ -328,7 +328,7 @@ uv run scripts/transcribe.py <work> --language <LANG>
 language or empty, `<LANG>` is wrong. Darija is rough even with a fine-tune; that is what
 step 5 is for — and it is *your* job, not the user's.
 
-### 5) Correct the transcript, cut the retakes, build the captions — Claude does it
+### 5) Correct the transcript, build the captions — Claude does it
 
 **5a — correct the whole transcript.** Read `build/transcript-raw.json` end to end. For
 every sentence: if it is garbled, first try to recover what was actually said; if you
@@ -351,30 +351,43 @@ the captions in that language. Write `<work>/build/transcript-fixes.json`:
 uv run scripts/captions.py <work>
 ```
 
-**5c — cut the retakes** (the "I said it wrong, let me start over" runs)
-```bash
-uv run scripts/retakes.py <work>
-```
-Detects restarts, stammers and stall words → `build/retakes.json`. **Append the ones only
-meaning catches** — the ones you spotted in 5a — as extra entries, and set `cut: false` on
-anything that is real content. Show the user the list (before / after text), then:
-```bash
-uv run scripts/retakes.py <work> apply     # terminal — folds into cut-plan.json + captions.json (don't re-run captions.py after)
-```
+### 6) Finalize the script — repeats gone, then your edits
 
-### 6) Choose which sentences to keep  ← a strong feature, don't skip it
+**One step, you do both parts before showing anything.**
+
+**6a — cut the repeats and false starts yourself, first.** Read `build/captions.json` end
+to end. The creator often restarts an idea — stops after 3 words, tries again at 5, gets it
+right at 9 — no two attempts the same length. Find every one of these, and **treat the
+LAST attempt as the real source** of what gets shown. There is no detection script for
+this: you decide, from the text and its timing, exactly like you're doing when you read a
+transcript in conversation. Write `<work>/build/retake-cuts.json`:
+```json
+{ "cuts": [ { "s": 12.34, "e": 15.02, "text": "wach kayn chi mushkil", "reason": "restarted 3x, kept the last" } ] }
+```
+then apply it — this is the one part that must go through code, because it has to shift
+`cut-plan.json`, `captions.json` and `sound-cues.json` **in exact sync**, the same
+timeline math `edit_script.py` and `tighten.py` already share:
+```bash
+uv run scripts/retakes.py <work> apply
+```
+**Don't show this list before cutting.** Apply it, then fold it into the recap at the end
+of this step (before/after text, how much shorter). Most passages are clear-cut — decide
+and move on.
+
+**Genuinely unsure whether a passage is a repeat or real content?** That's the one time to
+stop and ask — and when you do, hand over everything needed to check it in seconds: the
+exact timestamps of both passages, their exact text, and why you're unsure. Never guess on
+a real doubt, and never make the user go hunting for what you're asking about.
+
+**6b — then, and only then, the creator's own edits.**
 ```bash
 uv run scripts/edit_script.py <work> show
 ```
-Prints their speech, numbered and timecoded, and writes `build/transcript-editable.txt`.
-**Show them the list in the chat and say: "What do you want me to remove?"**
-
-This step is for **whole sentences the speaker wants gone** — a tangent, a point that
-didn't land. Mid-sentence retakes and stammers are already handled in step 5 (`retakes.py`);
-`edit_script.py dupes` still flags any two whole sentences that rephrase each other within
-two of each other, in case one slipped through:
-> "You said the sentence twice — 'we could solve the cause' then 'we could identify the
-> cause'. Drop the first?"
+Prints the now-clean speech, numbered and timecoded, and writes `build/transcript-editable.txt`.
+**Show them the list in the chat and say: "What do you want me to remove?"** — this part
+*is* shown before cutting, because dropping a whole sentence (a tangent, a point that
+didn't land) is the creator's call, not yours. `edit_script.py dupes` still flags any two
+whole sentences that rephrase each other, in case one slipped through 6a:
 ```bash
 uv run scripts/edit_script.py <work> dupes
 ```

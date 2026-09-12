@@ -94,7 +94,8 @@ uv run scripts/settle_check.py <work>              # nudge each cut-in onto a cl
 uv run scripts/transcribe.py <work> --language ar-MA   # -> build/transcript-raw.json (model auto-picks)
 # Claude then rewrites build/transcript-fixes.json whole (SKILL.md step 5), not line-by-line
 uv run scripts/captions.py <work>                  # -> build/captions.json
-uv run scripts/retakes.py <work>                   # detect stammers/restarts; `apply` folds them in
+# Claude finds the repeats itself and writes build/retake-cuts.json (SKILL.md step 6) — no detection script
+uv run scripts/retakes.py <work> apply             # applies build/retake-cuts.json — the only fiddly, error-prone part
 uv run scripts/edit_script.py <work> show          # drop whole sentences (BEFORE scene design)
 uv run scripts/reframe.py <work>                   # -> cutz.mp4
 node  scripts/render_frames.js <work> all          # -> out/*.jpg  (resume; --force re-renders)

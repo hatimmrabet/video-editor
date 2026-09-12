@@ -26,7 +26,7 @@ T.web("sound-result", async ({ base, page, vid, J, work, check }) => {
   await page.goto(base + "/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => document.querySelector("h2")?.textContent === "Projects", { timeout: 8000 });
   await page.evaluate(x => open(x), id);
-  await page.evaluate(() => { S.passed.add("retakes"); S.passed.add("script-review"); S.passed.add("scenes"); render(); });
+  await page.evaluate(() => { S.passed.add("script-review"); S.passed.add("scenes"); render(); });
   await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => h.textContent === "sound"), { timeout: 8000 });
   check("sound panel renders a <canvas>", await page.$("canvas") != null);
   await T.sleep(400);   // let the waveform decode

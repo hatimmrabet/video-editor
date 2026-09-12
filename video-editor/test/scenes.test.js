@@ -26,7 +26,7 @@ T.web("scenes", async ({ base, page, vid, J, work, check }) => {
   await page.goto(base + "/", { waitUntil: "networkidle0" });
   await page.waitForFunction(() => document.querySelector("h2")?.textContent === "Projects");
   await page.evaluate(x => open(x), id);
-  await page.evaluate(() => { S.passed.add("retakes"); S.passed.add("script-review"); render(); });   // tick past the advisory checkpoints
+  await page.evaluate(() => { S.passed.add("script-review"); render(); });   // tick past the advisory checkpoint
   await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => /design the scenes/.test(h.textContent)), { timeout: 8000 });
 
   const nMot = await page.$$eval("select", ss => ss.filter(s => [...s.options].some(o => o.value === "stamp")).length);

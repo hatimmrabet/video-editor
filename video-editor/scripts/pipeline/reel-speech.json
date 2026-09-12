@@ -47,16 +47,10 @@
       "makes": ["build/captions.json"]
     },
     {
-      "id": "retakes",
-      "title": "Cut the retakes / false starts / stammers",
-      "needs": ["build/captions.json"],
-      "note": "Run `uv run scripts/retakes.py <work>` - it detects restarts, stammers and stall words and writes build/retakes.json. Claude appends the cases only meaning catches (from the step-5 read-through), sets cut:false on real content, shows the user the list, then `retakes.py <work> apply` (terminal, like edit_script apply). Nothing to cut -> continue. Switchable off (SKILL.md step 5)."
-    },
-    {
       "id": "script-review",
-      "title": "Review the script, drop sentences",
+      "title": "Finalize the script - repeats gone, then your edits",
       "needs": ["build/captions.json"],
-      "note": "Run `edit_script.py show`, show the user the numbered script, and drop any whole unwanted sentence NOW - before scene design, because a drop shifts every downstream timestamp. (Mid-sentence retakes are the `retakes` stage's job, not this one.) Nothing to cut -> continue."
+      "note": "No detection script. Claude reads build/captions.json itself, finds every repeated/abandoned attempt at the same idea (keeping the LAST one as the real source), and calls `uv run scripts/retakes.py <work> apply` with build/retake-cuts.json it wrote itself ({cuts:[{s,e,text,reason}]}) - retakes.py only does the timeline surgery, no guessing. Genuinely unsure about a passage -> ask the user, with the exact timestamps and both texts, don't guess. THEN run `edit_script.py show`, show the numbered (now-clean) script, and drop any whole unwanted sentence the creator asks for - before scene design, because a drop shifts every downstream timestamp. Recap what was auto-removed AFTER, not before. Nothing to cut -> continue. See SKILL.md step 6."
     },
     {
       "id": "reframe",
