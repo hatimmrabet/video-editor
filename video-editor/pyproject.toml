@@ -21,6 +21,10 @@ dependencies = [
 gpu = ["nvidia-cublas-cu12", "nvidia-cudnn-cu12"]
 # The slower fallback engine, if faster-whisper can't run on a machine.
 whisper-fallback = ["openai-whisper"]
+# Build-time only, for prepare_darija_model.py (issue #126) — never installed by default,
+# never needed at pipeline run time. Merges + converts the darija fine-tune once; drop it
+# afterward (`uv sync` without this extra) if you want the venv back to its normal size.
+darija-convert = ["torch", "transformers", "peft"]
 
 [tool.uv]
 package = false

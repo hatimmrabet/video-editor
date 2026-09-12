@@ -36,11 +36,17 @@ HARD_DIALECTS = {
 }
 
 # ── a fine-tuned model to use instead of large-v3 for a hard dialect (issue #126) ──
-# faster-whisper needs a CTranslate2 model dir or a HF repo id of a CT2-converted model.
-# Empty until the darija spike picks one; `transcribe.model` in project.config.json, or
-# --model on the CLI, overrides this.
+# ar-ma → the local CT2 conversion of anaszil/whisper-large-v3-turbo-darija (a LoRA over
+# whisper-large-v3-turbo, MIT, WER 24.88% on its own eval set). Spot-checked against 5 real
+# darija sentences from abnajlae/darija-asr-benchmark-6speaker: it fixed several words
+# large-v3 got wrong ("خصني ندير" vs large-v3's "خسنين دير") at the same CPU/int8 cost.
+# `uv run scripts/prepare_darija_model.py` builds it once (see that script's docstring);
+# until then this silently falls back to large-v3. `transcribe.model` in
+# project.config.json, or --model on the CLI, overrides this either way.
+_DARIJA_CT2 = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".models",
+                            "darija-large-v3-turbo-ct2")
 DIALECT_MODEL = {
-    # "ar-ma": "<hf-id-of-a-ct2-converted-darija-whisper>",
+    "ar-ma": _DARIJA_CT2 if os.path.isdir(_DARIJA_CT2) else None,
 }
 
 
@@ -196,8 +202,11 @@ def main():
             segs, detected = run_openai_whisper(wav, language, model, hard)
     except Exception as e:
         if engine == "faster-whisper" and have("whisper"):
-            print(f"⚠️  faster-whisper failed ({e}) — trying openai-whisper…")
-            segs, detected = run_openai_whisper(wav, language, model, hard)
+            # openai-whisper can't load a local CTranslate2 dir (our darija fine-tune) or
+            # any other CT2-only model id — fall back to the stock model by name.
+            fallback_model = model if not os.path.isdir(model) else "large-v3"
+            print(f"⚠️  faster-whisper failed ({e}) — trying openai-whisper ({fallback_model})…")
+            segs, detected = run_openai_whisper(wav, language, fallback_model, hard)
         else:
             raise
 
