@@ -34,5 +34,10 @@ const _TXD = {
   sceneExit:    {type:'rise', duration:0.13, easing:'linear', params:{y:-10, scale:false}},
 };
 export const TX = {..._TXD, ...((P as any).transitions || {})} as typeof _TXD;
+/* whether <work>/config/logo.png exists — remotion.sh writes it. A project without a logo
+   must still render: every <Img> of it is guarded on this (it used to abort the render). */
+export const HAS_LOGO = !!(P as any).logo;
+/* the faint background grid — theme.grid:false turns it off (default on) */
+export const GRID = (P as any).theme.grid !== false;
 /* "guides": true in project.json → the red Instagram areas show in the studio (turn them off before rendering) */
 export const GUIDES = !!(P as any).guides;

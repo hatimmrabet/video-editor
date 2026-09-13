@@ -13,7 +13,7 @@
     "clay": "#7C3AED",
     "mut": "#667085",
     "font": "Cairo",
-    "handle": "@hatim.exp",
+    "handle": "@hatim.exp", "badgeUntil": 0,
     "grid": true
   },
   "longform": { "pauseMs": 250, "keepMs": 90, "fillers": true, "captions": "soft" }

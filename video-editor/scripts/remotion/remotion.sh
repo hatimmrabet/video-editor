@@ -18,7 +18,7 @@ sync_all(){
   # Structural files: always updated, except what the user edits
   for f in package.json package-lock.json tsconfig.json remotion.config.ts .gitignore README.md; do
     [ -f "$TPL/$f" ] && cp "$TPL/$f" "$R/$f"; done
-  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts util.tsx Chrome.tsx Captions.tsx Outro.tsx Guides.tsx SceneList.tsx; do
+  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts util.tsx Chrome.tsx Captions.tsx Outro.tsx Guides.tsx Grid.tsx SceneList.tsx; do
     cp "$TPL/src/$f" "$R/src/$f"; done
   # Scenes.tsx: copied once only — a project's hand-written scene components are never wiped
   # (with config/scenes.json the scenes are data and SceneList.tsx dispatches them instead)
@@ -28,6 +28,11 @@ sync_all(){
   for f in "$(cd "$(dirname "$0")/../motifs/remotion" && pwd)"/*.tsx; do
     [ -f "$f" ] && cp "$f" "$R/src/motifs/"; done
 
+  LOGO="$("${VEVO_PY[@]}" -c "import os,sys
+sys.path.insert(0, os.path.join(os.environ['VEVO_SKILL_DIR'],'scripts'))
+from lib import config as cfg
+print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
+  [ -f "$W/$LOGO" ] && cp "$W/$LOGO" "$R/public/logo.png"
   cp "$W/build/captions.json" "$R/src/caps.json"
   "${VEVO_PY[@]}" - "$W" "$R" <<'PY'
 import json, os, sys
@@ -44,7 +49,14 @@ _cfg  = cfg.load(W)                     # no longer from theme.json — same mig
 theme = _cfg.get("theme", {})
 sfx   = rd(os.path.join("build", "sound-cues.json"), {})
 proj = {
-  "theme": {k: theme.get(k) for k in ("bg","ink","acc","clay","mut","font","handle") if theme.get(k)},
+  # the whole theme block, verbatim. A whitelist here silently dropped every key it did not
+  # know (Chrome.tsx reads theme.badgeUntil, which was never written, so the account badge
+  # could not work) and `if theme.get(k)` dropped falsy values too — 0 and false are valid
+  # settings. theme.ts already carries a default per key.
+  "theme": theme,
+  # a project with no logo must still render — Chrome.tsx / Outro.tsx guard every <Img>
+  # on this. Before it existed, a missing logo.png aborted the render outright.
+  "logo": os.path.exists(os.path.join(R, "public", "logo.png")),
   "faceAnchor": _cfg.get("crop", {}).get("faceAnchor", 0.30),   # → theme.ts FACE_ANCHOR / Ad.tsx objectPosition (issue #28)
   "total": round(caps["total"], 3),
   "outro": float(sfx.get("outro", 5.0)),
@@ -64,12 +76,7 @@ print("project.json → duration", proj["total"], "+ outro", proj["outro"], "· 
 PY
   [ -f "$W/build/video-reframed.mp4" ] && cp "$W/build/video-reframed.mp4" "$R/public/video.mp4"
   [ -f "$W/build/sound-effects.wav" ]  && cp "$W/build/sound-effects.wav"  "$R/public/sfx.wav"
-  LOGO="$("${VEVO_PY[@]}" -c "import os,sys
-sys.path.insert(0, os.path.join(os.environ['VEVO_SKILL_DIR'],'scripts'))
-from lib import config as cfg
-print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
-  [ -f "$W/$LOGO" ] && cp "$W/$LOGO" "$R/public/logo.png"
-  [ -f "$R/public/logo.png" ] || echo "⚠️  no logo found at $W — put config/logo.png"
+  [ -f "$R/public/logo.png" ] || echo "⚠️  no logo found at $W — put config/logo.png (the video still renders, without the mark)"
   echo "✅ data and assets updated at $R"
 }
 

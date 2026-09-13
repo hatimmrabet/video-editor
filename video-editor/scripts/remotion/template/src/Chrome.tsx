@@ -1,5 +1,5 @@
 import {staticFile, Img} from 'remotion';
-import {T, VEND} from './theme';
+import {T, VEND, HAS_LOGO} from './theme';
 import {p, rgba} from './util';
 
 const card = (a=0.96) => ({
@@ -23,7 +23,7 @@ export const Badge: React.FC<{t:number}> = ({t}) => {
       <div style={{...card(0.94), display:'flex', alignItems:'center', gap:15, borderRadius:999,
         padding:'0 30px', height:76, boxShadow:`0 10px 26px ${rgba(T.ink,0.16)}`}}>
         <span dir="ltr" style={{fontWeight:700, fontSize:30, color:T.ink}}>{T.handle}</span>
-        <Img src={staticFile('logo.png')} style={{width:42, height:42}} />
+        {HAS_LOGO && <Img src={staticFile('logo.png')} style={{width:42, height:42}} />}
       </div>
     </div>
   );

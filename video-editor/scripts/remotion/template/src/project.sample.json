@@ -7,7 +7,8 @@
   "mut": "#8A847A",
   "font": "Cairo",
   "handle": "@handle",
-  "badgeUntil": 0
+  "badgeUntil": 0,
+  "grid": true
  },
  "faceAnchor": 0.3,
  "total": 46.078,
@@ -51,5 +52,6 @@
     "scale": false
    }
   }
- }
+ },
+ "logo": false
 }
