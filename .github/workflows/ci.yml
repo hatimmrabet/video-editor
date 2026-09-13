@@ -1,8 +1,8 @@
 name: ci
 
 # One job, kept under ~2 min. Fast static checks, then the headless suite in
-# video-editor/test/ (web UI + lint_compose + behind_text + the ffmpeg resolver + the
-# motifs). The suite needs ffmpeg (installed + cached below — ubuntu-latest has none),
+# video-editor/test/ (web UI + the ffmpeg resolver + the motif registry). The suite needs
+# ffmpeg (installed + cached below — ubuntu-latest has none),
 # Chromium (cached), and the system python3 — no `uv sync` (the tested scripts are
 # stdlib + lib/).
 
@@ -47,6 +47,17 @@ jobs:
         run: find video-editor -name '*.json' -not -path '*/node_modules/*' -print0 | xargs -0 -r -n1 python -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8-sig'))"
       - name: Remotion template — package-lock.json installs cleanly (#45)
         run: cd video-editor/scripts/remotion/template && npm ci --silent --ignore-scripts
+
+      # The type-checker replaces lint_compose.js: scene and motif code is TypeScript now,
+      # so tsc catches undefined helpers, bad props and duplicate keys exactly. It needs the
+      # data files remotion.sh normally generates into <work>/remotion/ — seed the sample.
+      - name: Remotion scenes + motifs type-check (tsc --noEmit)
+        run: |
+          cd video-editor/scripts/remotion/template
+          cp src/project.sample.json src/project.json
+          printf '%s' '{"total":46.078,"cards":[{"s":1,"e":3,"w":[{"t":"one","s":1,"e":2,"hot":false}]}]}' > src/caps.json
+          mkdir -p src/motifs && cp ../../motifs/remotion/*.tsx src/motifs/
+          npm run --silent check
 
       # --- the headless suite ---
       # ffmpeg: cache the static binaries so a bad download can't redden CI. The cache

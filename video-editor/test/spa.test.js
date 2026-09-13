@@ -27,6 +27,6 @@ T.web("spa", async ({ base, page, vid, check }) => {
   await (await page.$('input[type=file]')).uploadFile(vid);
   await page.waitForFunction(() => document.querySelectorAll(".st").length > 5, { timeout: 20000 });
   const verdicts = await page.$$eval(".st .v", ns => ns.map(n => n.textContent));
-  check("the 16-stage pipeline renders", verdicts.length >= 10, verdicts.join(","));
+  check("the pipeline stage list renders", verdicts.length >= 10, verdicts.join(","));
   check("a Run button is offered", await page.evaluate(() => [...document.querySelectorAll("button")].some(b => /Run/.test(b.textContent))));
 });

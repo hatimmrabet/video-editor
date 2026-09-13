@@ -1,6 +1,6 @@
-/* Cross-platform helpers (macOS · Windows · Linux) shared by the Node scripts.
-   No macOS behaviour changes: the paths and the Chrome launch stay identical on mac,
-   the Windows/Linux branches are just added alongside. */
+/* Cross-platform helpers (Windows · Linux) shared by the Node scripts.
+   The Chrome helpers below serve the headless test harness only — the pipeline itself
+   renders through Remotion, which brings its own browser. */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -16,10 +16,6 @@ function fileUrl(p) {
    The normal path: full `puppeteer` downloads its own Chromium via .puppeteerrc.cjs.
    1) $CHROME_PATH  2) per-OS candidates  3) null → the caller tries { channel: 'chrome' }. */
 function chromeCandidates() {
-  if (process.platform === 'darwin') return [
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Chromium.app/Contents/MacOS/Chromium',
-  ];
   if (process.platform === 'win32') {
     const pf = [process.env['PROGRAMFILES'], process.env['PROGRAMFILES(X86)'],
                 process.env['LOCALAPPDATA']].filter(Boolean);

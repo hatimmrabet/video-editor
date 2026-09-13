@@ -2,7 +2,7 @@
 
 A **motif** is a parameterized scene type, implemented once per engine and selected by name
 from `config/scenes.json` (`"motif": "stamp"`). This replaces the ~15 hand-written scene
-functions in `compose.reference.html` / `Scenes.tsx`.
+components in `Scenes.tsx`.
 
 ```
 motifs/

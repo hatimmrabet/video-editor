@@ -4,6 +4,8 @@
 #   remotion/remotion.sh <work> sync             → updates data/assets only (no download)
 #   remotion/remotion.sh <work> studio [port]    → opens the live studio
 #   remotion/remotion.sh <work> render [out.mp4] → produces an MP4 directly (no frames)
+#   remotion/remotion.sh <work> still 4.6 12.3   → review stills → <work>/build/prev/t<sec>.jpg
+#   remotion/remotion.sh <work> check            → type-checks the project (tsc --noEmit)
 # Scenes are written in <work>/remotion/src/Scenes.tsx — never wiped by a re-run.
 set -e
 . "$(cd "$(dirname "$0")/.." && pwd)/lib/platform.sh"
@@ -71,27 +73,49 @@ print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
   echo "✅ data and assets updated at $R"
 }
 
+# Every command that runs the toolchain needs node_modules. `setup` is no longer a step the
+# caller can forget: render / studio / still / check install on demand the first time.
+ensure_deps(){
+  [ -d "$R/node_modules" ] && return 0
+  echo "⏬ Downloading Remotion libraries (~500 MB, once)…"
+  # npm ci — installs the exact tree in template/package-lock.json (just copied in by sync_all)
+  ( cd "$R" && npm ci --silent ) || { echo "❌ Download failed"; exit 12; }
+  echo "✅ Ready."
+}
+
 case "$CMD" in
   setup)
     sync_all
-    if [ -d "$R/node_modules" ]; then echo "Libraries already installed — ready."; else
-      echo "⏬ Downloading Remotion libraries (~500 MB, once)…"
-      # npm ci — installs the exact tree in template/package-lock.json (just copied in by sync_all)
-      ( cd "$R" && npm ci --silent ) || { echo "❌ Download failed"; exit 12; }
-      echo "✅ Ready."
-    fi ;;
+    if [ -d "$R/node_modules" ]; then echo "Libraries already installed — ready."; else ensure_deps; fi ;;
   sync) sync_all ;;
   studio)
-    sync_all; PORT="${ARG:-3000}"
+    sync_all; ensure_deps; PORT="${ARG:-3000}"
     echo "🎬 Studio at http://localhost:$PORT"
     ( cd "$R" && npx remotion studio --port "$PORT" ) ;;
   render)
-    sync_all; OUT="${ARG:-$W/build/video-raw.mp4}"
+    sync_all; ensure_deps; OUT="${ARG:-$W/build/video-raw.mp4}"
     mkdir -p "$(dirname "$OUT")"
     grep -q '"guides": true' "$R/src/project.json" && \
       echo "⚠️  Safe-zone guides are on — they'll be burned into the video. Remove guides from config/safe.json before delivery."
     ( cd "$R" && npx remotion render Ad "$OUT" --codec h264 --crf 21 --jpeg-quality 95 )
     echo "✅ $OUT"
     "$VEVO_FFPROBE" -v error -show_entries format=duration,size -show_entries stream=width,height -of default=nw=1 "$OUT" ;;
-  *) echo "Commands: setup | sync | studio | render"; exit 2 ;;
+  still)
+    # review stills at arbitrary times — the replacement for render_frames.js preview.
+    sync_all; ensure_deps
+    shift 2 || true
+    [ $# -gt 0 ] || { echo "usage: remotion.sh <work> still <seconds> [<seconds>...]"; exit 2; }
+    FPS="$("${VEVO_PY[@]}" -c "import json,os;print(json.load(open(os.path.join('$R','src','project.json')))['fps'])" 2>/dev/null || echo 30)"
+    mkdir -p "$W/build/prev"
+    for T in "$@"; do
+      F="$("${VEVO_PY[@]}" -c "print(int(round(float('$T')*$FPS)))")"
+      ( cd "$R" && npx remotion still Ad "$W/build/prev/t$("${VEVO_PY[@]}" -c "print('%.2f' % float('$T'))").jpg"           --frame="$F" --image-format=jpeg --jpeg-quality=95 ) || exit 13
+    done
+    echo "✅ $# still(s) → $W/build/prev/" ;;
+  check)
+    # the type-checker IS the scene linter: it catches undefined helpers, bad props and
+    # out-of-range refs that the old lint_compose.js approximated with regexes.
+    sync_all; ensure_deps
+    ( cd "$R" && npm run --silent check ) && echo "✅ scenes type-check clean" ;;
+  *) echo "Commands: setup | sync | studio | render | still | check"; exit 2 ;;
 esac

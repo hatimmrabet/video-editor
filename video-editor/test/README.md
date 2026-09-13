@@ -1,10 +1,13 @@
 # `test/` — the headless suite
 
 Regression tests for the parts of the skill that have moving JavaScript: the local web UI
-(`scripts/web.py` + `scripts/web/`), the static checks (`lint_compose.js`), the
-`fx/behind_text.js` planner, the ffmpeg resolver, and the motif renderers. There is **no
-test for the pipeline output itself** — "testing" a pipeline change still means running it
-on a real video (see the repo `CLAUDE.md`).
+(`scripts/web.py` + `scripts/web/`), the ffmpeg resolver, and the motif registry. There is
+**no test for the pipeline output itself** — "testing" a pipeline change still means running
+it on a real video (see the repo `CLAUDE.md`).
+
+The scene and motif *code* is type-checked instead of tested here: it is TypeScript, so
+`tsc --noEmit` (CI, and `remotion.sh <work> check` locally) does exactly what the old
+`lint_compose.js` approximated with regexes.
 
 ## Run
 
@@ -35,10 +38,8 @@ The Python side is stdlib only — the tests spawn `scripts/web.py` and it shell
 | `scenes.test.js` | the scenes checkpoint screen — motif dropdown + params → `config/scenes.json` (#101) |
 | `sound-result.test.js` | the sound (`<canvas>` waveform, cue placement) + Result screens (#102) |
 | `montage-longform.test.js` | the project-type picker, montage `pick`, long-form `tighten` / `chapters` / `broll`, `runTarget` (#103) |
-| `lint-compose.test.js` | `scripts/lint_compose.js` — every check on a deliberately broken `compose.html` (#53) |
-| `behind-text.test.js` | `fx/behind_text.js plan` — proximity flags vs `build/person-cutout.json` (#52) |
 | `ffmpeg-resolver.test.js` | `$VEVO_FFMPEG` / `$VEVO_FFPROBE` through `lib/platform.{py,js,sh}` + `run.py` (#44) |
-| `motifs.test.js` | every implemented motif renders (changes pixels, no throw, no warn) on a real headless canvas |
+| `motifs.test.js` | the motif registry — every implemented motif in `motifs/index.json` is imported, dispatched by `SceneList.tsx`, backed by a component, and its declared params match that component's type |
 
 ## Notes
 

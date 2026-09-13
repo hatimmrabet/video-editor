@@ -7,9 +7,9 @@ description: Edits a talking-to-camera video (selfie / teleprompter) into a fini
 
 ## The idea
 
-The whole edit is code: ffmpeg cuts, Whisper transcribes with per-word timing, and a
-drawing engine composites the captions and motion graphics over the video. The output is
-one publish-ready MP4.
+The whole edit is code: ffmpeg cuts, Whisper transcribes with per-word timing, and the
+renderer composites the captions and motion graphics over the video. The output is one
+publish-ready MP4.
 
 **This is an editing skill, not an ad format.** The creator is making a reel for Instagram,
 TikTok or YouTube Shorts — usually explaining a subject, sometimes a lesson or an
@@ -37,33 +37,26 @@ audible speech and they want captions, run the talking-video flow on the main cl
 **Do not ask "which mode do you want?"** — read the input, go, and tell them in one
 sentence what you understood.
 
-## Two engines — but don't ask the user anything about them
+## The rendering engine — don't say a word about it
 
-The skill is one thing; the engine that draws the scenes is two. **The choice is yours,
-not theirs.**
+The scenes are drawn by Remotion. **The user never needs to know that.** Never say
+"Remotion", "React", "render engine" or "composition" — the person in front of you wants
+their video edited, not to pick a technology. Everything installs itself on first render
+(~500 MB, once); there is no setup step to announce and none to forget.
 
-**Always start with the light engine, silently.** Never say the word "Remotion" or
-"canvas" or "engine", and never offer two options — the person in front of you wants their
-video edited, not to pick a technology.
-
-**When do you open the second one?** Only if **they** say something like this, after
-seeing the result:
+**There is a live editing screen**, and you open it only if **they** ask, after seeing the
+result:
 > "I want to edit it myself" · "I don't like where this sits, I want to move it" · "is
 > there a screen where I can see the edit?" · "I want to try things myself"
 
 Then say one jargon-free sentence: "I'll open you a live editing screen where you see the
-video and move anything and see the result instantly — the download takes 5 minutes,
-once. Shall I start?" After they agree: `remotion/remotion.sh <work> setup` then `studio`.
-**Never redo an earlier step** — the cut, the transcription, the captions and the effects
-are all shared; the work carries over as-is.
+video and move anything and see the result instantly." After they agree:
+`remotion/remotion.sh <work> studio`. **Never redo an earlier step** — the cut, the
+transcription and the captions are all shared; the work carries over as-is.
 
-| | **Light** (default) | **Editing screen** |
-|---|---|---|
-| When | every time, no question | only if they ask to edit themselves |
-| Download | zero extra | ~500 MB, once |
-| What they see | frames you show them | a live video they scrub and see instantly |
-| License | free | a company with 4+ employees pays (tell them if they're a company) |
-| Command | `render_frames.js` | `remotion/remotion.sh` |
+**One thing to tell them, once, if they are a company:** the renderer is free for
+individuals and small teams, but a company with 4 or more employees needs a paid licence.
+Say it plainly when it applies and move on.
 
 ---
 
@@ -86,7 +79,7 @@ and doesn't want to. Never hand them a list of commands to run.
 
 **Always name the step you are on, and the step that comes next.** The person must never
 have to wonder where they are in the flow. Head every message with
-`Step N/13 — <name> — <STATE>`, the state in capitals right after the title with a dash
+`Step N/11 — <name> — <STATE>`, the state in capitals right after the title with a dash
 (`DONE`, `RUNNING`, `WAITING FOR YOU`, `SKIPPED`). End the message with the next step.
 
 **Facts go in a list, never in a paragraph.** One line per item, a dash, the thing's name,
@@ -94,7 +87,7 @@ a colon, then its facts separated by `·`. Never a sentence that buries three nu
 prose.
 
 ```
-Step 1/13 — Preparation — DONE
+Step 1/11 — Preparation — DONE
 
 Tools: everything already installed.
 
@@ -106,7 +99,7 @@ Folders prepared:
 - work/config/  the settings
 - work/build/   the working files
 
-Next — step 2/13, the settings (defaults, nothing to do).
+Next — step 2/11, the settings (defaults, nothing to do).
 ```
 
 **Never write a paragraph announcing everything you are about to do.** No "I'll cut the
@@ -152,8 +145,7 @@ mon-dossier/                         mon-dossier/
   video-selfie.mov                     work/
   project.config.json      ──────▶       rush/    video-selfie.mov
   logo.png                               config/  project.config.json · logo.png
-                                         build/   (compose.html, studio.html and
-                                                  every intermediate file)
+                                         build/   (every intermediate file)
 ```
 
 `<work>` in every later step = that `work/` folder. Full reference: the docstring at the top of `scripts/preflight.py`.
@@ -177,9 +169,7 @@ Python packages go in a `uv`-managed `.venv/` (never the system Python), and the
 that draws the scenes is downloaded by `npm` into the skill's `node_modules/` — **no
 separate Chrome install**. `uv run scripts/…` re-syncs the venv on its own if needed.
 
-**Platforms:** macOS, Windows (Git-Bash/WSL) and Linux. The macOS-only features (steps 9
-and 10 — the person cutouts) skip themselves automatically elsewhere, and the rest
-of the pipeline runs normally.
+**Platforms:** Windows (Git-Bash/WSL) and Linux.
 
 **End the step with a recap in the terminal** — no jargon, plain sentences:
 the tools (already there / what you installed), the file(s) you'll work on with their
@@ -195,14 +185,14 @@ defaults — that file is now the single source for this project. Read it, show 
 lines, move on:
 
 ```
-Step 2/13 — Settings — DONE
+Step 2/11 — Settings — DONE
 
 - language : ar-MA (northern-Morocco darija — hard-dialect mode on)
 - font     : Cairo
 - colours  : white background · blue accent · purple second · @hatim.exp
   (written to work/config/project.config.json — edit it there if a render needs a nudge)
 
-Next — step 3/13, cutting the silences.
+Next — step 3/11, cutting the silences.
 ```
 
 The defaults these came from:
@@ -215,7 +205,7 @@ The defaults these came from:
 | `theme.acc` / `clay` | `#2563EB` / `#7C3AED` | blue accent, purple second |
 | `theme.mut` | `#667085` | |
 | `theme.handle` | `@hatim.exp` | the same handle everywhere |
-| `format` · `engine` · `grade` | `short` · `light` · `false` | never ask about these |
+| `format` · `grade` | `short` · `false` | never ask about these |
 
 **Do not ask for colours, a logo, a font or a language.** The per-project *questionnaire*
 is deliberately off in this version — the file is written once from the defaults and left
@@ -236,8 +226,8 @@ you do.
 
 `crop`'s defaults (0.5 / 0.30 / 0.30) suit almost every video — only revisit `xAnchor` /
 `faceAnchor` after previewing a frame, if the speaker turns out off-centre (step 7).
-**There is no account-badge field** — it is off, and if it is ever wanted for one video,
-set `BADGE_UNTIL` directly in that project's `<work>/build/compose.html` (step 8).
+**Don't ask about the account badge** — `theme.badgeUntil` is 0, and it only ever changes
+if the creator asks for it on one video (step 8).
 
 ---
 
@@ -256,18 +246,16 @@ Here is the flow. Tell me if you want to drop any of it.
   5  Correct the transcript (I do it)                  on
   6  Finalize the script: repeats gone, your edits      on
   7  Reframe to vertical 9:16                          on
-  8  On-screen captions                                on   (language: darija)
-  9  Animations illustrating what you say              on
- 10  Effects on the person (macOS only)                off
- 11  Sound effects                                     on
- 12  Final render + audio mastering                    on
- 13  Subtitle file (.srt) + post caption               on
+  8  On-screen captions + animations                   on   (language: darija)
+  9  Sound effects                                     on
+ 10  Final render + audio mastering                    on
+ 11  Subtitle file (.srt) + post caption               on
 
 Say "everything" and I start, or name what to drop
 ("no animations", "captions in French", "no sound effects").
 ```
 
-**Every step is a switch except 1, 2, 7 and 12** — preparation, settings, reframing and the
+**Every step is a switch except 1, 2, 7 and 10** — preparation, settings, reframing and the
 render are what make a file at all. Everything else is the creator's call, and the answer is
 theirs, not yours.
 
@@ -276,13 +264,12 @@ theirs, not yours.
 | Turned off | What happens |
 |---|---|
 | 3 cut the silences | the original pace is kept, the video stays its full length; the clean-frame pass goes with it |
-| 4 transcribe | **forces 5, 6, 8, 13 off** — no text means no captions and no `.srt` |
+| 4 transcribe | **forces 5, 6, 8, 11 off** — no text means no captions and no `.srt` |
 | 5 correct the transcript | Whisper's raw text is used, mistakes and all — in darija that is a lot |
 | 6 finalize the script | repeats, stammers and false starts stay in, and whole sentences the speaker wanted gone stay in too — **both halves of this step drop together** |
 | 8 captions + animations | **two switches in one step.** "No animations" gives a captions-only reel — a valid choice, not a failure. "No captions" gives picture only. The caption language is chosen here, not in the settings |
-| 9 / 10 effects on the person | nothing lost; both are off by default and need macOS |
-| 11 sound effects | a silent bed, the speaker's voice untouched |
-| 13 subtitle file | no `.srt`, no post caption text |
+| 9 sound effects | a silent bed, the speaker's voice untouched |
+| 11 subtitle file | no `.srt`, no post caption text |
 
 **Running the mechanical stages.** `uv run scripts/run.py <work>` runs them in order, skips
 whatever is already up to date, and stops at the points that need the creator. `run.py
@@ -406,7 +393,6 @@ the scenes, all their times shift and you have to redo them. And after any delet
 ### 7) Reframe to vertical 9:16
 ```bash
 uv run scripts/reframe.py <work>
-mkdir -p <work>/build/frames-source && ffmpeg -v error -i <work>/build/video-reframed.mp4 -vf fps=30 -q:v 3 -y <work>/build/frames-source/%05d.jpg
 ```
 - Vertical source (selfie) → passes through as-is.
 - **Landscape** source (16:9) → a vertical 9:16 frame is cropped from it; if the speaker
@@ -414,8 +400,10 @@ mkdir -p <work>/build/frames-source && ffmpeg -v error -i <work>/build/video-ref
   Preview one frame before continuing.
 
 ### 8) Design the scenes and the on-screen captions ← the most important step
-Step 1 already put `scripts/compose.reference.html` at `<work>/build/compose.html`. Rewrite
-its scene functions (or author `config/scenes.json` instead — the data-driven path).
+The scene code lives at `<work>/remotion/src/Scenes.tsx` — `remotion/remotion.sh <work>
+sync` creates it on first use and **never overwrites it afterwards**. Rewrite its scene
+components (or author `config/scenes.json` instead — the data-driven path, dispatched by
+`SceneList.tsx`). Type-check before rendering: `remotion/remotion.sh <work> check`.
 
 **The structure is ready, don't touch it:** shrinking the video into a card (`R_FULL` /
 `R_DOWN` / `R_LOWER` with a smooth transition), the account badge, the progress bar, the
@@ -439,11 +427,11 @@ the theme.
 Each scene function takes `t` and draws based on the word timing from `build/captions.json` — the
 scene sticks to the word, not to an approximate time.
 
-**No account badge over the video** (`BADGE_UNTIL=0` in `build/compose.html` — the default):
-the name is on the platform itself and on the end card, and the top of the screen is
-space for the graphics. If someone asks for it, set `BADGE_UNTIL=3` directly in that
-project's `build/compose.html` — it puts it in the first 3 seconds only. Not a config field
-(see step 2) — it's a rare, per-project exception, not a base setting.
+**No account badge over the video** (`theme.badgeUntil: 0` — the default): the name is on
+the platform itself and on the end card, and the top of the screen is space for the
+graphics. If someone asks for it, set `theme.badgeUntil: 3` in that project's
+`config/project.config.json` — it puts the badge in the first 3 seconds only. A rare,
+per-project exception, not something to ask about (see step 2).
 
 **Layout rule (user-approved — do not break it):**
 
@@ -455,7 +443,7 @@ project's `build/compose.html` — it puts it in the first 3 seconds only. Not a
 
 **Why:** the old middle-of-screen layout (video in the middle, graphic above the head,
 caption below) created three separated focus points and the viewer got lost. Those rects
-(`R_STAGE` / `R_SIDE`) are gone from both engines.
+(`R_STAGE` / `R_SIDE`) are gone.
 
 **Three details that matter (from the layout revision):**
 1. **The video is the full screen width, no margins, no rounded corners** — the face comes
@@ -513,86 +501,19 @@ first half second** — a late hook loses half the viewers before the speech eve
 
 Preview before rendering everything:
 ```bash
-node scripts/render_frames.js <work> preview 4.6 12.3 27.6 31.0 48.4
+bash scripts/remotion/remotion.sh <work> still 4.6 12.3 27.6 31.0 48.4
 bash scripts/contact_sheet.sh <work> <work>/build/contact-sheet.jpg 4.6 12.3 27.6 31.0 48.4
 ```
 
-**Opened the editing screen for them (at their request)?** Scenes are written in
-`<work>/remotion/src/Scenes.tsx` (same logic: each scene takes `t`):
+**Asked to edit it themselves?** Open the live timeline — same scene file, nothing to redo:
 ```bash
-bash scripts/remotion/remotion.sh <work> setup            # once — after their consent (~500 MB)
 bash scripts/remotion/remotion.sh <work> studio           # a live timeline in the browser
 ```
-The video display rectangles are written in `<work>/config/stage.json` and the end-card
-text in `<work>/config/outro.json` — and both are reflected in both engines.
 **Read `build/contact-sheet.jpg` as one image — don't read the frames one by one.** One
 sheet = one read instead of five. **Don't render the whole video before previewing at
 least 6 shots**, and show the sheet to the user.
 
-Interactive studio (scrub the timeline, draw live):
-```bash
-uv run python -m http.server 8791 --directory <work>   # then /build/studio.html
-```
-
-### 9) Speech passing behind the person (macOS only — off by default)
-
-The word is written large and stretched with the Arabic kashida to the width of the
-speaker's body, so the elongation alone passes behind their head and the letters stay
-visible on either side. It uses the macOS built-in framework (Vision) — zero download,
-zero cost.
-
-```bash
-node scripts/fx/behind_text.js <work> plan        # lists the suitable sentences
-node scripts/fx/behind_text.js <work> build 8     # cuts the person out of that sentence's frames
-node scripts/render_frames.js <work> all --force
-node scripts/fx/behind_text.js <work> off         # cancel
-```
-
-**When to use it — the rule:**
-1. **Twice in the whole video at most, and ≥ 8 s apart.** Close together, or every
-   sentence, it flips from "wow" to noise. `plan` flags a pick too near one already built.
-2. **Best on the hook** (the first sentence) or the idea's peak — the sentence you want
-   them to remember.
-3. The conditions the script checks: the sentence is **one to four words** · its duration
-   is ≥ 0.85 s.
-4. And it works **at full-screen moments only** — if the video is in a small card at that
-   moment, it skips it on its own.
-5. The regular caption card **hides itself automatically** at that moment so the text isn't
-   shown twice.
-6. If the sentence is long or the person is standing at the frame edge, the text shrinks
-   itself — and if no room is left for the letters, don't force it.
-
-**Cost:** ~0.15 s per frame for the cut (a two-second sentence ≈ 10 seconds of work). Needs
-macOS + Xcode CLT (`xcode-select --install`); if unavailable, the script tells you in one
-sentence and the rest of the pipeline runs normally.
-
-### 10) The three cutout styles (macOS only — off by default)
-
-Same person-cutout technique, in three uses. Each is one command then re-rendering only
-its window:
-
-| Style | Shape | Command |
-|---|---|---|
-| **Speech behind the person** | the word stretches with the kashida and passes behind the head | `build 2:6-8` |
-| **Standing in front of the panel** | no card — the person is cut out and standing in front of the design | `cutout 23.8-26.6` |
-| **Head outside the rectangle** | the video is in a small card and the head pokes above its edge | `headout 23.8-26.6` |
-
-```bash
-node scripts/fx/behind_text.js <work> headout 23.8-26.6
-node scripts/render_frames.js <work> range 23.6 26.8
-```
-
-**When to use "head outside the rectangle" or "standing in front of the panel"?**
-When you have an **explanation, a graphic, or an infographic that needs space** — the card
-drops to the bottom small (`R_LOWER`) and leaves **two-thirds of the screen** for the
-design. And in this mode **you're allowed to break the Instagram belt** — what's covered
-is image, not text.
-
-**The engine handles it automatically:** the caption goes above the head · the progress
-bar hides · the size and position are computed from the person's body bounds every frame
-so it doesn't jitter.
-
-### 11) Sound effects
+### 9) Sound effects
 Write `<work>/build/sound-cues.json`:
 ```json
 { "outro": 5.2, "whoosh_up": [3.1,11.25], "whoosh_down": [7.85],
@@ -602,25 +523,16 @@ Write `<work>/build/sound-cues.json`:
 uv run scripts/sound_fx.py <work>
 ```
 
-### 12) Final render, assembly and audio mastering
+### 10) Final render, assembly and audio mastering
 
-**Light:**
 ```bash
-node scripts/lint_compose.js <work>               # static check first — catches a broken wordsOf/SCENES/scene ref in <1 s (a full render is ~12 min)
-node scripts/render_frames.js <work> all          # resumes where it stopped — doesn't redo a finished frame
-bash scripts/encode.sh <work> <work>/build/video-raw.mp4
-```
-Edited one scene after rendering? Don't redo everything — re-render its window, then assemble:
-```bash
-node scripts/render_frames.js <work> range 26.4 31.2
-```
-(`--force` with `all` re-renders from scratch. The script warns you if a frame is missing
-before assembly.)
-
-**Remotion:** produces an MP4 directly, no frames:
-```bash
+bash scripts/remotion/remotion.sh <work> check    # type-check first — catches a broken scene in seconds, not after a long render
 bash scripts/remotion/remotion.sh <work> render <work>/build/video-raw.mp4
 ```
+`check` is worth the few seconds every time: an undefined helper or a bad prop in a scene
+fails the type-check instantly, where a render would have burned minutes before dying.
+The first `render` on a project downloads the toolchain (~500 MB) by itself — there is no
+setup step to run first, and nothing to announce.
 
 #### Audio mastering (+ optional background audio)
 ```bash
@@ -634,7 +546,7 @@ speak** is mixed in, coming back in the pauses. The video is copied as-is, no re
 **Naming:** say "background audio file", not "music" — they decide the content, and you
 handle the file as-is.
 
-### 13) Subtitle file + post caption
+### 11) Subtitle file + post caption
 ```bash
 uv run scripts/subtitles.py <work>
 ```
@@ -843,30 +755,24 @@ and after tightening, the number of fillers cut, the chapter list, and the final
    claim, a number, or a fact the speaker didn't say; if something is unclear, generalize
    rather than invent.
 7. **No publishing, no scheduling** — delivery is a file only.
-8. **"Behind the person" twice in the video at most, ≥ 8 s apart** — closer together it
-   loses its effect. `fx/behind_text.js plan` flags picks that are too near one already built.
-9. **Call it a "background audio file"** — not "music". The user decides its content (a
+8. **Call it a "background audio file"** — not "music". The user decides its content (a
    human voice, ambience, or anything), and you name it by its neutral form and put it in
    `rush/bg-audio.mp3`.
-10. **Invent new scenes every time.** The reference file is a pattern library, not a
-    template to copy.
+9. **Invent new scenes every time.** `Scenes.tsx` ships a pattern library, not a template
+   to copy.
 
 ---
 
 ## Verification before delivery (mandatory)
 
-0. **Safe zone and hook** — an automated check, doesn't need your eyes:
-```bash
-node scripts/safe_check.js <work> --shot
-```
-It draws each moment twice with two colors where the video is, and whatever doesn't change
-= your graphics — so it counts your text inside the Instagram button zones precisely, and
-confirms the first caption is before half a second. It exits with code 3 if there's a
-violation, and produces `build/safe-zone-check.jpg` (only when there's a violation to show)
-with the red shot showing where the problem is. The bounds are adjusted with
-`<work>/config/safe.json` if you need to (a TikTok video with tighter bounds, say) — the
-same rects are reused for every short-form platform by default, so this is a rare
-override, not something to set per project.
+0. **Safe zone and hook** — read them off the two things you already have:
+   - **Safe zone:** set `"guides": true` in `<work>/config/safe.json` and open
+     `remotion/remotion.sh <work> studio` — the platform's button zones are drawn in red
+     over the live video, so a caption or a graphic straying into them is visible at a
+     glance. **Turn it back off before rendering** (the render warns you if you forget —
+     the guides would be burned into the file).
+   - **Hook:** `build/captions.json`'s first card must start before **0.5 s**. That is one
+     number to read, not a check to run.
 
 1. **Sync** — transcribe the output audio again and compare sentence starts to
    `build/captions.json`; the difference should be under 0.1 seconds:
@@ -891,10 +797,10 @@ image ≈ 150k characters; the same at 300 wide ≈ 20k.
    one image.
 3. **One shot per stage**, not per attempt. Changed something? Check it by the numbers
    first, the image last.
-4. **The automated check instead of the eye:** `safe_check.js` gives you a one-line verdict
-   — use it before you take a screenshot.
+4. **Numbers before pixels:** a timing question is answered by reading `captions.json`, not
+   by taking a screenshot.
 5. **ffmpeg output** is always trimmed: `2>&1 | tail -2`.
-6. **Don't read `build/compose.html` whole** — `grep -n` for the function you need.
+6. **Don't read a scene file whole** — `grep -n` for the component you need.
 
 **Don't show an image except for a visual question that nothing else answers.**
 
@@ -936,16 +842,12 @@ for the post caption). And mention that you didn't publish anything.
 | `join_takes.py` | **long-form**: joins the `rush/` recording take(s) → `build/source-joined.mp4` | long-form |
 | `tighten.py` | **long-form**: jump-cut + filler pass (word-level cuts) | long-form |
 | `assemble_longform.py` | **long-form**: B-roll overlays / remux → `build/video-raw.mp4` | long-form |
-| `render_frames.js` | draws the frames (resume + window) | light |
-| `remotion/remotion.sh` | prepares / opens / renders a Remotion project | Remotion |
+| `remotion/remotion.sh` | the renderer — `sync` · `studio` · `render` · `still` · `check` | shared |
 | `sound_fx.py` | the sound effects from `build/sound-cues.json` | shared |
-| `encode.sh` | assembles the frames + audio | light |
 | `master_audio.sh` | −14 LUFS + ducked background audio | shared |
 | `contact_sheet.sh` | one contact sheet (token economy) | shared |
-| `safe_check.js` | safe zone + hook | light (and Remotion: `"guides":true` gives you the zones live in the studio) |
 | `subtitles.py` | subtitle file + caption text (+ `video-final.chapters.txt` from `config/chapters.json`) | shared |
 | `edit_script.py` | drop a sentence from the text → it drops from the video | shared |
-| `fx/behind_text.js` + `personmask.swift` | the three cutout styles (behind the person · in front of the panel · head outside the card) | light |
 | `montage_mode.py` | **montage mode**: scans a clip folder, picks the best moment of each, and assembles them | independent |
 
 **This file is the source of truth for the pipeline.** Beyond it: each script's own

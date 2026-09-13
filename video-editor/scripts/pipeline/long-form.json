@@ -1,5 +1,5 @@
 {
-  "_doc": "Canonical stage list for the long-form world (one or more 16:9 talking-head recordings -> an edited YouTube video with tight jump cuts, chapters and B-roll). Selected by project.config.json format:\"long\" (NOT inferred from rush/). Same stage grammar as reel-speech.json / broll-montage.json. No motif/scene layer, no sound_fx, no safe_check (short-form concept).",
+  "_doc": "Canonical stage list for the long-form world (one or more 16:9 talking-head recordings -> an edited YouTube video with tight jump cuts, chapters and B-roll). Selected by project.config.json format:\"long\" (NOT inferred from rush/). Same stage grammar as reel-speech.json / broll-montage.json. No motif/scene layer and no sound_fx (short-form concepts).",
   "world": "long-form",
   "stages": [
     {

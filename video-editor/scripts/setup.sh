@@ -1,13 +1,13 @@
 #!/bin/bash
-# Check / prepare the toolchain — macOS · Windows (Git-Bash/WSL) · Linux.
+# Check / prepare the toolchain — Windows (Git-Bash/WSL) · Linux.
 #   ./setup.sh            → report only (no installs, no downloads)
 #   ./setup.sh --install  → install missing system tools, then sync the isolated envs
 #
 # What lives where:
-#   - System (installed here via brew/winget/apt): ffmpeg, node, uv
+#   - System (installed here via winget/apt): ffmpeg, node, uv
 #   - Python deps  → uv-managed venv at ../.venv  (from ../pyproject.toml + ../uv.lock)
-#   - Node deps    → ../node_modules  (npm ci; `puppeteer` brings its own Chromium)
-#   - macOS only   → Xcode CLT for `swiftc` (person-cutout effect; skips itself elsewhere)
+#   - Node deps    → ../node_modules  (npm ci; `puppeteer` brings its own Chromium — tests only)
+#   - Renderer     → <work>/remotion/  (remotion.sh installs it on first use, ~500 MB)
 set -u
 . "$(dirname "$0")/lib/platform.sh"
 INSTALL=0; [ "${1:-}" = "--install" ] && INSTALL=1
@@ -47,7 +47,6 @@ fi
 # ─────────────────────────── install mode ─────────────────────────────────
 sys_install(){   # $1 = tool
   case "$PKG:$1" in
-    brew:*)         brew install "$1" ;;
     winget:ffmpeg)  winget install --id Gyan.FFmpeg       -e --accept-source-agreements --accept-package-agreements --disable-interactivity ;;
     winget:node)    winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements --disable-interactivity ;;
     winget:uv)      winget install --id astral-sh.uv      -e --accept-source-agreements --accept-package-agreements --disable-interactivity ;;

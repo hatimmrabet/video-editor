@@ -2,3 +2,8 @@ node_modules
 out
 public/video.mp4
 public/sfx.wav
+# seeded by `npm run check` / CI to type-check the template in isolation — never committed
+# (at render time remotion.sh writes the real ones into <work>/remotion/)
+src/project.json
+src/caps.json
+src/motifs/

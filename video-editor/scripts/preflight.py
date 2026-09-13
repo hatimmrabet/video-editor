@@ -255,13 +255,8 @@ def apply(folder, work, picked, found):
         with open(cfgp, "w", encoding="utf-8") as f:
             json.dump(resolved, f, ensure_ascii=False, indent=2)
 
-    # the per-project drawing surface, in build/ (scene design rewrites it; reference = the start)
-    for src, dst in ((os.path.join(_plat.SCRIPTS, "compose.reference.html"),
-                      os.path.join(work, "build", "compose.html")),
-                     (os.path.join(_plat.SCRIPTS, "studio.html"),
-                      os.path.join(work, "build", "studio.html"))):
-        if os.path.exists(src) and not os.path.exists(dst):
-            shutil.copy2(src, dst)
+    # No drawing surface is seeded here: the scene code lives in the Remotion project at
+    # <work>/remotion/, which scripts/remotion/remotion.sh creates on first use.
     return moved
 
 

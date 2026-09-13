@@ -26,7 +26,7 @@ Endpoints (issues #97 / #98; the SPA is #99):
   POST /projects/<id>/edit  {op, sentences}   -> shells edit_script.py
   POST /projects/<id>/montage {op, clips}      -> shells montage_mode.py drop/keep/undo
   POST /projects/<id>/tighten {apply}          -> shells tighten.py [apply]  (long-form)
-  POST /projects/<id>/preview {times}          -> render_frames.js preview -> {files}
+  POST /projects/<id>/preview {times}          -> remotion.sh still -> {files}
   GET  /motifs                        scripts/motifs/index.json (for the scenes screen)
   GET  /projects/<id>/state           parsed `run.py --json`
   POST /projects/<id>/run   ?from=&to=&only=&force=   run run.py, stream output as SSE
@@ -36,7 +36,6 @@ Endpoints (issues #97 / #98; the SPA is #99):
 import json
 import os
 import re
-import shutil
 import subprocess
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -207,10 +206,6 @@ class H(BaseHTTPRequestHandler):
                 w = _work(pid)
                 for sub in ("rush", "config", "build"):
                     os.makedirs(os.path.join(w, sub), exist_ok=True)
-                for f in ("compose.reference.html", "studio.html"):
-                    dst = os.path.join(w, "build",
-                                       "compose.html" if f.startswith("compose") else f)
-                    shutil.copyfile(os.path.join(SCRIPTS, f), dst)
                 # the project-type picker: long-form is the config.format switch (reframe.py
                 # etc. read it); montage is inferred from rush/ once the clips land, so it
                 # seeds nothing here.
@@ -312,7 +307,7 @@ class H(BaseHTTPRequestHandler):
             times = [("%.2f" % float(t)) for t in b.get("times", [])][:8]
             if not times:
                 return self._err(400, "times required")
-            r = subprocess.run(["node", "scripts/render_frames.js", work, "preview", *times],
+            r = subprocess.run(["bash", "scripts/remotion/remotion.sh", work, "still", *times],
                                cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
             files = ["build/prev/t%s.jpg" % t for t in times
                      if os.path.exists(os.path.join(work, "build", "prev", "t%s.jpg" % t))]

@@ -25,7 +25,6 @@ Options:
     --to ID        stop after stage ID
     --only ID      run just stage ID
     --world NAME   force the world instead of inferring it from rush/
-    --engine NAME  override config.engine for `when` gating (light | remotion)
     --dry          print the plan + per-stage verdict, run nothing
     --force        run every in-range stage regardless of timestamps
     --list         print the world's stage ids and exit
@@ -142,7 +141,6 @@ def main():
     # it's the config.format switch, checked first.
     world = flag(opt, "--world") or ("long-form" if cfg.get("format") == "long"
                                      else infer_world(work))
-    engine = flag(opt, "--engine") or cfg.get("engine", "light")
     source = None
     if world in ("reel-speech", "long-form"):
         try:
@@ -151,11 +149,8 @@ def main():
             source = None  # a later stage will report it precisely
 
     def when_ok(s):
-        for k, v in s.get("when", {}).items():
-            eff = engine if k == "engine" else cfg.get(k)
-            if eff != v:
-                return False
-        return True
+        # `when` gates a stage on a project.config.json value (see the manifest _doc).
+        return all(cfg.get(k) == v for k, v in s.get("when", {}).items())
 
     manifest = load_manifest(world)
     stages = [s for s in manifest["stages"] if when_ok(s)]
@@ -198,11 +193,11 @@ def main():
             out.append(e)
             if nxt is None and v != "SKIP":
                 nxt = s["id"]   # the first stage not up to date — the screen the UI shows
-        print(json.dumps({"world": world, "engine": engine, "stages": out, "next": nxt}))
+        print(json.dumps({"world": world, "stages": out, "next": nxt}))
         raise SystemExit(0)
 
-    print("world: %s | engine: %s | %d stage(s)%s"
-          % (world, engine, len(sel), "  [dry run]" if dry else ""))
+    print("world: %s | %d stage(s)%s"
+          % (world, len(sel), "  [dry run]" if dry else ""))
     print("-" * 60)
     for s in stages:
         if s["id"] not in sel:

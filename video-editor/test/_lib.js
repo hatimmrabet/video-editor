@@ -125,6 +125,7 @@ function mkChecker() {
   A.check = (label, cond, ctx) => {
     console.log((cond ? "  ok  " : " FAIL ") + label + (cond || !ctx ? "" : "   « " + String(ctx).replace(/\s+/g, " ").slice(0, 240)));
     A.ok = A.ok && !!cond;
+    return !!cond;              // chainable: `if (!check(...)) continue;`
   };
   return A;
 }

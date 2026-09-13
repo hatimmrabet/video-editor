@@ -227,7 +227,7 @@ function select(id, opts, cur, labels) {
 async function saveConfig() {
   const g = id => document.getElementById(id).value.trim();
   const cfg = Object.assign({}, S.cfg, {
-    format: g("cf_format"), engine: "light", language: g("cf_lang") || undefined,
+    format: g("cf_format"), language: g("cf_lang") || undefined,
     theme: Object.assign({}, S.cfg.theme, {
       bg: g("cf_bg") || undefined, acc: g("cf_acc") || undefined, handle: g("cf_handle") || undefined }),
   });

@@ -43,7 +43,7 @@ export default function Checklist({prog, wordIndex, theme, params}: Props) {
       )}
       {items.map((label, i) => {
         let k: number;
-        if (params.tick === 'words') k = cl(wordIndex - i + 1, 0, 1);
+        if (params.tick === 'words') k = cl(wordIndex - i + 1);
         else { const t0 = 0.12 + (i / Math.max(1, items.length)) * 0.7; k = cl((prog - t0) / 0.14); }
         const y = y0 + i * rowH;
         return (
