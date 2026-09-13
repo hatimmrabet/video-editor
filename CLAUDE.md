@@ -42,7 +42,7 @@ it drifted from the code, and it was deleted. Three places, and only these three
 |---|---|
 | What the pipeline does, in order, and how to talk to the user | `video-editor/SKILL.md` |
 | What one script does, its CLI, its inputs/outputs | that script's own docstring, at the top of the file |
-| The canonical stage list per world (`needs` / `makes` / checkpoints) | `video-editor/scripts/pipeline/<world>.json` |
+| The canonical stage list per world (`needs` / `makes` / checkpoints) | `video-editor/scripts/pipeline/<world>.json` (`talking-video`, `broll-montage`) |
 
 Consequences, and they are not optional:
 
@@ -97,7 +97,8 @@ uv run scripts/captions.py <work>                  # -> build/captions.json
 # Claude finds the repeats itself and writes build/retake-cuts.json (SKILL.md step 6) — no detection script
 uv run scripts/retakes.py <work> apply             # applies build/retake-cuts.json — the only fiddly, error-prone part
 uv run scripts/edit_script.py <work> show          # drop whole sentences (BEFORE scene design)
-uv run scripts/reframe.py <work>                   # -> build/video-reframed.mp4
+uv run scripts/tighten.py <work>                   # propose word-level cuts; `apply` commits them
+uv run scripts/reframe.py <work>                   # applies the cut plan -> build/video-reframed.mp4
 bash  scripts/master_audio.sh <work> <work>/build/video-raw.mp4 <work>/video-final.mp4
 
 # rendering — Remotion, the only engine. Every command installs the toolchain on first use
@@ -121,9 +122,12 @@ rather than reading it whole.
 
 ## Architecture essentials
 
-- **Two modes, chosen from the input, never asked:** a single file with speech → the reel
-  pipeline (SKILL.md steps 1–13); a folder of clips → `montage_mode.py` (no transcription,
-  no captions, no theme). `format:"long"` in the config forces the long-form world instead.
+- **Two modes, chosen from the input, never asked:** speech → the talking-video pipeline
+  (SKILL.md steps 1–13), whatever the recording's length or orientation; silent clips →
+  `montage_mode.py` (no transcription, no captions, no theme). There is no short/long
+  switch and no `format` key: `reframe.py` reads the source's own dimensions, so the output
+  keeps the orientation it was shot in. Several files that all carry sound are the one case
+  footage cannot settle — `preflight.py` asks instead of guessing, and `--world` answers it.
 - **One rendering engine: Remotion.** `remotion.sh` builds `<work>/remotion/` from
   `scripts/remotion/template/` plus the project's `captions.json`, `project.config.json`,
   `video-reframed.mp4` and `sound-effects.wav`, then renders with `npx remotion render`.

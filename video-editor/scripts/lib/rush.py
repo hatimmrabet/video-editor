@@ -20,9 +20,9 @@ def _root_files(rush):
 def find_source(work):
     """The primary video file.
 
-    - long-form: build/source-joined.mp4 (join_takes.py's output) when it exists, so
+    - build/source-joined.mp4 (join_takes.py's output) when it exists, so
       plan_cuts.py / reframe.py / the audio extract all use the joined recording.
-    - otherwise: the one file at rush/'s root — reel-speech (one talking-head video).
+    - otherwise: the one file at rush/'s root.
     """
     joined = os.path.join(work, "build", "source-joined.mp4")
     if os.path.exists(joined):
@@ -31,23 +31,14 @@ def find_source(work):
     cands = _root_files(rush)
     if len(cands) != 1:
         raise SystemExit(
-            f"rush/ must hold exactly one source file for reel-speech (found {len(cands)}): {cands}")
+            f"rush/ must hold exactly one source file (found {len(cands)}): {cands}")
     return os.path.join(rush, cands[0])
 
 
 def find_clips(work):
-    """Every file at rush/'s root, sorted — broll-montage mode (many clips)."""
+    """Every file at rush/'s root, sorted — the broll-montage world (many clips)."""
     rush = _rush_dir(work)
     return [os.path.join(rush, f) for f in _root_files(rush)]
-
-
-def find_broll(work):
-    """Every file under rush/broll/, sorted — always optional, [] if the folder is absent."""
-    broll = os.path.join(work, "rush", "broll")
-    if not os.path.isdir(broll):
-        return []
-    return sorted(os.path.join(broll, f) for f in os.listdir(broll)
-                  if os.path.isfile(os.path.join(broll, f)))
 
 
 def background_audio(work):

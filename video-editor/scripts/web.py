@@ -18,14 +18,14 @@ Endpoints (issues #97 / #98; the SPA is #99):
   GET  /                              the SPA (scripts/web/index.html) or a placeholder
   GET  /health
   GET  /projects                      list
-  POST /projects       {name, format} create -> {id}  (format:"long" seeds long-form)
+  POST /projects       {name} create -> {id}
   POST /projects/<id>/rush            raw body + X-Filename header -> rush/<filename>
   GET  /projects/<id>/config          merged config (lib.config.load)
   PUT  /projects/<id>/config {...}    write config/project.config.json
   PUT  /projects/<id>/decision/<name> write a decision file (allow-listed)
   POST /projects/<id>/edit  {op, sentences}   -> shells edit_script.py
   POST /projects/<id>/montage {op, clips}      -> shells montage_mode.py drop/keep/undo
-  POST /projects/<id>/tighten {apply}          -> shells tighten.py [apply]  (long-form)
+  POST /projects/<id>/tighten {apply}          -> shells tighten.py [apply]
   POST /projects/<id>/preview {times}          -> remotion.sh still -> {files}
   GET  /motifs                        scripts/motifs/index.json (for the scenes screen)
   GET  /projects/<id>/state           parsed `run.py --json`
@@ -55,7 +55,6 @@ DECISIONS = {
     "sound-cues":        "build/sound-cues.json",
     "scenes":            "config/scenes.json",
     "chapters":          "config/chapters.json",
-    "broll":             "config/broll.json",
 }
 MIME = {".html": "text/html", ".js": "text/javascript", ".css": "text/css",
         ".json": "application/json", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
@@ -190,7 +189,6 @@ class H(BaseHTTPRequestHandler):
                         cfg = _config.load(w)
                         rush = os.path.join(w, "rush")
                         out.append({"id": d,
-                                    "format": cfg.get("format", "short"),
                                     "language": cfg.get("language"),
                                     "hasVideo": os.path.isdir(rush) and bool(os.listdir(rush)),
                                     "hasDeliverable": os.path.exists(os.path.join(w, "video-final.mp4"))})
@@ -206,13 +204,6 @@ class H(BaseHTTPRequestHandler):
                 w = _work(pid)
                 for sub in ("rush", "config", "build"):
                     os.makedirs(os.path.join(w, sub), exist_ok=True)
-                # the project-type picker: long-form is the config.format switch (reframe.py
-                # etc. read it); montage is inferred from rush/ once the clips land, so it
-                # seeds nothing here.
-                if b.get("format") == "long":
-                    with open(os.path.join(w, "config", "project.config.json"),
-                              "w", encoding="utf-8") as f:
-                        json.dump({"format": "long"}, f, ensure_ascii=False, indent=1)
                 return self._send(201, {"id": pid})
             return self._err(405, method)
 
@@ -226,9 +217,8 @@ class H(BaseHTTPRequestHandler):
 
         if sub == "/rush" and method == "POST":
             raw = (self.headers.get("X-Filename") or "").replace("\\", "/").strip("/")
-            # a plain filename, or a file in the one allowed subdir (rush/broll/ for long-form cutaways)
-            fn = ("broll/" + os.path.basename(raw)) if raw.startswith("broll/") else os.path.basename(raw)
-            if not fn or fn == "broll/":
+            fn = os.path.basename(raw)
+            if not fn:
                 return self._err(400, "X-Filename header required")
             dst = _jailed(os.path.join(work, "rush"), fn)
             if not dst:
@@ -294,7 +284,7 @@ class H(BaseHTTPRequestHandler):
             return self._send(200 if r.returncode == 0 else 400,
                               {"exit": r.returncode, "output": (r.stdout or "") + (r.stderr or "")})
 
-        if sub == "/tighten" and method == "POST":   # the long-form `tighten` checkpoint
+        if sub == "/tighten" and method == "POST":   # the `tighten` checkpoint
             b = self._json_body() or {}
             args = ["apply"] if b.get("apply") else []
             r = subprocess.run([*PY, "scripts/tighten.py", work, *args],

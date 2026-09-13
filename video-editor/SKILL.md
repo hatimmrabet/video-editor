@@ -1,6 +1,6 @@
 ---
 name: video-editor
-description: Edits a talking-to-camera video (selfie / teleprompter) into a finished vertical 9:16 reel for Instagram, TikTok or YouTube Shorts — removes the silences, transcribes the speech with per-word timing, adds synced captions in the speaker's own dialect, builds code-drawn motion graphics and B-roll scenes, and an end card. Whatever the video is for — explaining a subject, a lesson, an announcement, a promotion — it is an edit, not an ad format. It also has a second montage mode: a folder of speechless clips (cafés, travel, a product, a place) — it picks the best moment of each clip and assembles them into one rhythmic montage. And a third long-form mode: one or more long talking recordings become an edited 16:9 YouTube video — pauses and filler words cut tight, chapter markers, optional B-roll cutaways, soft subtitles. ALWAYS use this skill when the user says "edit this clip", "montage this video", "turn this video into a reel", "make a short out of this", "produce this clip", "remove the silences / the dead air / the pauses", "cut the silence", "add captions", "add subtitles", "I want motion graphics on the video", "I have 30 clips, make me one video out of them", "make me a montage from these clips", "pick the best shots", "make a YouTube video out of this", "edit this into a YouTube video", "tighten this talk", "cut the pauses out of this lecture", "add chapters", "add a chapter index" — or their French equivalents ("monte cette vidéo", "fais-moi un reel", "enlève les silences / les blancs", "coupe les temps morts", "ajoute les sous-titres", "je veux des animations sur la vidéo", "fais un montage avec ces clips", "choisis les meilleurs plans", "fais-en une vidéo YouTube", "resserre cette prise de parole", "ajoute des chapitres") — or sends a talking video, a folder of clips, or a long recording and asks for an edit. NOT for carousels (use carousel-creator) or video covers (use animated-video-cover).
+description: Edits a video of someone talking to camera (selfie / teleprompter / a talk / a lesson) into a finished, captioned video — removes the silences, transcribes the speech with per-word timing, cuts out repeated takes, tightens the pauses and the filler words, adds word-synced captions in the speaker's own dialect, builds code-drawn motion graphics scenes, an end card, and chapter markers on a long recording. **The output keeps the orientation it was shot in** — a vertical recording gives a vertical video for Instagram / TikTok / Shorts, a horizontal one gives a horizontal video for YouTube; there is no format to choose. It also has a second montage mode: a folder of speechless clips (cafés, travel, a product, a place) — it picks the best moment of each clip and assembles them into one rhythmic montage. ALWAYS use this skill when the user says "edit this clip", "montage this video", "turn this video into a reel", "make a short out of this", "produce this clip", "remove the silences / the dead air / the pauses", "cut the silence", "add captions", "add subtitles", "I want motion graphics on the video", "I have 30 clips, make me one video out of them", "make me a montage from these clips", "pick the best shots", "make a YouTube video out of this", "edit this into a YouTube video", "tighten this talk", "cut the pauses out of this lecture", "add chapters", "add a chapter index" — or their French equivalents ("monte cette vidéo", "fais-moi un reel", "enlève les silences / les blancs", "coupe les temps morts", "ajoute les sous-titres", "je veux des animations sur la vidéo", "fais un montage avec ces clips", "choisis les meilleurs plans", "fais-en une vidéo YouTube", "resserre cette prise de parole", "ajoute des chapitres") — or sends a talking video, a folder of clips, or a long recording and asks for an edit. NOT for carousels (use carousel-creator) or video covers (use animated-video-cover).
 ---
 
 # Video editing — no editing app
@@ -16,26 +16,32 @@ TikTok or YouTube Shorts — usually explaining a subject, sometimes a lesson or
 announcement, occasionally a promotion. Never call the result "an ad" and never assume the
 video is selling something. It is *their video*, edited.
 
-## Three modes — decide which one you're in, in your first line
+## Two modes — decide which one you're in, in your first line
 
-| | **Talking video** (default) | **Clip montage** | **Long-form** |
-|---|---|---|---|
-| Input | one video of a person talking | a folder with many speechless clips | one or more long talking recordings |
-| Example | selfie · teleprompter · explainer | café · trip · product · place · event | a YouTube talk · a lesson · a podcast |
-| Output | 9:16 captioned reel | one rhythmic MP4 | **16:9** edited talk with chapters |
-| Selection driven by | the speech (remove silences + repeats) | the shot itself (sharpness · motion · lighting) | the speech (**tight** jump cuts + filler words) |
-| Captions? | yes, word-synced burned-in | **no** | soft `.srt` only |
-| Steps | 1–13 below | the "Montage mode" section | the "Long-form mode" section |
+| | **Talking video** (default) | **Clip montage** |
+|---|---|---|
+| Input | someone talking — one file, or several takes of the same talk | a folder of speechless clips |
+| Example | selfie · teleprompter · explainer · a lesson · a YouTube talk | café · trip · product · place · event |
+| Output | a captioned edit, **in the orientation it was shot in** | one rhythmic MP4 |
+| Selection driven by | the speech (silences, repeats, pauses, filler words) | the shot itself (sharpness · motion · lighting) |
+| Captions? | yes, word-synced, burned in | **no** |
+| Steps | 1–13 below | the "Montage mode" section |
 
-**How do you know the mode without asking?** A **folder** / more than one clip with no
-speech = montage. **A single file with speech** = talking video. They ask for a **YouTube
-edit**, "tighten this talk", "cut the pauses in this lecture", "add chapters", or hand you
-a long recording for YouTube = long-form — and you set `"format": "long"` in the config
-(it's the one thing that can't be read from the footage). If a folder turns out to have
-audible speech and they want captions, run the talking-video flow on the main clip.
+**There is no short/long choice, and no aspect-ratio question.** A vertical recording
+gives a vertical video, a horizontal one gives a horizontal video — the source decides, and
+nothing is ever cropped to a different shape. A 30-second reel and a 40-minute talk run the
+exact same steps; a long one simply has more to tighten and is worth proposing chapters for.
+
+**How do you know the mode without asking?** **Speech decides.** Someone talking →
+talking video, whatever its length or orientation. Silent clips → montage. Step 1 probes
+every file and tells you. The one case footage cannot settle is **several files that all
+have sound** — takes of one talk, or footage for a montage? Step 1 turns that into a
+question; ask it, then re-run with `--world talking-video` or `--world broll-montage`.
 
 **Do not ask "which mode do you want?"** — read the input, go, and tell them in one
 sentence what you understood.
+
+---
 
 ## The rendering engine — don't say a word about it
 
@@ -79,7 +85,7 @@ and doesn't want to. Never hand them a list of commands to run.
 
 **Always name the step you are on, and the step that comes next.** The person must never
 have to wonder where they are in the flow. Head every message with
-`Step N/11 — <name> — <STATE>`, the state in capitals right after the title with a dash
+`Step N/13 — <name> — <STATE>`, the state in capitals right after the title with a dash
 (`DONE`, `RUNNING`, `WAITING FOR YOU`, `SKIPPED`). End the message with the next step.
 
 **Facts go in a list, never in a paragraph.** One line per item, a dash, the thing's name,
@@ -87,7 +93,7 @@ a colon, then its facts separated by `·`. Never a sentence that buries three nu
 prose.
 
 ```
-Step 1/11 — Preparation — DONE
+Step 1/13 — Preparation — DONE
 
 Tools: everything already installed.
 
@@ -99,7 +105,7 @@ Folders prepared:
 - work/config/  the settings
 - work/build/   the working files
 
-Next — step 2/11, the settings (defaults, nothing to do).
+Next — step 2/13, the settings (defaults, nothing to do).
 ```
 
 **Never write a paragraph announcing everything you are about to do.** No "I'll cut the
@@ -185,14 +191,14 @@ defaults — that file is now the single source for this project. Read it, show 
 lines, move on:
 
 ```
-Step 2/11 — Settings — DONE
+Step 2/13 — Settings — DONE
 
 - language : ar-MA (northern-Morocco darija — hard-dialect mode on)
 - font     : Cairo
 - colours  : white background · blue accent · purple second · @hatim.exp
   (written to work/config/project.config.json — edit it there if a render needs a nudge)
 
-Next — step 3/11, cutting the silences.
+Next — step 3/13, cutting the silences.
 ```
 
 The defaults these came from:
@@ -205,7 +211,7 @@ The defaults these came from:
 | `theme.acc` / `clay` | `#2563EB` / `#7C3AED` | blue accent, purple second |
 | `theme.mut` | `#667085` | |
 | `theme.handle` | `@hatim.exp` | the same handle everywhere |
-| `format` · `grade` | `short` · `false` | never ask about these |
+| `grade` | `false` | never ask about this |
 
 **Do not ask for colours, a logo, a font or a language.** The per-project *questionnaire*
 is deliberately off in this version — the file is written once from the defaults and left
@@ -245,31 +251,35 @@ Here is the flow. Tell me if you want to drop any of it.
   4  Transcribe the speech                             on
   5  Correct the transcript (I do it)                  on
   6  Finalize the script: repeats gone, your edits      on
-  7  Reframe to vertical 9:16                          on
-  8  On-screen captions + animations                   on   (language: darija)
-  9  Sound effects                                     on
- 10  Final render + audio mastering                    on
- 11  Subtitle file (.srt) + post caption               on
+  7  Tighten the pauses + the filler words             on
+  8  Chapter markers                                   off  (long recordings only)
+  9  Cut and assemble                                  on
+ 10  On-screen captions + animations                   on   (language: darija)
+ 11  Sound effects                                     on
+ 12  Final render + audio mastering                    on
+ 13  Subtitle file (.srt) + post caption               on
 
 Say "everything" and I start, or name what to drop
 ("no animations", "captions in French", "no sound effects").
 ```
 
-**Every step is a switch except 1, 2, 7 and 10** — preparation, settings, reframing and the
-render are what make a file at all. Everything else is the creator's call, and the answer is
-theirs, not yours.
+**Every step is a switch except 1, 2, 9 and 12** — preparation, settings, assembling the
+cut and the render are what make a file at all. Everything else is the creator's call, and
+the answer is theirs, not yours.
 
 **When a switch is off, say what it changes** in one line, and honour the dependencies:
 
 | Turned off | What happens |
 |---|---|
 | 3 cut the silences | the original pace is kept, the video stays its full length; the clean-frame pass goes with it |
-| 4 transcribe | **forces 5, 6, 8, 11 off** — no text means no captions and no `.srt` |
+| 4 transcribe | **forces 5, 6, 7, 8, 10, 13 off** — no text means no word timings, so no tightening, no chapters, no captions and no `.srt` |
 | 5 correct the transcript | Whisper's raw text is used, mistakes and all — in darija that is a lot |
 | 6 finalize the script | repeats, stammers and false starts stay in, and whole sentences the speaker wanted gone stay in too — **both halves of this step drop together** |
-| 8 captions + animations | **two switches in one step.** "No animations" gives a captions-only reel — a valid choice, not a failure. "No captions" gives picture only. The caption language is chosen here, not in the settings |
-| 9 sound effects | a silent bed, the speaker's voice untouched |
-| 11 subtitle file | no `.srt`, no post caption text |
+| 7 tighten | the pauses and the "euh"s stay as recorded — the natural pace, at the natural length |
+| 8 chapters | no `video-final.chapters.txt`; it is off by default anyway |
+| 10 captions + animations | **two switches in one step.** "No animations" gives a captions-only reel — a valid choice, not a failure. "No captions" gives picture only. The caption language is chosen here, not in the settings |
+| 11 sound effects | a silent bed, the speaker's voice untouched |
+| 13 subtitle file | no `.srt`, no post caption text |
 
 **Running the mechanical stages.** `uv run scripts/run.py <work>` runs them in order, skips
 whatever is already up to date, and stops at the points that need the creator. `run.py
@@ -390,16 +400,47 @@ The sentence is removed from the video and the audio, everything after it shifts
 the scenes, all their times shift and you have to redo them. And after any deletion: re-run
 `reframe.py`, re-extract the frames, and re-render with `--force`.
 
-### 7) Reframe to vertical 9:16
+### 7) Tighten the pauses and the filler words
+```bash
+uv run scripts/tighten.py <work>              # proposes the cuts, writes build/tighten-plan.json
+```
+It trims every inter-word pause over 250 ms down to 90 ms (hard jump cuts) and drops filler
+words (`um`, `euh`, `يعني` …) from `scripts/fillers.json`. **Show the user the summary** —
+"847 micro-cuts, 41 fillers, 3m12s removed, 18m04 → 14m52" — and the filler list in
+context. If they want a specific filler kept or an extra one dropped, adjust and re-run:
+```bash
+uv run scripts/tighten.py <work> apply        # folds it into cut-plan.json + captions.json
+```
+This is terminal (like `edit_script.py apply`) — don't re-run `captions.py` after it. Undo
+= restore the `.bak` files. Thresholds live under `tighten` in the config (`pauseMs` 250,
+`keepMs` 90, `fillers` true); the defaults are good, only touch them if the user wants a
+looser or tighter cut.
+
+**On a short reel this usually finds little** — say so in one line and move on. On a long
+recording it is the single biggest win of the whole edit.
+
+### 8) Chapters — only worth proposing on a long recording
+Read the corrected transcript and **propose 3–8 chapter breaks** — the topic shifts, keyed
+to a sentence number. After they confirm, write `<work>/config/chapters.json`:
+```json
+[ { "ref": { "sentence": 0 }, "title": "Intro" },
+  { "ref": { "sentence": 34 }, "title": "The three mistakes" } ]
+```
+Optional, and pointless under a few minutes: no file means no chapter markers. With one,
+`subtitles.py` also writes `video-final.chapters.txt` (the first is forced to `00:00`) —
+the list to paste into a YouTube description.
+
+### 9) Cut and assemble
 ```bash
 uv run scripts/reframe.py <work>
 ```
-- Vertical source (selfie) → passes through as-is.
-- **Landscape** source (16:9) → a vertical 9:16 frame is cropped from it; if the speaker
-  isn't centered, set `crop.xAnchor` in `project.config.json` (0 = left · 0.5 = center · 1 = right).
-  Preview one frame before continuing.
+Applies the cut plan: the kept segments are trimmed, concatenated, and given a different
+gentle zoom each. **The output keeps the source's orientation and size** — nothing is
+cropped to a different aspect. The per-segment zoom crops *inside* the frame; if the
+speaker sits off-centre, set `crop.xAnchor` / `crop.yAnchor` in `project.config.json`
+(0 = left/top · 0.5 = centre · 1 = right/bottom). Preview one frame before continuing.
 
-### 8) Design the scenes and the on-screen captions ← the most important step
+### 10) Design the scenes and the on-screen captions ← the most important step
 The scene code lives at `<work>/remotion/src/Scenes.tsx` — `remotion/remotion.sh <work>
 sync` creates it on first use and **never overwrites it afterwards**. Rewrite its scene
 components (or author `config/scenes.json` instead — the data-driven path, dispatched by
@@ -473,12 +514,6 @@ the number of caption lines at that moment, so the graphic and the caption never
 each other. Panels are drawn at coordinates `130..950 × 278..458` inside `panelIn()` and
 they scale to 1.2 on their own.
 
-**B-roll shots (optional):** put the cutaway clip(s) in `<work>/rush/broll/` (a folder —
-it may hold several,),
-extract the useful segments to frames in `<work>/build/broll-frames/<name>_%04d.jpg`,
-declare their range in `BR_NEED`, and show them with `brCard()` and `R_LOWER`. `BRCROP`
-trims burned-in subtitles from the bottom of a shot. 3–4 shots in a video is enough.
-
 **"Explanation on top, video below" mode (`R_LOWER`)** — for B-roll and big panels: the
 video moves to the bottom and fills the lower screen (the speaker's head gets cropped a
 little from the top, which is intentional and visually acceptable), and the panels and
@@ -513,7 +548,7 @@ bash scripts/remotion/remotion.sh <work> studio           # a live timeline in t
 sheet = one read instead of five. **Don't render the whole video before previewing at
 least 6 shots**, and show the sheet to the user.
 
-### 9) Sound effects
+### 11) Sound effects
 Write `<work>/build/sound-cues.json`:
 ```json
 { "outro": 5.2, "whoosh_up": [3.1,11.25], "whoosh_down": [7.85],
@@ -523,7 +558,7 @@ Write `<work>/build/sound-cues.json`:
 uv run scripts/sound_fx.py <work>
 ```
 
-### 10) Final render, assembly and audio mastering
+### 12) Final render, assembly and audio mastering
 
 ```bash
 bash scripts/remotion/remotion.sh <work> check    # type-check first — catches a broken scene in seconds, not after a long render
@@ -546,7 +581,7 @@ speak** is mixed in, coming back in the pauses. The video is copied as-is, no re
 **Naming:** say "background audio file", not "music" — they decide the content, and you
 handle the file as-is.
 
-### 11) Subtitle file + post caption
+### 13) Subtitle file + post caption
 ```bash
 uv run scripts/subtitles.py <work>
 ```
@@ -638,101 +673,6 @@ isn't decoration — without it the video is silent.
 3. **No theme, no colors, no grade** — the image comes out in its original colors (same as
    rule 4).
 4. Reasonable duration is **20–40 seconds**; longer and the viewer gets bored.
-5. **No publishing, no scheduling** — delivery is a file only.
-
----
-
-# Long-form mode — YouTube 16:9
-
-One or more long talking recordings, and the ask is an **edited YouTube video**: the
-pauses tightened out, filler words gone, chapters in the description, maybe a few B-roll
-cutaways. **No motion-graphics scenes, no sound effects, no Instagram safe-zone check** —
-this is a different, much smaller path than the reel. Captions are a soft `.srt` file, not
-burned in.
-
-**The conductor runs it.** `uv run scripts/run.py <work>` runs every mechanical stage and
-stops at the four points that need you and the user. Below is what to do at each stop; the
-stages between them are automatic.
-
-### 1) Configuration
-Same as talking-video step 2, but write **`"format": "long"`** in
-`<work>/config/project.config.json` — that's the switch that selects this world. Ask the
-video's language. Theme colors barely matter here (no cards, no end card); you still need
-the language. The tightening thresholds live under `longform` (`pauseMs` 250, `keepMs` 90,
-`fillers` true) — defaults are good, only touch them if the user wants a looser or tighter
-cut.
-
-### 2) Get the recordings
-Copy every take into `<work>/rush/` (keeping names). One file or several — `run.py`'s
-`join` stage concatenates them into `build/source-joined.mp4` (the takes must be the same
-resolution / codec — a single session split into files is the normal case).
-
-```bash
-uv run scripts/run.py <work>          # runs join → cut → audio → transcribe, then stops
-```
-
-### 3) Correct the transcript ← same as the reel (steps 4–5)
-Read `build/transcript-raw.json` whole and reword every garbled sentence yourself, in the
-video's own language and register; write `build/transcript-fixes.json` (one entry per
-Whisper segment — the per-sentence word count need not match). Show a summary, not a
-line-by-line session. Then: 
-
-```bash
-uv run scripts/run.py <work>          # runs captions, then stops at the tighten checkpoint
-```
-
-### 4) Tighten ← the core of this mode
-```bash
-uv run scripts/tighten.py <work>              # proposes the cuts, writes build/tighten-plan.json
-```
-It trims every inter-word pause over 250 ms down to 90 ms (hard jump cuts) and drops
-filler words (`um`, `euh`, `يعني` …) from `scripts/fillers.json`. **Show the user the
-summary** — "847 micro-cuts, 41 fillers, 3m12s removed, 18m04 → 14m52" — and the filler
-list in context. If they want a specific filler kept or an extra one dropped, adjust and
-re-run. Then:
-```bash
-uv run scripts/tighten.py <work> apply        # folds it into cut-plan.json + captions.json
-```
-This is terminal (like `edit_script.py apply`) — don't re-run `captions.py` after it. Undo
-= restore the `.bak` files.
-
-### 5) Propose chapters
-Read the corrected transcript and **propose 3–8 chapter breaks** to the user — the topic
-shifts, keyed to a sentence number. After they confirm, write
-`<work>/config/chapters.json`:
-```json
-[ { "ref": { "sentence": 0 }, "title": "Intro" },
-  { "ref": { "sentence": 34 }, "title": "The three mistakes" } ]
-```
-Optional — no file means no chapter markers. `subtitles.py` turns it into
-`video-final.chapters.txt` (the first is forced to `00:00`).
-
-### 6) B-roll cutaways (optional)
-If they gave you cutaway clips, put them in `<work>/rush/broll/` and write
-`<work>/config/broll.json` — each entry is a span (`{ "range": [t0,t1] }` or
-`{ "sentence": N }`) + the clip filename. The clip covers the speaker for that span; the
-speaker's audio keeps playing.
-```json
-[ { "ref": { "range": [72.0, 78.5] }, "clip": "screen-recording.mp4", "at": 0.4 } ]
-```
-
-### 7) Finish
-```bash
-uv run scripts/run.py <work>          # reframe (16:9) → assemble → master → subs
-```
-Delivers `<work>/video-final.mp4` (1920×1080), `video-final.srt`, `post-caption.txt`, and
-`video-final.chapters.txt` if there are chapters. **Present it with:** the duration before
-and after tightening, the number of fillers cut, the chapter list, and the final loudness.
-
-### Long-form rules
-1. **Tighten is a proposal, not an auto-apply** — always show the user the summary and the
-   filler list before `apply`.
-2. **Chapters are your judgment from the transcript** — there's no automatic topic
-   detection. Propose, let the user adjust.
-3. **Soft captions only.** No burned-in text (`longform.captions: "burned"` is reserved,
-   not built). YouTube renders the `.srt`.
-4. **No end card, no badge, no motion graphics, no sound effects** — this mode is the cut
-   and the chapters, nothing decorative.
 5. **No publishing, no scheduling** — delivery is a file only.
 
 ---
@@ -838,10 +778,9 @@ for the post caption). And mention that you didn't publish anything.
 | `transcribe.py` | transcription → `build/transcript-raw.json` (faster-whisper GPU/CPU ← whisper) | shared |
 | `plan_cuts.py` | measures the silences and produces the speech segments | shared |
 | `captions.py` | per-word timing on the new timeline | shared |
-| `reframe.py` | cut + reframe (9:16, or 16:9 for `format:"long"`) + zoom + bt709 tag | shared |
-| `join_takes.py` | **long-form**: joins the `rush/` recording take(s) → `build/source-joined.mp4` | long-form |
-| `tighten.py` | **long-form**: jump-cut + filler pass (word-level cuts) | long-form |
-| `assemble_longform.py` | **long-form**: B-roll overlays / remux → `build/video-raw.mp4` | long-form |
+| `reframe.py` | applies the cut plan: trim + concat + per-segment zoom + bt709 tag, in the source's own size | talking video |
+| `join_takes.py` | joins the `rush/` recording take(s) → `build/source-joined.mp4` | talking video |
+| `tighten.py` | jump-cut + filler pass (word-level cuts) | talking video |
 | `remotion/remotion.sh` | the renderer — `sync` · `studio` · `render` · `still` · `check` | shared |
 | `sound_fx.py` | the sound effects from `build/sound-cues.json` | shared |
 | `master_audio.sh` | −14 LUFS + ducked background audio | shared |

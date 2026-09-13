@@ -9,9 +9,11 @@ T.web("scenes", async ({ base, page, vid, J, work, check }) => {
   const { id } = await J("POST", "/projects", { name: "scn" });
   const W = work(id);
   await fetch(base + `/projects/${id}/rush`, { method: "POST", headers: { "X-Filename": "v.mp4" }, body: fs.readFileSync(vid) });
-  await J("PUT", `/projects/${id}/config`, { format: "short", language: "en", engine: "light" });
+  await J("PUT", `/projects/${id}/config`, { language: "en" });
 
   T.writeFiles(W, {
+    "build/source-joined.mp4": "x",
+    "build/tighten-plan.json": { cuts: [], gaps: [], fillers: [], before: 3, after: 3, saved: 0 },
     "build/cut-plan.json": { keep: [[0, 3]], total: 3, src_dur: 3 }, "build/.settled": "x",
     "build/transcribe-input.wav": "{}", "build/transcript-raw.json": "{}",
     "build/transcript-fixes.json": "{}", "build/sound-effects.wav": "{}",
@@ -26,7 +28,7 @@ T.web("scenes", async ({ base, page, vid, J, work, check }) => {
   await page.goto(base + "/", { waitUntil: "networkidle0" });
   await page.waitForFunction(() => document.querySelector("h2")?.textContent === "Projects");
   await page.evaluate(x => open(x), id);
-  await page.evaluate(() => { S.passed.add("script-review"); render(); });   // tick past the advisory checkpoint
+  await page.evaluate(() => { S.passed.add("script-review"); S.passed.add("tighten"); S.passed.add("chapters"); render(); });   // tick past the advisory checkpoint
   await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => /design the scenes/.test(h.textContent)), { timeout: 8000 });
 
   const nMot = await page.$$eval("select", ss => ss.filter(s => [...s.options].some(o => o.value === "stamp")).length);

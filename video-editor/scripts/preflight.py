@@ -43,8 +43,9 @@ CONFIG_NAME = "project.config.json"
 BG_AUDIO = "bg-audio.mp3"
 
 OK, TOOLS, DECIDE, EMPTY = 0, 10, 20, 30
+AMBIGUOUS = "ambiguous"   # several files with sound: takes of one talk, or a montage?
 
-LONG_SECONDS = 180.0        # beyond this, flag the recording as a long-form candidate
+LONG_SECONDS = 180.0        # beyond this, note that the recording is a long one
 MIN_WIDTH = 1080            # below this the reframe zoom has almost no room
 
 
@@ -181,14 +182,12 @@ def relocate(target):
 
 
 def scan(folder):
-    """Media / config / logo / bg-audio / broll sitting at the folder's root."""
-    out = {"media": [], "config": None, "logo": None, "bg_audio": None, "broll": None,
+    """Media / config / logo / bg-audio sitting at the folder's root."""
+    out = {"media": [], "config": None, "logo": None, "bg_audio": None,
            "other": []}
     for name in sorted(os.listdir(folder)):
         p = os.path.join(folder, name)
         if os.path.isdir(p):
-            if name.lower() == "broll":
-                out["broll"] = p
             continue
         ext = os.path.splitext(name)[1].lower()
         if name == BG_AUDIO:
@@ -205,14 +204,19 @@ def scan(folder):
 
 
 def infer_world(probes):
-    """One talking file -> reel-speech. Several files -> broll-montage. `format:"long"`
-    in the config overrides this later - it is the one thing footage cannot tell us."""
+    """Speech decides: a recording of someone talking -> talking-video, silent clips ->
+    broll-montage. Several files that all carry sound are genuinely ambiguous (takes of one
+    talk, or footage for a montage?) - footage cannot answer that, so the caller turns it
+    into a question instead of guessing. Returns None when nothing is usable, and
+    AMBIGUOUS when the caller must ask."""
     usable = [p for p in probes if p["readable"]]
     if not usable:
         return None
     if len(usable) == 1:
-        return "reel-speech" if usable[0].get("audio") else "broll-montage"
-    return "broll-montage"
+        return "talking-video" if usable[0].get("audio") else "broll-montage"
+    if not any(p.get("audio") for p in usable):
+        return "broll-montage"
+    return AMBIGUOUS
 
 
 # --------------------------------- apply ----------------------------------
@@ -236,7 +240,6 @@ def apply(folder, work, picked, found):
     for m in picked:
         move(m, os.path.join(work, "rush"))
     move(found["bg_audio"], os.path.join(work, "rush"))
-    move(found["broll"], os.path.join(work, "rush"))
     move(found["config"], os.path.join(work, "config"))
     move(found["logo"], os.path.join(work, "config"))
 
@@ -277,7 +280,7 @@ def human(res):
         L.append("config: config/project.config.json  (written from the skill defaults)")
     else:
         L.append("config: none beside the footage - --apply writes one from the defaults")
-    for key, label in (("logo", "logo:  "), ("bg_audio", "bg:    "), ("broll", "broll: ")):
+    for key, label in (("logo", "logo:  "), ("bg_audio", "bg:    ")):
         if res["found"].get(key):
             L.append(label + " " + res["found"][key])
     L.append("media (%d):" % len(res["probes"]))
@@ -310,9 +313,19 @@ def main():
     argv = sys.argv[1:]
     as_json = "--json" in argv
     do_apply = "--apply" in argv
+    # --world answers the one question footage cannot: several files that all carry sound
+    # are either takes of one talk or clips for a montage.
+    forced_world = None
+    if "--world" in argv:
+        i = argv.index("--world")
+        forced_world = argv[i + 1] if i + 1 < len(argv) else None
+        if forced_world not in ("talking-video", "broll-montage"):
+            print("--world takes talking-video or broll-montage")
+            return DECIDE
+        argv = argv[:i] + argv[i + 2:]
     targets = [a for a in argv if not a.startswith("--")]
     if not targets:
-        print("usage: preflight.py <video-file|folder> [--apply] [--json]\n"
+        print("usage: preflight.py <video-file|folder> [--apply] [--json] [--world <name>]\n"
               "  exit 0 ready . 10 toolchain incomplete . 20 needs a human decision . "
               "30 nothing usable")
         return 2
@@ -333,7 +346,7 @@ def main():
     res["folder"] = folder
     res["work"] = os.path.join(folder, "work")
     res["work_exists"] = os.path.isdir(res["work"])
-    res["found"] = {"config": None, "logo": None, "bg_audio": None, "broll": None,
+    res["found"] = {"config": None, "logo": None, "bg_audio": None,
                     "media": [], "other": []}
 
     if not res["tools"]["ok"]:
@@ -382,11 +395,18 @@ def main():
 
     # 5. look at every file
     res["probes"] = [probe(p) for p in picked]
-    res["world"] = infer_world(res["probes"])
+    res["world"] = forced_world or infer_world(res["probes"])
+    if res["world"] == AMBIGUOUS:
+        res["world"] = None
+        res["questions"].append(
+            "%d files and they all have sound - that can be several takes of ONE talk "
+            "(they get joined and edited as one video) or footage for a montage. Ask the "
+            "user which, and re-run with --world talking-video or --world broll-montage."
+            % len(res["probes"]))
     if any("unreadable" in p["flags"] for p in res["probes"]):
         res["questions"].append(
             "at least one file is unreadable - confirm it is the right file.")
-    if res["world"] == "reel-speech" and res["probes"] and not res["probes"][0]["audio"]:
+    if res["world"] == "talking-video" and res["probes"] and not res["probes"][0]["audio"]:
         res["questions"].append(
             "the video has no audio track - a captioned reel is impossible. "
             "Confirm the mode with the user.")

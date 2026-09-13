@@ -9,7 +9,7 @@ USAGE = __doc__ = """run.py - the config-driven pipeline conductor.
     uv run scripts/run.py <work> [options]
 
 Reads the stage list for the work-dir's world (inferred from rush/ - one file
-with speech = reel-speech, many clips = broll-montage), runs each mechanical
+with speech = talking-video, silent clips = broll-montage), runs each mechanical
 stage whose outputs are stale, and halts at the genuine human decision points
 (transcript correction, sound cues). It spawns the same scripts documented in
 SKILL.md - a conductor, not a reimplementation.
@@ -62,7 +62,17 @@ def infer_world(work):
              if os.path.isfile(os.path.join(rush, f)) and f != "bg-audio.mp3"]
     if not files:
         die("rush/ is empty")
-    return "reel-speech" if len(files) == 1 else "broll-montage"
+    # preflight (step 1) already made this call, with a probe of every file and a question
+    # to the user when the footage was ambiguous — trust it rather than guessing again.
+    pf = os.path.join(work, "build", "preflight.json")
+    if os.path.exists(pf):
+        try:
+            w = json.load(open(pf, encoding="utf-8-sig")).get("world")
+            if w in ("talking-video", "broll-montage"):
+                return w
+        except Exception:
+            pass
+    return "talking-video" if len(files) == 1 else "broll-montage"
 
 
 def load_manifest(world):
@@ -137,14 +147,11 @@ def main():
         die("no rush/ in " + work + " - put the source file(s) there first")
     os.makedirs(os.path.join(work, "build"), exist_ok=True)
     cfg = _config.load(work)
-    # long-form can't be inferred from rush/ (a folder of takes looks like broll-montage) —
-    # it's the config.format switch, checked first.
-    world = flag(opt, "--world") or ("long-form" if cfg.get("format") == "long"
-                                     else infer_world(work))
+    world = flag(opt, "--world") or infer_world(work)
     source = None
-    if world in ("reel-speech", "long-form"):
+    if world == "talking-video":
         try:
-            source = _rush.find_source(work)   # long-form: build/source-joined.mp4 once `join` ran
+            source = _rush.find_source(work)   # build/source-joined.mp4 once `join` ran
         except SystemExit:
             source = None  # a later stage will report it precisely
 

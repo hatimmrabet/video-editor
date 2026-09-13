@@ -11,9 +11,10 @@ T.web("checkpoints", async ({ base, page, vid, J, work, check }) => {
   const { id } = await J("POST", "/projects", { name: "ck" });
   const W = work(id);
   await fetch(base + `/projects/${id}/rush`, { method: "POST", headers: { "X-Filename": "v.mp4" }, body: fs.readFileSync(vid) });
-  await J("PUT", `/projects/${id}/config`, { format: "short", language: "en", engine: "light" });
+  await J("PUT", `/projects/${id}/config`, { language: "en" });
 
   T.writeFiles(W, {
+    "build/source-joined.mp4": "x",
     "build/cut-plan.json": { keep: [[0, 3]], total: 3, src_dur: 3 },
     "build/.settled": "x",                       // skip the settle stage (real frames not needed here)
     "build/transcribe-input.wav": "x",

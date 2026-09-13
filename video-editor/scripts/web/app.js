@@ -5,13 +5,13 @@ const S = { pid: null, state: null, cfg: null, passed: new Set(), kind: null };
 
 /* the project-type picker's choice, remembered per project so the drop zone shows the
    right affordance before any file exists (once files land, S.state.world is authoritative).
-   long-form also writes config.format="long"; montage is inferred from rush/ at 2+ clips. */
-const KINDS = { reel: "talking-to-camera reel (9:16)", montage: "montage of clips (9:16)", "long-form": "long-form talk (16:9)" };
+   There is no short/long choice any more: the output keeps the source's orientation. */
+const KINDS = { talk: "someone talking to camera", montage: "montage of clips (no speech)" };
 const kindOf = pid => { try { return localStorage.getItem("ve-kind-" + pid); } catch { return null; } };
 const setKind = (pid, k) => { try { localStorage.setItem("ve-kind-" + pid, k); } catch { /* private mode */ } };
 /* the world the UI should assume: run.py's verdict once it can plan, else the picker hint */
 const worldNow = () => (S.state && S.state.world) || {
-  reel: "reel-speech", montage: "broll-montage", "long-form": "long-form",
+  talk: "talking-video", montage: "broll-montage",
 }[S.kind] || null;
 
 const el = (tag, attrs = {}, ...kids) => {
@@ -75,13 +75,12 @@ async function showList() {
     el("h2", {}, "Projects"),
     el("div", { class: "row" },
       el("input", { class: "grow", id: "newname", placeholder: "New project name" }),
-      select("newkind", Object.keys(KINDS), "reel", KINDS),
+      select("newkind", Object.keys(KINDS), "talk", KINDS),
       el("button", { onclick: create }, "Create")),
     ...(projects.length ? [] : [el("p", { class: "muted" }, "No projects yet.")]),
     ...projects.map(p => el("div", { class: "card click", onclick: () => open(p.id) },
       el("div", { class: "row" },
         el("b", { class: "grow" }, p.id),
-        el("span", { class: "pill" }, p.format),
         p.hasDeliverable ? el("span", { class: "pill", style: "color:var(--ok)" }, "done")
           : p.hasVideo ? el("span", { class: "pill" }, "in progress")
             : el("span", { class: "pill" }, "empty")))),
@@ -91,7 +90,7 @@ async function create() {
   const name = document.getElementById("newname").value.trim();
   if (!name) return;
   const kind = document.getElementById("newkind").value;
-  const { id } = await api("POST", "/projects", { name, ...(kind === "long-form" ? { format: "long" } : {}) });
+  const { id } = await api("POST", "/projects", { name });
   setKind(id, kind);
   await open(id);
 }
@@ -117,7 +116,7 @@ function currentStep(stages) {
   return null;
 }
 /* how far a "Run the pipeline" click should go: run.py stops itself at a blocking
-   checkpoint, but an advisory one (montage `pick`, long-form `chapters`/`broll`) it just
+   checkpoint, but an advisory one (montage `pick`, `script-review`/`scenes`/`chapters`) it just
    prints and runs past — so cap the run at the stage before the next un-passed advisory
    checkpoint, letting its panel open first. "" = run to the end. */
 function runTarget(stages) {
@@ -173,10 +172,9 @@ function render() {
 
 function dropZone() {
   const w = worldNow();
-  const many = w === "broll-montage" || w === "long-form";
+  const many = true;   // a talking video may arrive as several takes; join_takes.py joins them
   const label = w === "broll-montage" ? "Drop your clips here (two or more), or"
-    : w === "long-form" ? "Drop the recording here (one file, or several takes to join), or"
-      : "Drop the recording here, or";
+    : "Drop the recording here — one file, or several takes to join";
   const inp = el("input", { type: "file", accept: "video/*", onchange: e => uploadMany(e.target.files) });
   if (many) inp.setAttribute("multiple", "");
   const d = el("div", { class: "drop" }, el("div", {}, label), inp);
@@ -210,9 +208,7 @@ function configPanel() {
     el("h3", {}, "configuration"),
     el("div", { class: "card" },
       el("div", { class: "row" },
-        el("div", { class: "grow" }, f("Language (ar / fr / en / ar-MA …)", c.language, "cf_lang")),
-        el("div", {}, el("label", {}, "Format"),
-          select("cf_format", ["short", "long"], c.format || "short"))),
+        el("div", { class: "grow" }, f("Language (ar / fr / en / ar-MA …)", c.language, "cf_lang"))),
       el("div", { class: "row" },
         el("div", { class: "grow" }, f("Background color", t.bg, "cf_bg")),
         el("div", { class: "grow" }, f("Accent color", t.acc, "cf_acc")),
@@ -227,7 +223,7 @@ function select(id, opts, cur, labels) {
 async function saveConfig() {
   const g = id => document.getElementById(id).value.trim();
   const cfg = Object.assign({}, S.cfg, {
-    format: g("cf_format"), language: g("cf_lang") || undefined,
+    language: g("cf_lang") || undefined,
     theme: Object.assign({}, S.cfg.theme, {
       bg: g("cf_bg") || undefined, acc: g("cf_acc") || undefined, handle: g("cf_handle") || undefined }),
   });
@@ -281,7 +277,6 @@ function checkpointPanel(cp) {
   if (cp.id === "pick") return montagePickPanel(cp);
   if (cp.id === "tighten") return tightenPanel(cp);
   if (cp.id === "chapters") return chaptersPanel(cp);
-  if (cp.id === "broll") return brollPanel(cp);
   const r = runHere("Continue", cp.id);
   return el("div", {}, el("h3", {}, "next: " + cp.title),
     el("div", { class: "card" }, el("p", {}, cp.note || ""),
@@ -533,7 +528,7 @@ async function montagePickPanel(cp) {
   return box;
 }
 
-/* --- long-form: tighten the pauses + fillers (HALT tighten) --- */
+/* --- tighten the pauses + fillers (HALT tighten) --- */
 async function tightenPanel(cp) {
   const box = el("div", {}, el("h3", {}, "tighten the talk"));
   if (!(await getFile("build/captions.json"))) {
@@ -570,7 +565,7 @@ async function tightenPanel(cp) {
   return box;
 }
 
-/* --- long-form: chapter markers (CHECKPOINT chapters, optional) --- */
+/* --- chapter markers (CHECKPOINT chapters, optional) --- */
 async function chaptersPanel(cp) {
   const box = el("div", {}, el("h3", {}, "chapter markers"),
     el("p", { class: "muted" }, "Optional. Mark 3–8 topic shifts by sentence number — the first is forced to 00:00. "
@@ -599,56 +594,6 @@ async function chaptersPanel(cp) {
   return box;
 }
 
-/* --- long-form: B-roll cutaways (CHECKPOINT broll, optional) --- */
-async function brollPanel(cp) {
-  const box = el("div", {}, el("h3", {}, "b-roll cutaways"),
-    el("p", { class: "muted" }, "Optional. Put the cutaway clips in the project's rush/broll/ folder, then point "
-      + "each span at one. \"when\" is a time range (12.5-18) or a sentence (s34)."));
-  const rows = el("div");
-  const parseWhen = v => {
-    v = v.trim();
-    if (/^s\d+$/i.test(v)) return { sentence: +v.slice(1) };
-    if (/^[\d.]+\s*-\s*[\d.]+$/.test(v)) return { range: v.split("-").map(Number) };
-    return null;
-  };
-  const addRow = (when, clip, at) => {
-    const w = el("input", { value: when || "", placeholder: "12.5-18  or  s34", style: "width:130px" });
-    const c = el("input", { value: clip || "", placeholder: "clip.mp4 (in rush/broll/)" });
-    const a = el("input", { type: "number", step: "0.1", value: at ?? 0.4, style: "width:80px" });
-    const row = el("div", { class: "row", style: "margin:4px 0" }, w, el("div", { class: "grow" }, c), a,
-      el("button", { class: "ghost", onclick: () => row.remove() }, "✕"));
-    row._empty = () => !w.value.trim() && !c.value.trim();
-    row._get = () => {
-      const ref = parseWhen(w.value);
-      return ref && c.value.trim() ? { ref, clip: c.value.trim(), at: +a.value || 0.4 } : null;
-    };
-    rows.append(row);
-  };
-  for (const b of (await getFile("config/broll.json")) || [])
-    addRow(b.ref && b.ref.sentence != null ? "s" + b.ref.sentence
-      : b.ref && b.ref.range ? b.ref.range.join("-") : "", b.clip, b.at);
-  if (!rows.children.length) addRow("", "", 0.4);
-  const added = el("span", { class: "muted", style: "font-size:12px" });
-  const up = el("input", { type: "file", accept: "video/*", multiple: "", style: "margin-top:8px", onchange: async e => {
-    for (const file of e.target.files)
-      await fetch(`/projects/${S.pid}/rush`, { method: "POST", headers: { "X-Filename": "broll/" + file.name }, body: file });
-    added.textContent = "added to rush/broll/: " + [...e.target.files].map(f => f.name).join(", ");
-  } });
-  box.append(rows, el("button", { class: "ghost", style: "margin-top:6px", onclick: () => addRow("", "", 0.4) }, "+ cutaway"),
-    el("label", { style: "margin-top:10px" }, "upload cutaway clips (→ rush/broll/)"), up, added);
-  const err = el("p", { class: "err" });
-  const save = el("button", { onclick: async () => {
-    err.textContent = "";
-    const use = [...rows.children].filter(r => !r._empty());
-    const got = use.map(r => r._get());
-    if (got.some(x => !x)) { err.textContent = "each filled row needs a valid \"when\" (12.5-18 or s34) and a clip name"; return; }
-    if (got.length) await api("PUT", `/projects/${S.pid}/decision/broll`, got);
-    S.passed.add("broll"); refresh();
-  } }, "Save & continue");
-  box.append(err, el("div", { class: "row", style: "margin-top:12px" }, save,
-    el("button", { class: "ghost", onclick: () => { S.passed.add("broll"); refresh(); } }, "Skip — no b-roll")));
-  return box;
-}
 
 function resultPanel() {
   const f = p => `/projects/${S.pid}/file/${p}`;
@@ -657,13 +602,13 @@ function resultPanel() {
     const n = +r.headers.get("Content-Length");
     if (n) size.textContent = `  ·  ${(n / 1e6).toFixed(1)} MB` + (n > 30e6 ? " ⚠️ over 30 MB" : "");
   }).catch(() => {});
-  const world = (S.state && S.state.world) || "reel-speech";
+  const world = (S.state && S.state.world) || "talking-video";
   const links = [el("a", { href: f("video-final.mp4"), download: "" }, "video-final.mp4")];
   if (world !== "broll-montage") {   // montage has no transcript → no .srt / post caption
     links.push(el("a", { href: f("video-final.srt"), download: "" }, ".srt"));
     links.push(el("a", { href: f("post-caption.txt"), download: "" }, "post caption"));
   }
-  if (world === "long-form") links.push(el("a", { href: f("video-final.chapters.txt"), download: "" }, "chapters"));
+  links.push(el("a", { href: f("video-final.chapters.txt"), download: "" }, "chapters"));
   return el("div", {},
     el("h3", {}, "result"), size,
     el("video", { src: f("video-final.mp4"), controls: "" }),

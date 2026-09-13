@@ -10,9 +10,11 @@ T.web("sound-result", async ({ base, page, vid, J, work, check }) => {
   const { id } = await J("POST", "/projects", { name: "snd" });
   const W = work(id);
   await fetch(base + `/projects/${id}/rush`, { method: "POST", headers: { "X-Filename": "v.mp4" }, body: fs.readFileSync(vid) });
-  await J("PUT", `/projects/${id}/config`, { format: "short", language: "en", engine: "light" });
+  await J("PUT", `/projects/${id}/config`, { language: "en" });
 
   T.writeFiles(W, {
+    "build/source-joined.mp4": "x",
+    "build/tighten-plan.json": { cuts: [], gaps: [], fillers: [], before: 3, after: 3, saved: 0 },
     "build/cut-plan.json": { keep: [[0, 3]], total: 3, src_dur: 3 }, "build/.settled": "x",
     "build/transcript-raw.json": "{}", "build/transcript-fixes.json": "{}", "build/sound-effects.wav": "{}",
     "build/frames-source/00001.jpg": "x", "build/frames-composited/00001.jpg": "x", "build/video-reframed.mp4": "x",
@@ -26,7 +28,7 @@ T.web("sound-result", async ({ base, page, vid, J, work, check }) => {
   await page.goto(base + "/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => document.querySelector("h2")?.textContent === "Projects", { timeout: 8000 });
   await page.evaluate(x => open(x), id);
-  await page.evaluate(() => { S.passed.add("script-review"); S.passed.add("scenes"); render(); });
+  await page.evaluate(() => { S.passed.add("script-review"); S.passed.add("tighten"); S.passed.add("chapters"); S.passed.add("scenes"); render(); });
   await page.waitForFunction(() => [...document.querySelectorAll("h3")].some(h => h.textContent === "sound"), { timeout: 8000 });
   check("sound panel renders a <canvas>", await page.$("canvas") != null);
   await T.sleep(400);   // let the waveform decode
