@@ -20,7 +20,7 @@ node test/run.mjs --list
 
 Needs **ffmpeg** (fixture clips) and **Node + `npm ci`** (Puppeteer's bundled Chromium).
 The Python side is stdlib only — the tests spawn `scripts/web.py` and it shells `run.py` /
-`tighten.py` / `montage_mode.py` via `lib.platform.python_argv()` (`uv run`, else the
+`tighten.py` via `lib.platform.python_argv()` (`uv run`, else the
 `.venv`, else `python3`), so **no `uv sync` is required** for the suite.
 
 ## Layout
@@ -37,7 +37,7 @@ The Python side is stdlib only — the tests spawn `scripts/web.py` and it shell
 | `checkpoints.test.js` | the transcript + trim checkpoint screens (#100) |
 | `scenes.test.js` | the scenes checkpoint screen — motif dropdown + params → `config/scenes.json` (#101) |
 | `sound-result.test.js` | the sound (`<canvas>` waveform, cue placement) + Result screens (#102) |
-| `montage-longform.test.js` | the project-type picker, montage `pick`, long-form `tighten` / `chapters` / `broll`, `runTarget` (#103) |
+| `talking-flow.test.js` | the `tighten` and `chapters` panels, and `runTarget` capping (#103) |
 | `ffmpeg-resolver.test.js` | `$VEVO_FFMPEG` / `$VEVO_FFPROBE` through `lib/platform.{py,js,sh}` + `run.py` (#44) |
 | `motifs.test.js` | the motif registry — every implemented motif in `motifs/index.json` is imported, dispatched by `SceneList.tsx`, backed by a component, and its declared params match that component's type |
 

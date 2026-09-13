@@ -43,7 +43,6 @@ CONFIG_NAME = "project.config.json"
 BG_AUDIO = "bg-audio.mp3"
 
 OK, TOOLS, DECIDE, EMPTY = 0, 10, 20, 30
-AMBIGUOUS = "ambiguous"   # several files with sound: takes of one talk, or a montage?
 
 LONG_SECONDS = 180.0        # beyond this, note that the recording is a long one
 MIN_WIDTH = 1080            # below this the reframe zoom has almost no room
@@ -203,22 +202,6 @@ def scan(folder):
     return out
 
 
-def infer_world(probes):
-    """Speech decides: a recording of someone talking -> talking-video, silent clips ->
-    broll-montage. Several files that all carry sound are genuinely ambiguous (takes of one
-    talk, or footage for a montage?) - footage cannot answer that, so the caller turns it
-    into a question instead of guessing. Returns None when nothing is usable, and
-    AMBIGUOUS when the caller must ask."""
-    usable = [p for p in probes if p["readable"]]
-    if not usable:
-        return None
-    if len(usable) == 1:
-        return "talking-video" if usable[0].get("audio") else "broll-montage"
-    if not any(p.get("audio") for p in usable):
-        return "broll-montage"
-    return AMBIGUOUS
-
-
 # --------------------------------- apply ----------------------------------
 def apply(folder, work, picked, found):
     """Create work/{rush,config,build} and MOVE the material in. Anything we did not
@@ -272,8 +255,6 @@ def human(res):
         L.append("   " + line)
     L.append("folder: " + res["folder"])
     L.append("work:   " + res["work"] + ("  [exists]" if res["work_exists"] else ""))
-    if res["world"]:
-        L.append("world:  " + res["world"])
     if res["found"]["config"]:
         L.append("config: " + res["found"]["config"] + "  (found beside the footage)")
     elif res["applied"]:
@@ -313,19 +294,9 @@ def main():
     argv = sys.argv[1:]
     as_json = "--json" in argv
     do_apply = "--apply" in argv
-    # --world answers the one question footage cannot: several files that all carry sound
-    # are either takes of one talk or clips for a montage.
-    forced_world = None
-    if "--world" in argv:
-        i = argv.index("--world")
-        forced_world = argv[i + 1] if i + 1 < len(argv) else None
-        if forced_world not in ("talking-video", "broll-montage"):
-            print("--world takes talking-video or broll-montage")
-            return DECIDE
-        argv = argv[:i] + argv[i + 2:]
     targets = [a for a in argv if not a.startswith("--")]
     if not targets:
-        print("usage: preflight.py <video-file|folder> [--apply] [--json] [--world <name>]\n"
+        print("usage: preflight.py <video-file|folder> [--apply] [--json]\n"
               "  exit 0 ready . 10 toolchain incomplete . 20 needs a human decision . "
               "30 nothing usable")
         return 2
@@ -335,7 +306,7 @@ def main():
         return EMPTY
 
     res = {"target": target, "questions": [], "moved": [], "probes": [], "resume": [],
-           "world": None, "verdict": "", "exit": OK, "applied": do_apply}
+           "verdict": "", "exit": OK, "applied": do_apply}
 
     # 1. the toolchain first - without ffprobe we cannot look at anything
     res["tools"] = check_tools()
@@ -360,7 +331,7 @@ def main():
     # 3. the guards - never decide these alone
     if found["media"] and is_catch_all(folder) and not res["work_exists"]:
         res["questions"].append(
-            "%s is a catch-all folder, not a project. Ask the user to put this montage's "
+            "%s is a catch-all folder, not a project. Ask the user to put this video's "
             "footage in its own folder and point at that folder." % folder)
 
     if res["work_exists"]:
@@ -386,7 +357,8 @@ def main():
                   if os.path.abspath(m) != os.path.abspath(designated)]
         res["questions"].append(
             "the folder holds %d other video(s) (%s) and one file was designated. Ask "
-            "whether this is one video or a montage of all of them."
+            "whether the others are further takes of the same talk (they get joined) or "
+            "do not belong to this project."
             % (len(others), ", ".join(others)))
     if not picked and not res["resume"]:
         res["verdict"] = "no video found in " + folder
@@ -395,21 +367,14 @@ def main():
 
     # 5. look at every file
     res["probes"] = [probe(p) for p in picked]
-    res["world"] = forced_world or infer_world(res["probes"])
-    if res["world"] == AMBIGUOUS:
-        res["world"] = None
-        res["questions"].append(
-            "%d files and they all have sound - that can be several takes of ONE talk "
-            "(they get joined and edited as one video) or footage for a montage. Ask the "
-            "user which, and re-run with --world talking-video or --world broll-montage."
-            % len(res["probes"]))
     if any("unreadable" in p["flags"] for p in res["probes"]):
         res["questions"].append(
             "at least one file is unreadable - confirm it is the right file.")
-    if res["world"] == "talking-video" and res["probes"] and not res["probes"][0]["audio"]:
+    if not any(p.get("audio") for p in res["probes"]):
         res["questions"].append(
-            "the video has no audio track - a captioned reel is impossible. "
-            "Confirm the mode with the user.")
+            "no audio track in the footage - the whole edit is driven by the speech "
+            "(silences, transcript, captions), so there is nothing to work from. "
+            "Confirm the file with the user.")
 
     if res["questions"]:
         res["verdict"] = ("needs a human decision - %d question(s), nothing was created"
@@ -425,8 +390,8 @@ def main():
                   "w", encoding="utf-8") as f:
             json.dump(res, f, ensure_ascii=False, indent=1)
     if not res["verdict"]:
-        res["verdict"] = ("ready - %s, %d file(s)%s"
-                          % (res["world"], len(res["probes"]),
+        res["verdict"] = ("ready - %d file(s)%s"
+                          % (len(res["probes"]),
                              "" if do_apply else "; re-run with --apply to prepare work/"))
     return _out(res, as_json)
 

@@ -24,7 +24,6 @@ Endpoints (issues #97 / #98; the SPA is #99):
   PUT  /projects/<id>/config {...}    write config/project.config.json
   PUT  /projects/<id>/decision/<name> write a decision file (allow-listed)
   POST /projects/<id>/edit  {op, sentences}   -> shells edit_script.py
-  POST /projects/<id>/montage {op, clips}      -> shells montage_mode.py drop/keep/undo
   POST /projects/<id>/tighten {apply}          -> shells tighten.py [apply]
   POST /projects/<id>/preview {times}          -> remotion.sh still -> {files}
   GET  /motifs                        scripts/motifs/index.json (for the scenes screen)
@@ -269,17 +268,6 @@ class H(BaseHTTPRequestHandler):
                 return self._err(400, "op must be drop / keep / undo")
             nums = [str(int(x)) for x in b.get("sentences", [])]
             r = subprocess.run([*PY, "scripts/edit_script.py", work, op, *nums],
-                               cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
-            return self._send(200 if r.returncode == 0 else 400,
-                              {"exit": r.returncode, "output": (r.stdout or "") + (r.stderr or "")})
-
-        if sub == "/montage" and method == "POST":   # the montage `pick` checkpoint
-            b = self._json_body() or {}
-            op = b.get("op", "drop")
-            if op not in ("drop", "keep", "undo"):
-                return self._err(400, "op must be drop / keep / undo")
-            nums = [str(int(x)) for x in b.get("clips", [])]
-            r = subprocess.run([*PY, "scripts/montage_mode.py", work, op, *nums],
                                cwd=SKILL, capture_output=True, text=True, encoding="utf-8")
             return self._send(200 if r.returncode == 0 else 400,
                               {"exit": r.returncode, "output": (r.stdout or "") + (r.stderr or "")})

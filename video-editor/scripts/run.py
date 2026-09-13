@@ -8,11 +8,10 @@ USAGE = __doc__ = """run.py - the config-driven pipeline conductor.
 
     uv run scripts/run.py <work> [options]
 
-Reads the stage list for the work-dir's world (inferred from rush/ - one file
-with speech = talking-video, silent clips = broll-montage), runs each mechanical
-stage whose outputs are stale, and halts at the genuine human decision points
-(transcript correction, sound cues). It spawns the same scripts documented in
-SKILL.md - a conductor, not a reimplementation.
+Reads scripts/pipeline/talking-video.json - there is one pipeline and nothing to
+choose - runs each mechanical stage whose outputs are stale, and halts at the
+genuine human decision points (transcript correction, sound cues). It spawns the
+same scripts documented in SKILL.md - a conductor, not a reimplementation.
 
 A stage is skipped when every path it `makes` exists and is newer than every
 path it `needs`; otherwise it runs (`make`-style). A stage with no `run` is a
@@ -24,10 +23,9 @@ Options:
     --from ID      start at stage ID
     --to ID        stop after stage ID
     --only ID      run just stage ID
-    --world NAME   force the world instead of inferring it from rush/
     --dry          print the plan + per-stage verdict, run nothing
     --force        run every in-range stage regardless of timestamps
-    --list         print the world's stage ids and exit
+    --list         print the stage ids and exit
 
 Exit: 0 done / nothing to do . 1 a stage failed . 2 halted at a checkpoint
 . 3 bad usage.
@@ -54,28 +52,10 @@ def flag(argv, name, default=None):
     return argv[argv.index(name) + 1] if name in argv and argv.index(name) + 1 < len(argv) else default
 
 
-def infer_world(work):
-    rush = os.path.join(work, "rush")
-    if not os.path.isdir(rush):
-        die("no rush/ in " + work + " - put the source file(s) there first")
-    files = [f for f in os.listdir(rush)
-             if os.path.isfile(os.path.join(rush, f)) and f != "bg-audio.mp3"]
-    if not files:
-        die("rush/ is empty")
-    # preflight (step 1) already made this call, with a probe of every file and a question
-    # to the user when the footage was ambiguous — trust it rather than guessing again.
-    pf = os.path.join(work, "build", "preflight.json")
-    if os.path.exists(pf):
-        try:
-            w = json.load(open(pf, encoding="utf-8-sig")).get("world")
-            if w in ("talking-video", "broll-montage"):
-                return w
-        except Exception:
-            pass
-    return "talking-video" if len(files) == 1 else "broll-montage"
+WORLD = "talking-video"
 
 
-def load_manifest(world):
+def load_manifest(world=WORLD):
     p = os.path.join(SCRIPTS, "pipeline", world + ".json")
     if not os.path.exists(p):
         die("no pipeline manifest: " + p)
@@ -111,7 +91,7 @@ def verdict(stage, work, source):
             return "HALT" if stage.get("block") else "CHECKPOINT"
         return "CHECKPOINT" if not makes else "SKIP"
     if not makes:
-        return "RUN"  # can't prove it's done (e.g. montage `plan`)
+        return "RUN"  # a stage that declares no `makes` can never prove it is done
     made = [_mtime(work, m, source) for m in makes]
     if any(t is None for t in made):
         return "RUN"
@@ -147,24 +127,22 @@ def main():
         die("no rush/ in " + work + " - put the source file(s) there first")
     os.makedirs(os.path.join(work, "build"), exist_ok=True)
     cfg = _config.load(work)
-    world = flag(opt, "--world") or infer_world(work)
     source = None
-    if world == "talking-video":
-        try:
-            source = _rush.find_source(work)   # build/source-joined.mp4 once `join` ran
-        except SystemExit:
-            source = None  # a later stage will report it precisely
+    try:
+        source = _rush.find_source(work)   # build/source-joined.mp4 once `join` ran
+    except SystemExit:
+        source = None  # a later stage will report it precisely
 
     def when_ok(s):
         # `when` gates a stage on a project.config.json value (see the manifest _doc).
         return all(cfg.get(k) == v for k, v in s.get("when", {}).items())
 
-    manifest = load_manifest(world)
+    manifest = load_manifest()
     stages = [s for s in manifest["stages"] if when_ok(s)]
     ids = [s["id"] for s in stages]
 
     if "--list" in opt:
-        print(world + ": " + " -> ".join(ids))
+        print(WORLD + ": " + " -> ".join(ids))
         raise SystemExit(0)
 
     only = flag(opt, "--only")
@@ -172,7 +150,7 @@ def main():
     to = flag(opt, "--to")
     for name, val in (("--only", only), ("--from", frm), ("--to", to)):
         if val and val not in ids:
-            die("%s %s: not a stage of %s (%s)" % (name, val, world, ", ".join(ids)))
+            die("%s %s: not a stage (%s)" % (name, val, ", ".join(ids)))
     lo = ids.index(frm) if frm else 0
     hi = ids.index(to) if to else len(ids) - 1
     sel = [only] if only else ids[lo:hi + 1]
@@ -200,11 +178,10 @@ def main():
             out.append(e)
             if nxt is None and v != "SKIP":
                 nxt = s["id"]   # the first stage not up to date — the screen the UI shows
-        print(json.dumps({"world": world, "stages": out, "next": nxt}))
+        print(json.dumps({"world": WORLD, "stages": out, "next": nxt}))
         raise SystemExit(0)
 
-    print("world: %s | %d stage(s)%s"
-          % (world, len(sel), "  [dry run]" if dry else ""))
+    print("%d stage(s)%s" % (len(sel), "  [dry run]" if dry else ""))
     print("-" * 60)
     for s in stages:
         if s["id"] not in sel:

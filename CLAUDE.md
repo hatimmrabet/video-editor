@@ -42,7 +42,7 @@ it drifted from the code, and it was deleted. Three places, and only these three
 |---|---|
 | What the pipeline does, in order, and how to talk to the user | `video-editor/SKILL.md` |
 | What one script does, its CLI, its inputs/outputs | that script's own docstring, at the top of the file |
-| The canonical stage list per world (`needs` / `makes` / checkpoints) | `video-editor/scripts/pipeline/<world>.json` (`talking-video`, `broll-montage`) |
+| The canonical stage list (`needs` / `makes` / checkpoints) | `video-editor/scripts/pipeline/talking-video.json` |
 
 Consequences, and they are not optional:
 
@@ -107,12 +107,6 @@ bash scripts/remotion/remotion.sh <work> render     # -> build/video-raw.mp4
 bash scripts/remotion/remotion.sh <work> studio     # the live timeline, to edit scenes visually
 bash scripts/remotion/remotion.sh <work> still 4.6 12.3   # stills for review -> build/prev/
 bash scripts/remotion/remotion.sh <work> check      # tsc --noEmit over the scene + motif code
-
-# montage mode (independent — folder of speechless clips)
-uv run scripts/montage_mode.py <work> scan <clipdir> --shot 1.5
-uv run scripts/montage_mode.py <work> sheet --cols 6
-uv run scripts/montage_mode.py <work> plan --dur 30
-uv run scripts/montage_mode.py <work> build <work>/montage.mp4
 ```
 
 Token economy matters here: a 1080-wide image ≈ 150k chars of context. Always review via
@@ -122,12 +116,12 @@ rather than reading it whole.
 
 ## Architecture essentials
 
-- **Two modes, chosen from the input, never asked:** speech → the talking-video pipeline
-  (SKILL.md steps 1–13), whatever the recording's length or orientation; silent clips →
-  `montage_mode.py` (no transcription, no captions, no theme). There is no short/long
-  switch and no `format` key: `reframe.py` reads the source's own dimensions, so the output
-  keeps the orientation it was shot in. Several files that all carry sound are the one case
-  footage cannot settle — `preflight.py` asks instead of guessing, and `--world` answers it.
+- **One pipeline, nothing to choose.** The input is a recording of someone talking — one
+  file, or several takes of the same talk, which `join_takes.py` concatenates. There is no
+  format key, no aspect-ratio question and no second mode: `reframe.py` reads the source's
+  own dimensions, so the output keeps the orientation it was shot in. Assembling unrelated
+  clips into a montage is explicitly out of scope; the speech drives every decision here,
+  so footage without it has nothing to edit.
 - **One rendering engine: Remotion.** `remotion.sh` builds `<work>/remotion/` from
   `scripts/remotion/template/` plus the project's `captions.json`, `project.config.json`,
   `video-reframed.mp4` and `sound-effects.wav`, then renders with `npx remotion render`.
@@ -163,7 +157,7 @@ rather than reading it whole.
   re-tags to bt709). `grade` is opt-in.
 - **Never add ffmpeg `drawtext`** to any script — it is missing from many ffmpeg builds
   and fails silently. Burn text labels with Python/PIL (`contact_sheet.sh`,
-  `montage_mode.py` do this).
+  `contact_sheet.sh` does this).
 - **Python scripts** keep `sys.stdout.reconfigure(encoding="utf-8")` at the top and write
   files with explicit `encoding="utf-8"` (Windows cp1252 otherwise breaks Arabic).
 - **`.sh` scripts** need Git-Bash/WSL, source `lib/platform.sh`, and use `"${VEVO_PY[@]}"`

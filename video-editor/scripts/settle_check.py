@@ -19,7 +19,7 @@ Why: plan_cuts.py places segment boundaries from audio silence only. The audio c
 that at the cut-in the speaker is still shifting position (blurry) or the camera hasn't
 settled. For each segment start `a`, this looks at the first `cut.settleMaxMs` (default
 400) of frames via ffmpeg `blurdetect` + `signalstats.YDIF` — the same no-dependency
-metric pass montage_mode.py uses — and moves `a` to the first frame that is both sharp and
+metric pass — and moves `a` to the first frame that is both sharp and
 low-motion. The nudge never crosses into speech: it is capped at `cut.padIn` (the lead-in
 plan_cuts.py added), so worst case it trims the whole lead-in, never a spoken word.
 

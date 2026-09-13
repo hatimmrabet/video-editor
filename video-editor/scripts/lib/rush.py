@@ -36,7 +36,8 @@ def find_source(work):
 
 
 def find_clips(work):
-    """Every file at rush/'s root, sorted — the broll-montage world (many clips)."""
+    """Every video at rush/'s root, sorted (bg-audio.mp3 excluded) — what join_takes.py
+    concatenates into build/source-joined.mp4 when a talk arrives as several takes."""
     rush = _rush_dir(work)
     return [os.path.join(rush, f) for f in _root_files(rush)]
 

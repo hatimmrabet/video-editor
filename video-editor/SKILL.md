@@ -1,6 +1,6 @@
 ---
 name: video-editor
-description: Edits a video of someone talking to camera (selfie / teleprompter / a talk / a lesson) into a finished, captioned video — removes the silences, transcribes the speech with per-word timing, cuts out repeated takes, tightens the pauses and the filler words, adds word-synced captions in the speaker's own dialect, builds code-drawn motion graphics scenes, an end card, and chapter markers on a long recording. **The output keeps the orientation it was shot in** — a vertical recording gives a vertical video for Instagram / TikTok / Shorts, a horizontal one gives a horizontal video for YouTube; there is no format to choose. It also has a second montage mode: a folder of speechless clips (cafés, travel, a product, a place) — it picks the best moment of each clip and assembles them into one rhythmic montage. ALWAYS use this skill when the user says "edit this clip", "montage this video", "turn this video into a reel", "make a short out of this", "produce this clip", "remove the silences / the dead air / the pauses", "cut the silence", "add captions", "add subtitles", "I want motion graphics on the video", "I have 30 clips, make me one video out of them", "make me a montage from these clips", "pick the best shots", "make a YouTube video out of this", "edit this into a YouTube video", "tighten this talk", "cut the pauses out of this lecture", "add chapters", "add a chapter index" — or their French equivalents ("monte cette vidéo", "fais-moi un reel", "enlève les silences / les blancs", "coupe les temps morts", "ajoute les sous-titres", "je veux des animations sur la vidéo", "fais un montage avec ces clips", "choisis les meilleurs plans", "fais-en une vidéo YouTube", "resserre cette prise de parole", "ajoute des chapitres") — or sends a talking video, a folder of clips, or a long recording and asks for an edit. NOT for carousels (use carousel-creator) or video covers (use animated-video-cover).
+description: Edits a video of someone talking to camera (selfie / teleprompter / a talk / a lesson) into a finished, captioned video — removes the silences, transcribes the speech with per-word timing, cuts out the repeated takes, tightens the pauses and the filler words, adds word-synced captions in the speaker's own dialect, builds code-drawn motion graphics scenes, an end card, and chapter markers on a long recording. **The output keeps the orientation it was shot in** — a vertical recording gives a vertical video for Instagram / TikTok / Shorts, a horizontal one gives a horizontal video for YouTube; there is no format to choose. One recording, or several takes of the same talk, which get joined. ALWAYS use this skill when the user says "edit this clip", "turn this video into a reel", "make a short out of this", "produce this clip", "remove the silences / the dead air / the pauses", "cut the silence", "add captions", "add subtitles", "I want motion graphics on the video", "make a YouTube video out of this", "edit this into a YouTube video", "tighten this talk", "cut the pauses out of this lecture", "add chapters", "add a chapter index" — or their French equivalents ("monte cette vidéo", "fais-moi un reel", "enlève les silences / les blancs", "coupe les temps morts", "ajoute les sous-titres", "je veux des animations sur la vidéo", "fais-en une vidéo YouTube", "resserre cette prise de parole", "ajoute des chapitres") — or sends a talking video and asks for an edit. NOT for assembling a folder of unrelated clips into a montage, NOT for carousels (use carousel-creator) and NOT for video covers (use animated-video-cover).
 ---
 
 # Video editing — no editing app
@@ -16,30 +16,22 @@ TikTok or YouTube Shorts — usually explaining a subject, sometimes a lesson or
 announcement, occasionally a promotion. Never call the result "an ad" and never assume the
 video is selling something. It is *their video*, edited.
 
-## Two modes — decide which one you're in, in your first line
+## What this edits — and what it does not
 
-| | **Talking video** (default) | **Clip montage** |
-|---|---|---|
-| Input | someone talking — one file, or several takes of the same talk | a folder of speechless clips |
-| Example | selfie · teleprompter · explainer · a lesson · a YouTube talk | café · trip · product · place · event |
-| Output | a captioned edit, **in the orientation it was shot in** | one rhythmic MP4 |
-| Selection driven by | the speech (silences, repeats, pauses, filler words) | the shot itself (sharpness · motion · lighting) |
-| Captions? | yes, word-synced, burned in | **no** |
-| Steps | 1–13 below | the "Montage mode" section |
+**One input: a recording of someone talking to camera.** A selfie, a teleprompter take, a
+lesson, a talk — one file, or several takes of the same talk (they get joined). That is the
+whole scope: this skill edits *a* video, it does not assemble footage into something new.
 
-**There is no short/long choice, and no aspect-ratio question.** A vertical recording
-gives a vertical video, a horizontal one gives a horizontal video — the source decides, and
-nothing is ever cropped to a different shape. A 30-second reel and a 40-minute talk run the
-exact same steps; a long one simply has more to tighten and is worth proposing chapters for.
+**There is no format, no aspect-ratio question and no mode to pick.** A vertical recording
+gives a vertical video for Instagram / TikTok / Shorts, a horizontal one gives a horizontal
+video for YouTube — the source decides, and nothing is ever cropped to a different shape. A
+30-second reel and a 40-minute talk run the exact same steps; a long one simply has more to
+tighten and is worth proposing chapters for.
 
-**How do you know the mode without asking?** **Speech decides.** Someone talking →
-talking video, whatever its length or orientation. Silent clips → montage. Step 1 probes
-every file and tells you. The one case footage cannot settle is **several files that all
-have sound** — takes of one talk, or footage for a montage? Step 1 turns that into a
-question; ask it, then re-run with `--world talking-video` or `--world broll-montage`.
-
-**Do not ask "which mode do you want?"** — read the input, go, and tell them in one
-sentence what you understood.
+**What it is not for:** assembling a folder of unrelated clips into a montage, B-roll
+cutaways, or anything where the edit is not driven by what the person is saying. The speech
+is the spine of every decision here — the silences, the repeated takes, the pauses, the
+filler words, the captions. Without it there is nothing to edit.
 
 ---
 
@@ -590,93 +582,6 @@ Produces `<work>/video-final.srt` (YouTube and LinkedIn read it) and
 
 ---
 
-# Montage mode — speechless clips
-
-A folder with many clips (café · trip · product · place · event) and the ask is one video
-with rhythm. **No transcription, no captions, no drawn scenes.** The selection is
-entirely about the shot itself. You need one thing from them: **the clip folder.** Copy
-its clips into `<work>/rush/`, keeping their names — don't ask about colors or a logo or
-an account — there's no text at all.
-
-**How the engine chooses:** every moment of every clip is measured on four axes —
-sharpness · motion by amount · lighting · color. Sharpness is **relative** (it compares
-your clips to each other); motion and lighting are **absolute**. And frozen / dark / shaky
-scores are **multiplied, not subtracted**: their other qualities can't save them. The
-first and last third-second of each clip are trimmed — the hand-on-device moment.
-
-### 1) Scan
-```bash
-uv run scripts/montage_mode.py <work> scan --shot 1.5
-```
-Scans `<work>/rush/` by default (pass an explicit folder only if the clips aren't copied
-in yet). Scans four clips at a time. Our measured rate: **30 s of video ≈ 15 s of
-scanning** — so 30 clips of 10 s each ≈ two and a half minutes. Run it in the background
-and tell them what to expect. It prints each clip with its score and best moment, and
-writes `build/montage-plan.json`.
-
-### 2) Show them the shots — one numbered sheet
-```bash
-uv run scripts/montage_mode.py <work> sheet --cols 6
-```
-Each shot has its clip number on it. **Read the sheet as one image — don't read the frames
-one by one.** And show it to them: "This is the best moment of each clip — what do you want
-me to remove?"
-
-### 3) Remove the ones they don't want
-```bash
-uv run scripts/montage_mode.py <work> drop 4 11      # removes
-uv run scripts/montage_mode.py <work> keep 1 2 5 9   # keeps only these
-uv run scripts/montage_mode.py <work> undo           # undo
-```
-
-### 4) Order and rhythm
-```bash
-uv run scripts/montage_mode.py <work> plan --dur 30 --shot 1.5
-```
-| | |
-|---|---|
-| `--order energy` (default) | alternates moving/calm, strongest shot first |
-| `--order best` \| `folder` | by score · by folder order |
-| `--bpm 96` | shot lengths on the beat — the cuts land with the sound |
-| `--dur 0` | all clips, no cap |
-
-Shot lengths vary in a repeating pattern (1.0 · 0.82 · 1.24 · 0.94 of `--shot`) so it
-doesn't get monotonous.
-
-### 5) Build
-```bash
-uv run scripts/montage_mode.py <work> build
-```
-| | |
-|---|---|
-| `--ar 9:16` | aspect ratio: `9:16` · `4:5` · `1:1` · `16:9` (center crop) |
-| `--transition dissolve:0.3` | a transition between shots instead of a hard cut — a name or `name:duration:param` (`dissolve` · `wipe:0.4:left` · `push:0.3:up` · `iris:0.5:open` · `zoom-blur` · `glitch`); default `cut`. A `transition` on a `plan[]` entry in `build/montage-plan.json` overrides it for the cut into that clip. |
-| `--zoom 0` | turns off the faint internal push-in |
-| `--amb 0.3` | keeps the clips' ambience at low volume (needs every clip to have audio and no transition) |
-
-**The zoom only works if the source is at least 1.5× bigger than the output** (4K, say),
-otherwise the engine turns it off itself and tells you — because cropping a source the
-same size as the output makes the zoom look choppy.
-
-### 6) Audio and delivery — same as the speech pipeline
-```bash
-bash scripts/master_audio.sh <work> <work>/build/montage-raw.mp4 <work>/video-final.mp4
-```
-Put their audio file at `<work>/rush/bg-audio.mp3` first. The montage comes
-out with a silent track if you don't ask for ambience, so the background audio file here
-isn't decoration — without it the video is silent.
-
-### Mode rules
-1. **Don't transcribe and don't caption.** If the clips turn out to have important speech,
-   that's the speech mode, not montage.
-2. **Show them the sheet before building** — they remove what they don't like, not you.
-3. **No theme, no colors, no grade** — the image comes out in its original colors (same as
-   rule 4).
-4. Reasonable duration is **20–40 seconds**; longer and the viewer gets bored.
-5. **No publishing, no scheduling** — delivery is a file only.
-
----
-
 ## Fixed rules
 
 1. **A sound effect is tied to a meaningful moment** — a number dropping, something
@@ -787,7 +692,6 @@ for the post caption). And mention that you didn't publish anything.
 | `contact_sheet.sh` | one contact sheet (token economy) | shared |
 | `subtitles.py` | subtitle file + caption text (+ `video-final.chapters.txt` from `config/chapters.json`) | shared |
 | `edit_script.py` | drop a sentence from the text → it drops from the video | shared |
-| `montage_mode.py` | **montage mode**: scans a clip folder, picks the best moment of each, and assembles them | independent |
 
 **This file is the source of truth for the pipeline.** Beyond it: each script's own
 docstring, and the stage lists in `scripts/pipeline/<world>.json`. Nothing else.

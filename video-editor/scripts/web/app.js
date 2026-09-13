@@ -3,17 +3,6 @@ const app = document.getElementById("app");
 const crumb = document.getElementById("crumb");
 const S = { pid: null, state: null, cfg: null, passed: new Set(), kind: null };
 
-/* the project-type picker's choice, remembered per project so the drop zone shows the
-   right affordance before any file exists (once files land, S.state.world is authoritative).
-   There is no short/long choice any more: the output keeps the source's orientation. */
-const KINDS = { talk: "someone talking to camera", montage: "montage of clips (no speech)" };
-const kindOf = pid => { try { return localStorage.getItem("ve-kind-" + pid); } catch { return null; } };
-const setKind = (pid, k) => { try { localStorage.setItem("ve-kind-" + pid, k); } catch { /* private mode */ } };
-/* the world the UI should assume: run.py's verdict once it can plan, else the picker hint */
-const worldNow = () => (S.state && S.state.world) || {
-  talk: "talking-video", montage: "broll-montage",
-}[S.kind] || null;
-
 const el = (tag, attrs = {}, ...kids) => {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs)) {
@@ -75,7 +64,6 @@ async function showList() {
     el("h2", {}, "Projects"),
     el("div", { class: "row" },
       el("input", { class: "grow", id: "newname", placeholder: "New project name" }),
-      select("newkind", Object.keys(KINDS), "talk", KINDS),
       el("button", { onclick: create }, "Create")),
     ...(projects.length ? [] : [el("p", { class: "muted" }, "No projects yet.")]),
     ...projects.map(p => el("div", { class: "card click", onclick: () => open(p.id) },
@@ -89,15 +77,13 @@ async function showList() {
 async function create() {
   const name = document.getElementById("newname").value.trim();
   if (!name) return;
-  const kind = document.getElementById("newkind").value;
   const { id } = await api("POST", "/projects", { name });
-  setKind(id, kind);
   await open(id);
 }
 
 /* ---------- one project ---------- */
 async function open(id) {
-  S.pid = id; S.passed = new Set(); S.kind = kindOf(id); crumb.textContent = "› " + id;
+  S.pid = id; S.passed = new Set(); crumb.textContent = "› " + id;
   await refresh();
 }
 /* the screen to show now: first stage that isn't done and hasn't been ticked past.
@@ -116,7 +102,7 @@ function currentStep(stages) {
   return null;
 }
 /* how far a "Run the pipeline" click should go: run.py stops itself at a blocking
-   checkpoint, but an advisory one (montage `pick`, `script-review`/`scenes`/`chapters`) it just
+   checkpoint, but an advisory one (`script-review` / `scenes` / `chapters`) it just
    prints and runs past — so cap the run at the stage before the next un-passed advisory
    checkpoint, letting its panel open first. "" = run to the end. */
 function runTarget(stages) {
@@ -171,23 +157,19 @@ function render() {
 }
 
 function dropZone() {
-  const w = worldNow();
-  const many = true;   // a talking video may arrive as several takes; join_takes.py joins them
-  const label = w === "broll-montage" ? "Drop your clips here (two or more), or"
-    : "Drop the recording here — one file, or several takes to join";
+  const label = "Drop the recording here — one file, or several takes to join";
   const inp = el("input", { type: "file", accept: "video/*", onchange: e => uploadMany(e.target.files) });
-  if (many) inp.setAttribute("multiple", "");
+  inp.setAttribute("multiple", "");   // a talk may arrive as several takes; join_takes.py joins them
   const d = el("div", { class: "drop" }, el("div", {}, label), inp);
   d.addEventListener("dragover", e => { e.preventDefault(); d.classList.add("over"); });
   d.addEventListener("dragleave", () => d.classList.remove("over"));
   d.addEventListener("drop", e => { e.preventDefault(); d.classList.remove("over"); uploadMany(e.dataTransfer.files); });
-  const kids = [el("h3", {}, w === "broll-montage" ? "source clips" : "source video"), d];
-  if (w === "broll-montage") {   // the montage needs a background track — master_audio.sh reads rush/bg-audio.mp3
-    kids.push(el("label", { style: "margin-top:10px" }, "background track (saved as rush/bg-audio.mp3)"),
-      el("input", { type: "file", accept: "audio/*",
-        onchange: e => e.target.files[0] && fetch(`/projects/${S.pid}/rush`,
-          { method: "POST", headers: { "X-Filename": "bg-audio.mp3" }, body: e.target.files[0] }).then(refresh) }));
-  }
+  const kids = [el("h3", {}, "source video"), d,
+    // optional on any video — master_audio.sh ducks it under the speech
+    el("label", { style: "margin-top:10px" }, "background track, optional (saved as rush/bg-audio.mp3)"),
+    el("input", { type: "file", accept: "audio/*",
+      onchange: e => e.target.files[0] && fetch(`/projects/${S.pid}/rush`,
+        { method: "POST", headers: { "X-Filename": "bg-audio.mp3" }, body: e.target.files[0] }).then(refresh) })];
   return el("div", {}, ...kids);
 }
 async function uploadMany(files) {
@@ -274,7 +256,6 @@ function checkpointPanel(cp) {
   if (cp.id === "script-review") return trimPanel(cp);
   if (cp.id === "scenes") return scenesPanel(cp);
   if (cp.id === "sound-cues") return soundPanel(cp);
-  if (cp.id === "pick") return montagePickPanel(cp);
   if (cp.id === "tighten") return tightenPanel(cp);
   if (cp.id === "chapters") return chaptersPanel(cp);
   const r = runHere("Continue", cp.id);
@@ -497,37 +478,6 @@ async function soundPanel(cp) {
   return box;
 }
 
-/* --- montage: drop shots (CHECKPOINT pick) --- */
-async function montagePickPanel(cp) {
-  const box = el("div", {}, el("h3", {}, "pick the shots"),
-    el("p", { class: "muted" }, "Uncheck a shot to drop it from the montage. The scorer already picked "
-      + "each clip's sharpest, liveliest moment — this is just for the ones you don't want at all."));
-  const plan = await getFile("build/montage-plan.json");
-  if (!plan || !plan.clips) {
-    box.append(el("p", { class: "muted" }, "waiting for the scan + contact sheet."), runHere("Scan + sheet", null, "sheet").node);
-    return box;
-  }
-  box.append(el("img", { src: pfile("build/montage-contact-sheet.jpg?" + Date.now()),
-    style: "width:100%;border-radius:8px;border:1px solid var(--line);margin-bottom:10px" }));
-  const boxes = plan.clips.map(c => {
-    const cb = el("input", { type: "checkbox", ...(c.skip ? {} : { checked: "" }) });
-    box.append(el("label", { class: "row", style: "margin:3px 0;cursor:pointer" },
-      cb, el("span", { class: "grow" }, `${c.i}. ${c.name}`),
-      el("span", { class: "pill" }, `score ${(c.score ?? 0).toFixed(2)}`)));
-    return { cb, i: c.i };
-  });
-  const apply = el("button", { onclick: async () => {
-    apply.disabled = true;
-    const keep = boxes.filter(b => b.cb.checked).map(b => b.i);
-    const r = await api("POST", `/projects/${S.pid}/montage`, { op: "keep", clips: keep });
-    if (r.exit) { apply.disabled = false; return box.append(el("pre", { class: "log" }, r.output)); }
-    S.passed.add("pick"); refresh();
-  } }, "Apply & continue");
-  const cont = el("button", { class: "ghost", onclick: () => { S.passed.add("pick"); refresh(); } }, "Keep all");
-  box.append(el("div", { class: "row", style: "margin-top:12px" }, apply, cont));
-  return box;
-}
-
 /* --- tighten the pauses + fillers (HALT tighten) --- */
 async function tightenPanel(cp) {
   const box = el("div", {}, el("h3", {}, "tighten the talk"));
@@ -604,7 +554,7 @@ function resultPanel() {
   }).catch(() => {});
   const world = (S.state && S.state.world) || "talking-video";
   const links = [el("a", { href: f("video-final.mp4"), download: "" }, "video-final.mp4")];
-  if (world !== "broll-montage") {   // montage has no transcript → no .srt / post caption
+  {
     links.push(el("a", { href: f("video-final.srt"), download: "" }, ".srt"));
     links.push(el("a", { href: f("post-caption.txt"), download: "" }, "post caption"));
   }
