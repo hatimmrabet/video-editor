@@ -18,9 +18,9 @@ the drift is contained to that sentence.
 import json, sys, os
 W=os.path.abspath(sys.argv[1])
 os.makedirs(os.path.join(W,"build"),exist_ok=True)
-keep=json.load(open(os.path.join(W,"build","cut-plan.json")))["keep"]
-tr=json.load(open(os.path.join(W,"build","transcript-raw.json")))
-fx=json.load(open(os.path.join(W,"build","transcript-fixes.json")))
+keep=json.load(open(os.path.join(W,"build","cut-plan.json"),encoding="utf-8-sig"))["keep"]
+tr=json.load(open(os.path.join(W,"build","transcript-raw.json"),encoding="utf-8-sig"))
+fx=json.load(open(os.path.join(W,"build","transcript-fixes.json"),encoding="utf-8-sig"))
 FIX, HOT = fx["fix"], set(fx.get("hot",[]))
 
 SEGS=tr["segments"]
@@ -76,6 +76,6 @@ for i,seg in enumerate(SEGS):
     cards.append({"s":round(cs,3),"e":round(ce,3),"w":o})
 for i in range(len(cards)-1):
     if cards[i]["e"]>cards[i+1]["s"]: cards[i]["e"]=round(cards[i+1]["s"]-0.02,3)
-json.dump({"total":round(acc,3),"cards":cards},open(os.path.join(W,"build","captions.json"),"w"),ensure_ascii=False,indent=1)
+json.dump({"total":round(acc,3),"cards":cards},open(os.path.join(W,"build","captions.json"),"w",encoding="utf-8"),ensure_ascii=False,indent=1)
 print("cards:",len(cards)," duration:",round(acc,2))
 for c in cards: print(f"{c['s']:6.2f}-{c['e']:6.2f}  "+" ".join(x['t'] for x in c['w']))

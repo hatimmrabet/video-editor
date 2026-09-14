@@ -34,7 +34,7 @@ CUT, CAPS, SFX, SCRIPT = (os.path.join("build", "cut-plan.json"), os.path.join("
                           os.path.join("build", "sound-cues.json"), os.path.join("build", "transcript-editable.txt"))
 PAD_L, PAD_R, MIN_SEG = 0.08, 0.12, 0.20
 
-def load(n): return json.load(open(P(n), encoding="utf-8"))
+def load(n): return json.load(open(P(n), encoding="utf-8-sig"))
 def save(n, d):
     if DRY: return
     if os.path.exists(P(n)):
