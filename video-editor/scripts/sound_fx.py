@@ -9,8 +9,8 @@ S=os.path.abspath(sys.argv[1])+"/"
 os.makedirs(S+"build",exist_ok=True)
 import json
 SR=48000
-_c=json.load(open(S+"build/captions.json"))
-_s=json.load(open(S+"build/sound-cues.json"))
+_c=json.load(open(S+"build/captions.json",encoding="utf-8-sig"))
+_s=json.load(open(S+"build/sound-cues.json",encoding="utf-8-sig"))
 VEND=_c["total"]; OUTRO=_s["outro"]; DUR=VEND+OUTRO
 n=int(DUR*SR)+SR
 buf=np.zeros(n)
