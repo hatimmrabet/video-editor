@@ -6,8 +6,9 @@
 # What lives where:
 #   - System (installed here via winget/apt): ffmpeg, node, uv
 #   - Python deps  → uv-managed venv at ../.venv  (from ../pyproject.toml + ../uv.lock)
-#   - Node deps    → ../node_modules  (npm ci; `puppeteer` brings its own Chromium — tests only)
 #   - Renderer     → <work>/remotion/  (remotion.sh installs it on first use, ~500 MB)
+#   - Node itself runs the headless test suite and remotion.sh directly — no npm
+#     install of its own at the skill root (scripts/lib/*.js are stdlib-only).
 set -u
 . "$(dirname "$0")/lib/platform.sh"
 INSTALL=0; [ "${1:-}" = "--install" ] && INSTALL=1
@@ -29,7 +30,6 @@ if [ $INSTALL -eq 0 ]; then
   have uv     || miss+=("uv")
   pyok "import numpy, PIL" || miss+=("python-env (.venv)")
   { pyok "import faster_whisper" || pyok "import whisper"; } || NOTE+=("no transcription engine yet — 'uv sync' pulls faster-whisper")
-  node -e "require.resolve('puppeteer')" 2>/dev/null || miss+=("node-deps (puppeteer + Chromium)")
   if [ $GPU -eq 1 ] && pyok "import ctranslate2"; then
     if pyok "import nvidia.cublas, nvidia.cudnn"; then
       line "🎮 NVIDIA GPU + CUDA libs → transcription on GPU"
@@ -80,11 +80,6 @@ else
   NOTE+=("uv missing → Python scripts fall back to system python3 (numpy/pillow/faster-whisper must be there)")
 fi
 
-if have npm; then
-  line "⏬ node deps + Chromium (npm ci)…"
-  ( cd "$SKILL" && npm ci --silent ) || ( cd "$SKILL" && npm install --silent ) || NOTE+=("npm failed — retry: cd '$SKILL' && npm ci")
-fi
-
 # ── darija fine-tune (issue #126) — automatic, not a step to remember by hand ──────
 # `--needed` is cheap (no torch/transformers import): exit 0 only if defaults.config.json's
 # language is a hard dialect AND the model isn't built yet. The extra is dropped again
@@ -106,7 +101,6 @@ have "$VEVO_FFMPEG" || { FAIL=1; NOTE+=("ffmpeg still missing"); }
 have node   || { FAIL=1; NOTE+=("node still missing"); }
 pyok "import numpy, PIL" || { FAIL=1; NOTE+=("python deps not importable"); }
 { pyok "import faster_whisper" || pyok "import whisper"; } || NOTE+=("no transcription engine")
-node -e "require.resolve('puppeteer')" 2>/dev/null || { FAIL=1; NOTE+=("puppeteer not installed"); }
 [ $GPU -eq 1 ] && ! pyok "import nvidia.cublas, nvidia.cudnn" \
   && NOTE+=("GPU detected but CUDA libs not installed (nvidia-cublas/cudnn) — uv sync --extra gpu, or transcription falls back to CPU on its own (issue #130)")
 

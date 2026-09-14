@@ -84,7 +84,7 @@ isolated.
 ```bash
 cd video-editor
 
-# tools: installs ffmpeg / node / uv (system), then `uv sync` + `npm ci` (isolated)
+# tools: installs ffmpeg / node / uv (system), then `uv sync` (isolated)
 bash scripts/setup.sh              # report only
 bash scripts/setup.sh --install    # install + sync
 
@@ -139,11 +139,12 @@ rather than reading it whole.
   `test/motifs.test.js` enforces that; `tsc` checks the component itself.
 - **Cross-platform layer:** `scripts/lib/platform.sh` (sourced by every `.sh`; provides
   `VEVO_SKILL_DIR` + the `VEVO_PY` array) and `scripts/lib/platform.js` (required by the
-  Node scripts) absorb Windows/Linux differences. Nothing else may hard-code a path or a
-  browser location. macOS is no longer supported.
+  Node scripts) absorb Windows/Linux differences. Nothing else may hard-code a path.
+  macOS is no longer supported.
 - **Isolated deps:** Python via `uv` (`.venv/`), the renderer via `<work>/remotion/`'s own
-  `node_modules`, and `puppeteer`'s bundled Chromium for the test suite only. `setup.sh`
-  installs only ffmpeg/node/uv at system level.
+  `node_modules`. `setup.sh` installs only ffmpeg/node/uv at system level — nothing at the
+  skill root needs an `npm install` of its own (there is no `package.json` there any more;
+  `scripts/lib/*.js` and the test suite are stdlib-only).
 
 ## Constraints when editing
 
