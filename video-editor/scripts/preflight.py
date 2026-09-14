@@ -62,6 +62,34 @@ def check_tools():
             "report": (r.stdout + r.stderr).strip(), "problem": None}
 
 
+def check_skill_link():
+    """Guard against issue #125: on Windows Git-Bash, a bare `ln -s` (without
+    winsymlinks:nativestrict / Developer Mode) silently *copies* the skill folder instead
+    of linking it, and exits 0 - nothing about that failure is visible at the time. The
+    installed skill then freezes at whatever commit it was copied from, drifts from the
+    repo with every edit that follows, and nothing points at why a run behaves like an old
+    version. A link (symlink on Linux, junction on Windows) is the only install shape that
+    keeps `~/.claude/skills/video-editor` live, so a plain directory there is always the bug."""
+    installed = os.path.join(os.path.expanduser("~"), ".claude", "skills", "video-editor")
+    if not os.path.isdir(installed):
+        return {"ok": True, "installed": installed, "problem": None}   # not installed here
+    try:
+        # os.path.islink() only recognises the SYMLINK reparse tag - a Windows directory
+        # junction is the MOUNT_POINT tag, so it reports a junction as a plain folder
+        # (verified: Python 3.14, real junction). os.readlink() resolves both tags and
+        # raises OSError on an actual plain directory, so it is the one check that works
+        # for a symlink (Linux) or a junction (Windows) alike.
+        os.readlink(installed)
+        return {"ok": True, "installed": installed, "problem": None}
+    except OSError:
+        pass
+    return {"ok": False, "installed": installed, "problem": (
+        "%s is a plain directory, not a link/junction - it is a FROZEN COPY of the repo "
+        "and will not see any edit made after it was created (issue #125). Re-link it "
+        "per CLAUDE.md's 'Installing the skill for development' (Windows: a directory "
+        "junction; Linux: ln -s) before trusting anything this run produces." % installed)}
+
+
 # --------------------------------- media probing --------------------------
 def _f(x):
     try:
@@ -253,6 +281,10 @@ def human(res):
     L.append("tools: " + ("ok" if t["ok"] else "INCOMPLETE"))
     for line in (t["report"] or t["problem"] or "").splitlines():
         L.append("   " + line)
+    link = res.get("skill_link")
+    if link and not link["ok"]:
+        L.append("skill link: FROZEN COPY")
+        L.append("   " + link["problem"])
     L.append("folder: " + res["folder"])
     L.append("work:   " + res["work"] + ("  [exists]" if res["work_exists"] else ""))
     if res["found"]["config"]:
@@ -310,6 +342,7 @@ def main():
 
     # 1. the toolchain first - without ffprobe we cannot look at anything
     res["tools"] = check_tools()
+    res["skill_link"] = check_skill_link()
 
     # 2. the folder that becomes the project
     designated = target if os.path.isfile(target) else None
@@ -323,6 +356,11 @@ def main():
     if not res["tools"]["ok"]:
         res["verdict"] = "toolchain incomplete - get consent, then setup.sh --install"
         res["exit"] = TOOLS
+        return _out(res, as_json)
+
+    if not res["skill_link"]["ok"]:
+        res["verdict"] = "frozen skill install (issue #125) - a human has to re-link it"
+        res["exit"] = DECIDE
         return _out(res, as_json)
 
     found = scan(folder)
