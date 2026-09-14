@@ -44,7 +44,7 @@ BG_AUDIO = "bg-audio.mp3"
 
 OK, TOOLS, DECIDE, EMPTY = 0, 10, 20, 30
 
-LONG_SECONDS = 180.0        # beyond this, flag the recording as a long-form candidate
+LONG_SECONDS = 180.0        # beyond this, note that the recording is a long one
 MIN_WIDTH = 1080            # below this the reframe zoom has almost no room
 
 
@@ -181,14 +181,12 @@ def relocate(target):
 
 
 def scan(folder):
-    """Media / config / logo / bg-audio / broll sitting at the folder's root."""
-    out = {"media": [], "config": None, "logo": None, "bg_audio": None, "broll": None,
+    """Media / config / logo / bg-audio sitting at the folder's root."""
+    out = {"media": [], "config": None, "logo": None, "bg_audio": None,
            "other": []}
     for name in sorted(os.listdir(folder)):
         p = os.path.join(folder, name)
         if os.path.isdir(p):
-            if name.lower() == "broll":
-                out["broll"] = p
             continue
         ext = os.path.splitext(name)[1].lower()
         if name == BG_AUDIO:
@@ -202,17 +200,6 @@ def scan(folder):
         else:
             out["other"].append(p)
     return out
-
-
-def infer_world(probes):
-    """One talking file -> reel-speech. Several files -> broll-montage. `format:"long"`
-    in the config overrides this later - it is the one thing footage cannot tell us."""
-    usable = [p for p in probes if p["readable"]]
-    if not usable:
-        return None
-    if len(usable) == 1:
-        return "reel-speech" if usable[0].get("audio") else "broll-montage"
-    return "broll-montage"
 
 
 # --------------------------------- apply ----------------------------------
@@ -236,7 +223,6 @@ def apply(folder, work, picked, found):
     for m in picked:
         move(m, os.path.join(work, "rush"))
     move(found["bg_audio"], os.path.join(work, "rush"))
-    move(found["broll"], os.path.join(work, "rush"))
     move(found["config"], os.path.join(work, "config"))
     move(found["logo"], os.path.join(work, "config"))
 
@@ -269,15 +255,13 @@ def human(res):
         L.append("   " + line)
     L.append("folder: " + res["folder"])
     L.append("work:   " + res["work"] + ("  [exists]" if res["work_exists"] else ""))
-    if res["world"]:
-        L.append("world:  " + res["world"])
     if res["found"]["config"]:
         L.append("config: " + res["found"]["config"] + "  (found beside the footage)")
     elif res["applied"]:
         L.append("config: config/project.config.json  (written from the skill defaults)")
     else:
         L.append("config: none beside the footage - --apply writes one from the defaults")
-    for key, label in (("logo", "logo:  "), ("bg_audio", "bg:    "), ("broll", "broll: ")):
+    for key, label in (("logo", "logo:  "), ("bg_audio", "bg:    ")):
         if res["found"].get(key):
             L.append(label + " " + res["found"][key])
     L.append("media (%d):" % len(res["probes"]))
@@ -322,7 +306,7 @@ def main():
         return EMPTY
 
     res = {"target": target, "questions": [], "moved": [], "probes": [], "resume": [],
-           "world": None, "verdict": "", "exit": OK, "applied": do_apply}
+           "verdict": "", "exit": OK, "applied": do_apply}
 
     # 1. the toolchain first - without ffprobe we cannot look at anything
     res["tools"] = check_tools()
@@ -333,7 +317,7 @@ def main():
     res["folder"] = folder
     res["work"] = os.path.join(folder, "work")
     res["work_exists"] = os.path.isdir(res["work"])
-    res["found"] = {"config": None, "logo": None, "bg_audio": None, "broll": None,
+    res["found"] = {"config": None, "logo": None, "bg_audio": None,
                     "media": [], "other": []}
 
     if not res["tools"]["ok"]:
@@ -347,7 +331,7 @@ def main():
     # 3. the guards - never decide these alone
     if found["media"] and is_catch_all(folder) and not res["work_exists"]:
         res["questions"].append(
-            "%s is a catch-all folder, not a project. Ask the user to put this montage's "
+            "%s is a catch-all folder, not a project. Ask the user to put this video's "
             "footage in its own folder and point at that folder." % folder)
 
     if res["work_exists"]:
@@ -373,7 +357,8 @@ def main():
                   if os.path.abspath(m) != os.path.abspath(designated)]
         res["questions"].append(
             "the folder holds %d other video(s) (%s) and one file was designated. Ask "
-            "whether this is one video or a montage of all of them."
+            "whether the others are further takes of the same talk (they get joined) or "
+            "do not belong to this project."
             % (len(others), ", ".join(others)))
     if not picked and not res["resume"]:
         res["verdict"] = "no video found in " + folder
@@ -382,14 +367,14 @@ def main():
 
     # 5. look at every file
     res["probes"] = [probe(p) for p in picked]
-    res["world"] = infer_world(res["probes"])
     if any("unreadable" in p["flags"] for p in res["probes"]):
         res["questions"].append(
             "at least one file is unreadable - confirm it is the right file.")
-    if res["world"] == "reel-speech" and res["probes"] and not res["probes"][0]["audio"]:
+    if not any(p.get("audio") for p in res["probes"]):
         res["questions"].append(
-            "the video has no audio track - a captioned reel is impossible. "
-            "Confirm the mode with the user.")
+            "no audio track in the footage - the whole edit is driven by the speech "
+            "(silences, transcript, captions), so there is nothing to work from. "
+            "Confirm the file with the user.")
 
     if res["questions"]:
         res["verdict"] = ("needs a human decision - %d question(s), nothing was created"
@@ -405,8 +390,8 @@ def main():
                   "w", encoding="utf-8") as f:
             json.dump(res, f, ensure_ascii=False, indent=1)
     if not res["verdict"]:
-        res["verdict"] = ("ready - %s, %d file(s)%s"
-                          % (res["world"], len(res["probes"]),
+        res["verdict"] = ("ready - %d file(s)%s"
+                          % (len(res["probes"]),
                              "" if do_apply else "; re-run with --apply to prepare work/"))
     return _out(res, as_json)
 

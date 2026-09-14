@@ -42,7 +42,7 @@ it drifted from the code, and it was deleted. Three places, and only these three
 |---|---|
 | What the pipeline does, in order, and how to talk to the user | `video-editor/SKILL.md` |
 | What one script does, its CLI, its inputs/outputs | that script's own docstring, at the top of the file |
-| The canonical stage list per world (`needs` / `makes` / checkpoints) | `video-editor/scripts/pipeline/<world>.json` |
+| The canonical stage list (`needs` / `makes` / checkpoints) | `video-editor/scripts/pipeline/talking-video.json` |
 
 Consequences, and they are not optional:
 
@@ -84,7 +84,7 @@ isolated.
 ```bash
 cd video-editor
 
-# tools: installs ffmpeg / node / uv (system), then `uv sync` + `npm ci` (isolated)
+# tools: installs ffmpeg / node / uv (system), then `uv sync` (isolated)
 bash scripts/setup.sh              # report only
 bash scripts/setup.sh --install    # install + sync
 
@@ -97,7 +97,8 @@ uv run scripts/captions.py <work>                  # -> build/captions.json
 # Claude finds the repeats itself and writes build/retake-cuts.json (SKILL.md step 6) — no detection script
 uv run scripts/retakes.py <work> apply             # applies build/retake-cuts.json — the only fiddly, error-prone part
 uv run scripts/edit_script.py <work> show          # drop whole sentences (BEFORE scene design)
-uv run scripts/reframe.py <work>                   # -> build/video-reframed.mp4
+uv run scripts/tighten.py <work>                   # propose word-level cuts; `apply` commits them
+uv run scripts/reframe.py <work>                   # applies the cut plan -> build/video-reframed.mp4
 bash  scripts/master_audio.sh <work> <work>/build/video-raw.mp4 <work>/video-final.mp4
 
 # rendering — Remotion, the only engine. Every command installs the toolchain on first use
@@ -106,12 +107,6 @@ bash scripts/remotion/remotion.sh <work> render     # -> build/video-raw.mp4
 bash scripts/remotion/remotion.sh <work> studio     # the live timeline, to edit scenes visually
 bash scripts/remotion/remotion.sh <work> still 4.6 12.3   # stills for review -> build/prev/
 bash scripts/remotion/remotion.sh <work> check      # tsc --noEmit over the scene + motif code
-
-# montage mode (independent — folder of speechless clips)
-uv run scripts/montage_mode.py <work> scan <clipdir> --shot 1.5
-uv run scripts/montage_mode.py <work> sheet --cols 6
-uv run scripts/montage_mode.py <work> plan --dur 30
-uv run scripts/montage_mode.py <work> build <work>/montage.mp4
 ```
 
 Token economy matters here: a 1080-wide image ≈ 150k chars of context. Always review via
@@ -121,9 +116,12 @@ rather than reading it whole.
 
 ## Architecture essentials
 
-- **Two modes, chosen from the input, never asked:** a single file with speech → the reel
-  pipeline (SKILL.md steps 1–13); a folder of clips → `montage_mode.py` (no transcription,
-  no captions, no theme). `format:"long"` in the config forces the long-form world instead.
+- **One pipeline, nothing to choose.** The input is a recording of someone talking — one
+  file, or several takes of the same talk, which `join_takes.py` concatenates. There is no
+  format key, no aspect-ratio question and no second mode: `reframe.py` reads the source's
+  own dimensions, so the output keeps the orientation it was shot in. Assembling unrelated
+  clips into a montage is explicitly out of scope; the speech drives every decision here,
+  so footage without it has nothing to edit.
 - **One rendering engine: Remotion.** `remotion.sh` builds `<work>/remotion/` from
   `scripts/remotion/template/` plus the project's `captions.json`, `project.config.json`,
   `video-reframed.mp4` and `sound-effects.wav`, then renders with `npx remotion render`.
@@ -141,11 +139,12 @@ rather than reading it whole.
   `test/motifs.test.js` enforces that; `tsc` checks the component itself.
 - **Cross-platform layer:** `scripts/lib/platform.sh` (sourced by every `.sh`; provides
   `VEVO_SKILL_DIR` + the `VEVO_PY` array) and `scripts/lib/platform.js` (required by the
-  Node scripts) absorb Windows/Linux differences. Nothing else may hard-code a path or a
-  browser location. macOS is no longer supported.
+  Node scripts) absorb Windows/Linux differences. Nothing else may hard-code a path.
+  macOS is no longer supported.
 - **Isolated deps:** Python via `uv` (`.venv/`), the renderer via `<work>/remotion/`'s own
-  `node_modules`, and `puppeteer`'s bundled Chromium for the test suite only. `setup.sh`
-  installs only ffmpeg/node/uv at system level.
+  `node_modules`. `setup.sh` installs only ffmpeg/node/uv at system level — nothing at the
+  skill root needs an `npm install` of its own (there is no `package.json` there any more;
+  `scripts/lib/*.js` and the test suite are stdlib-only).
 
 ## Constraints when editing
 
@@ -159,7 +158,7 @@ rather than reading it whole.
   re-tags to bt709). `grade` is opt-in.
 - **Never add ffmpeg `drawtext`** to any script — it is missing from many ffmpeg builds
   and fails silently. Burn text labels with Python/PIL (`contact_sheet.sh`,
-  `montage_mode.py` do this).
+  `contact_sheet.sh` does this).
 - **Python scripts** keep `sys.stdout.reconfigure(encoding="utf-8")` at the top and write
   files with explicit `encoding="utf-8"` (Windows cp1252 otherwise breaks Arabic).
 - **`.sh` scripts** need Git-Bash/WSL, source `lib/platform.sh`, and use `"${VEVO_PY[@]}"`

@@ -4,23 +4,23 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""The long-form jump-cut + filler pass.
+"""The jump-cut + filler pass.
 
     uv run scripts/tighten.py <work>          # propose — prints the summary, writes build/tighten-plan.json
     uv run scripts/tighten.py <work> apply    # commit — folds into build/cut-plan.json + build/captions.json
 
 Two kinds of word-level cut, both from build/captions.json's per-word timings:
 
-  1. inter-word gaps longer than `longform.pauseMs` (config, default 250 ms) are trimmed
-     to `longform.keepMs` (default 90 ms) — a hard jump cut.
+  1. inter-word gaps longer than `tighten.pauseMs` (config, default 250 ms) are trimmed
+     to `tighten.keepMs` (default 90 ms) — a hard jump cut.
   2. filler words / short runs matching scripts/fillers.json for the project language are
      dropped.
 
 `apply` is the same terminal mutation as edit_script.py: it does NOT re-run captions.py
 afterward — rebuild the video with reframe.py. Undo restores the .bak files.
 
-Runs after captions.py, before reframe.py. Only meaningful in the long-form world
-(scripts/pipeline/long-form.json).
+Runs after the retake pass (SKILL.md step 6) and before reframe.py, for every talking
+video — a reel gets the same tight jump cuts as a long recording.
 """
 import json
 import os
@@ -58,7 +58,7 @@ def _norm(s):
 def filler_tokens():
     cfg = _config.load(W)
     lang = str(cfg.get("language", "en")).lower().split("-")[0]
-    if not cfg.get("longform", {}).get("fillers", True):
+    if not cfg.get("tighten", {}).get("fillers", True):
         return lang, []
     data = load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fillers.json"))
     return lang, [f.split() for f in data.get(lang, []) if isinstance(f, str)]
@@ -66,7 +66,7 @@ def filler_tokens():
 
 def build_plan():
     cfg = _config.load(W)
-    lf = cfg.get("longform", {})
+    lf = cfg.get("tighten", {})
     pause_ms = float(lf.get("pauseMs", 250))
     keep_ms = float(lf.get("keepMs", 90))
     caps = load(B("captions.json"))

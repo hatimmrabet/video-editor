@@ -45,7 +45,7 @@ else
   else
     read -r II TP LRA TH < <("${VEVO_PY[@]}" -c "
 import json,sys;d=json.loads('''$M''');print(d['input_i'],d['input_tp'],d['input_lra'],d['input_thresh'])")
-    # A silent track (a montage with no background audio) measures -inf, and loudnorm rejects it and halts the whole pipeline.
+    # A silent track measures -inf, and loudnorm rejects it and halts the whole pipeline.
     if "${VEVO_PY[@]}" -c "import sys;v=float('$II');sys.exit(0 if v!=v or v<-70 else 1)" 2>/dev/null; then
       echo "🔇 Audio track is silent — calibration skipped (put rush/bg-audio.mp3 if you want sound)."
       cp "$MIX" "$NRM"

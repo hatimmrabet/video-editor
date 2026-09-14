@@ -4,13 +4,13 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""Join the long-form recordings into one file.
+"""Resolve the rush/ recording(s) into the one file the rest of the pipeline reads.
 
     uv run scripts/join_takes.py <work>
 
-The `join` stage of the long-form world (scripts/pipeline/long-form.json). Reads every
-video at rush/'s root (sorted; bg-audio.mp3 excluded — same rule as lib/rush) and writes
-build/source-joined.mp4:
+The `join` stage of the talking-video world (scripts/pipeline/talking-video.json), and it
+runs for every talking video, not just a long one. Reads every video at rush/'s root
+(sorted; bg-audio.mp3 excluded — same rule as lib/rush) and writes build/source-joined.mp4:
 
 - one take   -> a plain copy
 - many takes -> ffmpeg concat demuxer, stream copy (`-c copy`); the takes must share codec

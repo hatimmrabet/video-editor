@@ -1,10 +1,9 @@
 name: ci
 
 # One job, kept under ~2 min. Fast static checks, then the headless suite in
-# video-editor/test/ (web UI + the ffmpeg resolver + the motif registry). The suite needs
-# ffmpeg (installed + cached below — ubuntu-latest has none),
-# Chromium (cached), and the system python3 — no `uv sync` (the tested scripts are
-# stdlib + lib/).
+# video-editor/test/ (the ffmpeg resolver + the motif registry — both plain Node, no
+# browser, no server). The suite needs ffmpeg (installed + cached below — ubuntu-latest
+# has none) and the system python3 — no `uv sync` (the tested scripts are stdlib + lib/).
 
 on:
   pull_request:
@@ -28,13 +27,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version-file: video-editor/.python-version
-
-      - name: cache node_modules (incl. Puppeteer's Chromium under .cache/)
-        id: nm
-        uses: actions/cache@v6
-        with:
-          path: video-editor/node_modules
-          key: nm-${{ runner.os }}-${{ hashFiles('video-editor/package-lock.json') }}
 
       # --- fast static checks ---
       - name: node --check every .js / .cjs / .mjs
@@ -96,11 +88,7 @@ jobs:
           fi
           printf '%s\n' "$DEST" >> "$GITHUB_PATH"
           "$DEST/ffmpeg" -version | head -n1 || true
-      - name: node deps + bundled Chromium (skipped on a cache hit)
-        if: steps.nm.outputs.cache-hit != 'true'
-        working-directory: video-editor
-        run: npm ci --silent
       - name: headless suite
         working-directory: video-editor
-        run: xvfb-run -a node test/run.mjs
+        run: node test/run.mjs
 

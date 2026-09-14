@@ -101,6 +101,18 @@ case "$CMD" in
     ( cd "$R" && npx remotion studio --port "$PORT" ) ;;
   render)
     sync_all; ensure_deps; OUT="${ARG:-$W/build/video-raw.mp4}"
+    # The scene layer (Root.tsx, stage.ts and every motif's coordinates) is still written in
+    # a fixed 1080x1920 space. reframe.py now keeps the source's own orientation, so a
+    # horizontal recording would be composited into a vertical frame and come out cropped.
+    # Say so loudly rather than delivering a quietly broken file.
+    DIMS="$("$VEVO_FFPROBE" -v error -select_streams v:0 -show_entries stream=width,height             -of csv=p=0:s=x "$W/build/video-reframed.mp4" 2>/dev/null || echo "")"
+    case "$DIMS" in
+      1080x1920|"") ;;
+      *) echo "❌ the cut video is ${DIMS}, but the scene layer is still written for 1080x1920."
+         echo "   Rendering it would crop the picture into a vertical frame. Making the"
+         echo "   composition follow the source is the open piece of work (issue #136)."
+         exit 14 ;;
+    esac
     mkdir -p "$(dirname "$OUT")"
     grep -q '"guides": true' "$R/src/project.json" && \
       echo "⚠️  Safe-zone guides are on — they'll be burned into the video. Remove guides from config/safe.json before delivery."

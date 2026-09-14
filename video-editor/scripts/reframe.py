@@ -4,15 +4,17 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""Cuts the silences + reframes to the output aspect + a different zoom per segment +
-optional color grade.
+"""Applies the cut plan: trims and concatenates the kept segments, with a different zoom
+per segment and an optional color grade.
 python3 reframe.py <workdir>
 
-Output aspect follows project.config.json `format`:
-- "short" (default) → vertical 9:16 (1080x1920). A landscape source is centre-cropped to 9:16.
-- "long"            → horizontal 16:9 (1920x1080), the long-form / YouTube world. A landscape
-                       source passes through; a vertical source is centre-cropped to 16:9.
-In both cases the source resolves through lib/rush (long-form: build/source-joined.mp4).
+**The output keeps the source's orientation and size.** A vertical recording gives a
+vertical video, a horizontal one gives a horizontal video — there is no `format` setting
+and nothing is ever centre-cropped to a different aspect. The dimensions are read off the
+source (rounded to even numbers, which h264 requires); the per-segment zoom crops inside
+that frame, anchored by crop.xAnchor / crop.yAnchor.
+
+The source resolves through lib/rush — build/source-joined.mp4, written by join_takes.py.
 project.config.json (optional): crop.xAnchor (0-1, horizontal · default 0.5) ·
 crop.yAnchor (0-1, vertical · default 0.30) · grade (bool · default false)
 """
@@ -23,25 +25,18 @@ os.makedirs(os.path.join(W,"build"),exist_ok=True)
 k=json.load(open(os.path.join(W,"build","cut-plan.json")))["keep"]
 _cfg_data=_cfg.load(W)
 GRADE=_cfg_data.get("grade",False)
-LONG=_cfg_data.get("format")=="long"          # long-form / YouTube → 16:9 instead of 9:16
-OW,OH = (1920,1080) if LONG else (1080,1920)
 _crop=_cfg_data.get("crop",{})
 XANCH=float(_crop.get("xAnchor",0.5)); YANCH=float(_crop.get("yAnchor",0.30))
 Z=[1.00,1.08,1.00,1.06,1.00,1.12,1.04,1.14,1.00,1.08,1.00,1.05,1.10,1.00]
 p=subprocess.run([_plat.FFPROBE,"-v","error","-select_streams","v:0","-show_entries",
    "stream=width,height","-of","csv=p=0:s=x",SRC],capture_output=True,text=True).stdout.strip()
 SW,SH=[int(x) for x in p.split("x")[:2]]
-TARGET=OW/OH
-# Base frame (z=1): the largest TARGET-ratio rectangle that fits inside the source
-if SW/SH > TARGET + 1e-3:          # source wider than target → crop the sides
-    BW,BH = int(SH*TARGET)//2*2, SH
-    print(f"source {SW}x{SH} → {BW}x{BH} crop (anchor x={XANCH})")
-elif SW/SH < TARGET - 1e-3:        # source taller than target → crop top/bottom
-    BW,BH = SW, int(SW/TARGET)//2*2
-    print(f"source {SW}x{SH} → {BW}x{BH} crop (anchor y={YANCH})")
-else:                              # already the target aspect → pass through
-    BW,BH = SW, SH
-print(f"output: {OW}x{OH} ({'16:9 long-form' if LONG else '9:16'})")
+# The output IS the source frame — only rounded down to even numbers for h264. No aspect
+# conversion: the orientation the creator shot in is the orientation they get.
+OW,OH = SW//2*2, SH//2*2
+BW,BH = OW,OH
+_ratio = "9:16" if OH > OW else ("16:9" if OW > OH else "1:1")
+print(f"output: {OW}x{OH} ({_ratio}, from the source — no reframing)")
 fc=[];v=[];a=[]
 for i,(s,e) in enumerate(k):
     z=Z[i%len(Z)]; cw=int(BW/z)//2*2; ch=int(BH/z)//2*2
@@ -66,7 +61,7 @@ graph=";".join(fc)
 cmd=[_plat.FFMPEG,"-v","error","-stats","-i",SRC,"-filter_complex",graph,
      "-map","[vo]","-map","[ao]","-c:v","libx264","-preset","medium","-crf","16",
      "-c:a","aac","-b:a","192k","-movflags","+faststart","-y",os.path.join(W,"build","video-reframed.mp4")]
-# A long-form video tightened to many jump-cut segments makes a big filter graph; if it
+# A long recording tightened to many jump-cut segments makes a big filter graph; if it
 # ever overruns the OS argument limit, ffmpeg's `/`-prefix reads the graph from a file.
 if len(graph) > 90000:
     _fcs=os.path.join(W,"build",".reframe-filters.txt")
