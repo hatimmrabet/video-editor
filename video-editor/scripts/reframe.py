@@ -22,7 +22,7 @@ import json, subprocess, sys, os
 from lib import config as _cfg, rush as _rush, platform as _plat
 W=os.path.abspath(sys.argv[1]); SRC=_rush.find_source(W)
 os.makedirs(os.path.join(W,"build"),exist_ok=True)
-k=json.load(open(os.path.join(W,"build","cut-plan.json")))["keep"]
+k=json.load(open(os.path.join(W,"build","cut-plan.json"),encoding="utf-8-sig"))["keep"]
 _cfg_data=_cfg.load(W)
 GRADE=_cfg_data.get("grade",False)
 _crop=_cfg_data.get("crop",{})

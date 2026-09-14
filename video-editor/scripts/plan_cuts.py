@@ -58,7 +58,7 @@ for seg in keep:
     else: m.append(seg)
 m=[x for x in m if x[1]-x[0]>=0.30]
 tot=sum(b-a for a,b in m)
-json.dump({"keep":m,"total":tot,"src_dur":dur}, open(os.path.join(W,"build","cut-plan.json"),"w"), indent=1)
+json.dump({"keep":m,"total":tot,"src_dur":dur}, open(os.path.join(W,"build","cut-plan.json"),"w",encoding="utf-8"), indent=1)
 print(f"noise={NOISE} minSilence={MIND}s padIn={PAD_IN}s padOut={PAD_OUT}s")
 print(f"segments={len(m)}  kept={tot:.2f}s  removed={dur-tot:.2f}s ({(dur-tot)/dur*100:.0f}%)")
 for a,b in m: print(f"  {a:7.2f} -> {b:7.2f}  ({b-a:5.2f}s)")
