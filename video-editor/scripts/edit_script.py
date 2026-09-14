@@ -184,6 +184,6 @@ print(f"""
 ✅ Done. Now rebuild the video:
    python3 scripts/reframe.py {W}
    mkdir -p {W}/build/frames-source && ffmpeg -v error -i {W}/build/video-reframed.mp4 -vf fps=30 -q:v 3 -y {W}/build/frames-source/%05d.jpg
-   node scripts/render_frames.js {W} all --force     (or remotion/remotion.sh {W} render)
+   bash scripts/remotion/remotion.sh {W} render
 ⚠️ If you already designed scenes with hardcoded timestamps — they've shifted, review them.
 ↩️ To undo: python3 scripts/edit_script.py {W} undo""")

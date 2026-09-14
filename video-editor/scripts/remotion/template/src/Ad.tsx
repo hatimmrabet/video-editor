@@ -8,6 +8,7 @@ import {Scenes, VideoOverlay} from './Scenes';
 import {SceneList} from './SceneList';
 import {Outro} from './Outro';
 import {Guides} from './Guides';
+import {Grid} from './Grid';
 
 export const Ad: React.FC = () => {
   const frame = useCurrentFrame();
@@ -18,6 +19,7 @@ export const Ad: React.FC = () => {
 
   return (
     <AbsoluteFill style={{background:T.bg, fontFamily:T.font}}>
+      <Grid />
       {layers.map((L, idx) => (
         <div key={idx} style={{position:'absolute', left:L.rect.x, top:L.rect.y, width:L.rect.w, height:L.rect.h,
           borderRadius:L.rect.r, overflow:'hidden', opacity:L.opacity,

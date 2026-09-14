@@ -28,7 +28,7 @@ re-copy.
   skill then freezes at that copy and drifts, issue #125) and **do not** use a `.lnk`
   shortcut (Claude Code does not follow `.lnk` files). Verify with
   `(Get-Item $l).LinkType` → `Junction`.
-- **macOS / Linux** — `ln -s "$(pwd)/video-editor" ~/.claude/skills/video-editor`.
+- **Linux** — `ln -s "$(pwd)/video-editor" ~/.claude/skills/video-editor`.
 
 A junction/symlink means the installed skill always reflects the **currently checked-out
 branch**. Check `git branch --show-current` before a real run.
@@ -56,7 +56,7 @@ Consequences, and they are not optional:
 ## When you find a problem, open a GitHub issue
 
 **A problem detected is an issue created — immediately, in the same session, before moving
-on.** A bug, a regression, a broken invariant, drift between the two engines, something
+on.** A bug, a regression, a broken invariant, drift between a motif and its registry entry, something
 that used to work and no longer does: `gh issue create` with what you observed, how to
 reproduce it, and the file involved. Never record it in a Markdown file, a TODO comment,
 or only in the conversation — those get lost. If you fix it in the same change, say so in
@@ -72,7 +72,7 @@ end-user guide (the Arabic `GUIDE.pdf`/`GUIDE.html` were deleted — stale, upst
 ## Running the pipeline
 
 There's a headless suite for the moving JavaScript (`video-editor/test/`, run by CI — the
-web UI, `lint_compose`, `behind_text`, the ffmpeg resolver, the motifs), but **no test for
+web UI, the ffmpeg resolver, the motif registry), but **no test for
 the pipeline output**: "testing" a pipeline change means running the relevant stage on a
 real video. Every script takes a **work directory** `<work>` as its first argument and
 reads/writes its files there.
@@ -97,17 +97,15 @@ uv run scripts/captions.py <work>                  # -> build/captions.json
 # Claude finds the repeats itself and writes build/retake-cuts.json (SKILL.md step 6) — no detection script
 uv run scripts/retakes.py <work> apply             # applies build/retake-cuts.json — the only fiddly, error-prone part
 uv run scripts/edit_script.py <work> show          # drop whole sentences (BEFORE scene design)
-uv run scripts/reframe.py <work>                   # -> cutz.mp4
-node  scripts/render_frames.js <work> all          # -> out/*.jpg  (resume; --force re-renders)
-node  scripts/render_frames.js <work> range 12 18  # re-render one window after editing a scene
-node  scripts/render_frames.js <work> preview 4.6 12.3   # stills for review
-bash  scripts/encode.sh <work>                     # -> ad-final.mp4
-node  scripts/safe_check.js <work> --shot          # MANDATORY: safe zone + hook, exit 3 on violation
-bash  scripts/master_audio.sh <work> <work>/ad-final.mp4 <work>/ad-master.mp4
+uv run scripts/reframe.py <work>                   # -> build/video-reframed.mp4
+bash  scripts/master_audio.sh <work> <work>/build/video-raw.mp4 <work>/video-final.mp4
 
-# Remotion engine (opt-in, replaces render_frames.js + encode.sh)
-bash scripts/remotion/remotion.sh <work> setup      # ~500 MB, once
-bash scripts/remotion/remotion.sh <work> render <work>/ad-final.mp4
+# rendering — Remotion, the only engine. Every command installs the toolchain on first use
+# (~500 MB), so `setup` is never a step you can forget.
+bash scripts/remotion/remotion.sh <work> render     # -> build/video-raw.mp4
+bash scripts/remotion/remotion.sh <work> studio     # the live timeline, to edit scenes visually
+bash scripts/remotion/remotion.sh <work> still 4.6 12.3   # stills for review -> build/prev/
+bash scripts/remotion/remotion.sh <work> check      # tsc --noEmit over the scene + motif code
 
 # montage mode (independent — folder of speechless clips)
 uv run scripts/montage_mode.py <work> scan <clipdir> --shot 1.5
@@ -118,44 +116,45 @@ uv run scripts/montage_mode.py <work> build <work>/montage.mp4
 
 Token economy matters here: a 1080-wide image ≈ 150k chars of context. Always review via
 one `contact_sheet.sh` image at `scale=300:-1`, not separate stills; prefer
-`safe_check.js`'s one-line verdict over screenshots; `grep -n` into `compose.html` rather
-than reading it whole.
+`remotion.sh <work> check`'s one-line verdict over screenshots; `grep -n` into a scene file
+rather than reading it whole.
 
 ## Architecture essentials
 
 - **Two modes, chosen from the input, never asked:** a single file with speech → the reel
   pipeline (SKILL.md steps 1–13); a folder of clips → `montage_mode.py` (no transcription,
   no captions, no theme). `format:"long"` in the config forces the long-form world instead.
-- **Two rendering engines with identical visual style:** the *light* engine
-  (`render_frames.js` drives `compose.html` in headless Chrome, frame-by-frame to JPEGs)
-  is always the default; the *Remotion* engine (`remotion.sh`, a live studio) is opened
-  only if the user asks to edit visually. They share `caps.json`, `theme.json`, `sfx.wav`,
-  `cutz.mp4`. **They drift easily** (rect values, caption widths); a change to one almost always
-  needs the mirror change to the other, and a drift found is a GitHub issue.
-- **Scenes are per-video code, not data (yet):** designing scenes = copying
-  `compose.reference.html` → `<work>/compose.html` and rewriting the scene functions (and
-  `Scenes.tsx` for Remotion). Timestamps are hardcoded per video. `edit_script.py` shifts
-  all times, so run it *before* scene design. Making scenes data-driven is the largest
-  open piece of work — it is tracked in GitHub Issues.
+- **One rendering engine: Remotion.** `remotion.sh` builds `<work>/remotion/` from
+  `scripts/remotion/template/` plus the project's `captions.json`, `project.config.json`,
+  `video-reframed.mp4` and `sound-effects.wav`, then renders with `npx remotion render`.
+  There is no second engine and no `engine` config key — the canvas engine
+  (`compose.html` / `render_frames.js` / `studio.html` / `safe_check.js` and the canvas
+  motifs) was removed because keeping three hand-written mirrors in sync was a standing
+  source of drift.
+- **Scenes are per-video code, not data (yet):** designing scenes = rewriting the
+  components in `<work>/remotion/src/Scenes.tsx` (never wiped by a re-sync), or authoring
+  `config/scenes.json` and letting `SceneList.tsx` dispatch motifs. Timestamps are
+  hardcoded per video. `edit_script.py` shifts all times, so run it *before* scene design.
+  Making scenes data-driven is the largest open piece of work — tracked in GitHub Issues.
+- **A motif lives in two places and both must agree:** its entry in
+  `scripts/motifs/index.json` and its component in `scripts/motifs/remotion/`.
+  `test/motifs.test.js` enforces that; `tsc` checks the component itself.
 - **Cross-platform layer:** `scripts/lib/platform.sh` (sourced by every `.sh`; provides
   `VEVO_SKILL_DIR` + the `VEVO_PY` array) and `scripts/lib/platform.js` (required by the
-  Node scripts) absorb macOS/Windows/Linux differences. Nothing else may hard-code a path
-  or a browser location.
-- **Isolated deps:** Python via `uv` (`.venv/`), browser via `puppeteer`'s bundled
-  Chromium. `setup.sh` installs only ffmpeg/node/uv at system level.
-- **One hard macOS dependency:** `fx/personmask.swift` (Apple Vision) and therefore
-  `fx/behind_text.js`. Everything that needs it skips itself elsewhere.
+  Node scripts) absorb Windows/Linux differences. Nothing else may hard-code a path or a
+  browser location. macOS is no longer supported.
+- **Isolated deps:** Python via `uv` (`.venv/`), the renderer via `<work>/remotion/`'s own
+  `node_modules`, and `puppeteer`'s bundled Chromium for the test suite only. `setup.sh`
+  installs only ffmpeg/node/uv at system level.
 
 ## Constraints when editing
 
-- **Four render-engine rules that must not regress** (each one caused a real broken
-  render): every scene call wrapped in `safe()` (save/restore inside try/finally — without
-  it a throwing scene corrupts the canvas and the video goes black from that point on);
-  `draw()` resets canvas state at the top of every frame; `img.decode()` after `img.src`
-  (`onload` alone races the decode); `setCacheEnabled(false)` in `render_frames.js` and
-  `safe_check.js` (headless Chrome otherwise serves a stale `compose.html`).
-- **No hardcoded colors in scene code** — everything derives from `theme.json` via the
-  theme helpers (`rgba`, `lum`, `onACC`).
+- **Scene code must type-check** — `remotion.sh <work> check` (and the CI step) run
+  `tsc --noEmit`. This replaced the old regex linter: it is the thing that catches an
+  undefined helper, a bad prop or a duplicate style key before a render, so never merge
+  scene or motif changes past a red type-check.
+- **No hardcoded colors in scene code** — everything derives from `project.config.json`'s
+  `theme` block through `theme.ts` (`T`) and the `util.tsx` helpers (`rgba`, `onACC`).
 - **No color grade / filter over the person's video** by default (`reframe.py` only
   re-tags to bt709). `grade` is opt-in.
 - **Never add ffmpeg `drawtext`** to any script — it is missing from many ffmpeg builds
@@ -183,7 +182,7 @@ than reading it whole.
 
 `.github/workflows/ci.yml` gates every PR (one job, < 2 min): the static checks
 (`node --check` / `compileall` / `bash -n` / JSON parse / the Remotion lockfile) then the
-headless suite `video-editor/test/` (web UI, `lint_compose`, `behind_text`, the ffmpeg
+headless suite `video-editor/test/` (web UI, the ffmpeg
 resolver, the motifs). Add a `*.test.js` there when you touch moving JavaScript.
 
 `main` still carries the fork's line (reset to upstream v2.4 as the base for the rename +

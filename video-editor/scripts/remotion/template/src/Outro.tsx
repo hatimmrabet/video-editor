@@ -1,5 +1,5 @@
 import {Img, staticFile} from 'remotion';
-import {T, VEND, OUTRO_COPY} from './theme';
+import {T, VEND, OUTRO_COPY, HAS_LOGO} from './theme';
 import {p, ease, eio, back, rgba, onACC} from './util';
 
 /* The copy comes from project.json ← outro_copy — don't hardcode any text here */
@@ -17,9 +17,11 @@ export const Outro: React.FC<{t:number}> = ({t}) => {
   return (
     <div style={{position:'absolute', left:0, right:0, top:1920*(1-wipe), height:1920,
       background:T.bg, overflow:'hidden'}}>
-      <div style={{opacity:ap(0.30), textAlign:'center', paddingTop:196+Math.sin((t-s)*1.6)*5-(1-ease(ap(0.30)))*18}}>
-        <Img src={staticFile('logo.png')} style={{width:180, height:180}} />
-      </div>
+      {HAS_LOGO && (
+        <div style={{opacity:ap(0.30), textAlign:'center', paddingTop:196+Math.sin((t-s)*1.6)*5-(1-ease(ap(0.30)))*18}}>
+          <Img src={staticFile('logo.png')} style={{width:180, height:180}} />
+        </div>
+      )}
       {C.line && (
         <div style={{opacity:ap(0.42), textAlign:'center', marginTop:80,
           transform:`translateY(${(1-ease(ap(0.42)))*14}px)`}}>
@@ -51,7 +53,7 @@ export const Outro: React.FC<{t:number}> = ({t}) => {
           fontWeight:700, fontSize:42, color:T.mut}}>{C.tail}</div>)}
       <div style={{opacity:ap(1.6), display:'flex', alignItems:'center', justifyContent:'center',
         gap:18, marginTop:104}}>
-        <Img src={staticFile('logo.png')} style={{width:54, height:54}} />
+        {HAS_LOGO && <Img src={staticFile('logo.png')} style={{width:54, height:54}} />}
         <span dir="ltr" style={{fontWeight:700, fontSize:40, color:T.ink}}>{T.handle}</span>
       </div>
     </div>

@@ -49,7 +49,7 @@ export default function CardStack({prog, wordIndex, theme, params}: Props) {
             background: acc ? theme.acc : rgba(theme.ink, 0.03),
             border: `2.5px solid ${rgba(theme.ink, 0.09)}`, borderRadius: 34,
             boxShadow: `0 18px 44px ${rgba(theme.ink, acc ? 0.22 : 0.14)}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'absolute',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: theme.font, fontWeight: 800, fontSize: 46, color: acc ? onAccentInk(theme.acc) : theme.ink}}>
             {showCheck && fk > 0.15 && (
               <span style={{position: 'absolute', left: 40, fontSize: 40, color: acc ? onAccentInk(theme.acc) : theme.acc}}>✓</span>

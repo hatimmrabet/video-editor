@@ -1,69 +1,63 @@
-/* Every implemented motif renders through compose.reference.html's drawScenes on a real
-   headless canvas: each must draw (change pixels inside its span), never throw, never warn. */
+/* The motif registry must stay consistent with the Remotion components that implement it.
+   The old canvas pixel test ("does it actually draw?") went away with the light engine —
+   that depth now lives in `remotion.sh <work> check` (tsc --noEmit), which needs the ~500 MB
+   toolchain and so cannot run in this job. What IS checked here is the drift that actually
+   bit us: a motif declared in index.json but never imported or dispatched, a component file
+   with no registry entry, or a params block that no longer matches the component's type. */
 const fs = require("fs"), path = require("path");
 const T = require("./_lib");
 
-const PX = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
-const WORDS = [{ t: "one", s: 1, e: 2.5, hot: false }, { t: "two", s: 2.5, e: 4, hot: false }, { t: "three", s: 4, e: 6, hot: false }];
-const CAPS = { total: 20, cards: [{ s: 1.0, e: 6.0, w: WORDS }] };
-const SCHED = [{ s: 0, e: 1, m: "FULL" }, { s: 1, e: 6, m: "FULL" }, { s: 6, e: 9999, m: "FULL" }];
-const CASES = {
-  stamp: { lead: "0%", text: "handmade" },
-  counter: { title: "cost", from: 88, to: 0, prefix: "$", decimals: 2 },
-  quote: { text: "the problem", accent: true },
-  checklist: { title: "the fix", items: ["diagnose", "edit", "test"], tick: "even" },
-  "card-stack": { items: ["cut", "caption", "zoom", "motion"], columns: 2 },
-  "transcript-panel": { title: "auto transcript" },
-  "file-merge": { sources: ["clip A", "clip B", "clip C"], targetLabel: "one file", done: "ready" },
-  glitch: { intensity: 1 },
-  "comment-box": { word: "video" },
-  "sync-viz": { title: "word-level sync" },
-  suspense: { rings: 2 },
-};
+const M = path.join(T.SCRIPTS, "motifs");
+const idx = JSON.parse(fs.readFileSync(path.join(M, "index.json"), "utf8")).motifs;
+const list = path.join(T.SCRIPTS, "remotion", "template", "src", "SceneList.tsx");
+const src = fs.readFileSync(list, "utf8");
 
-/* draw frame `t` in the page and reduce the canvas to one number (every 12th pixel, weighted) */
-const canvasSum = t => { window.draw(t); const d = X.getImageData(0, 0, 1080, 1920).data;
-  let s = 0; for (let i = 0; i < d.length; i += 48) s += d[i] * 3 + d[i + 1] * 2 + d[i + 2]; return s; };
+/* `stamp: Stamp, 'card-stack': CardStack, ...` inside the MOTIFS map */
+const map = {};
+const body = (src.match(/const MOTIFS[^{]*\{([\s\S]*?)\n\};/) || [, ""])[1];
+for (const m of body.matchAll(/'?([\w-]+)'?\s*:\s*(\w+)/g)) map[m[1]] = m[2];
+const imports = new Set([...src.matchAll(/import\s+(\w+)\s+from\s+'\.\/motifs\/(\w+)'/g)].map(m => m[1] + ":" + m[2]));
 
-const idx = JSON.parse(fs.readFileSync(path.join(T.SCRIPTS, "motifs", "index.json"), "utf8")).motifs;
-const compose = T.platform.fileUrl(path.join(T.SCRIPTS, "compose.reference.html"));
-const TIMES = [2.0, 3.5, 5.0];   // three frames inside the 1–6 s span
+T.node("motifs", ({ check }) => {
+  const implemented = Object.entries(idx).filter(([, d]) => d.status === "implemented");
+  check(`${implemented.length} implemented motif(s) in index.json`, implemented.length > 0);
 
-async function renders(browser, name, kind) {
-  const page = await browser.newPage();
-  const warns = [];
-  page.on("pageerror", e => warns.push("throw: " + e.message));
-  page.on("console", m => { if (/WARN (motif|scene)|is not a function|Cannot read/.test(m.text())) warns.push(m.text()); });
-  await page.setViewport({ width: 1080, height: 1920 });
-  await page.setCacheEnabled(false);
-  await page.goto(compose, { waitUntil: "load" });   // the pixel-sum check doesn't need the web font
+  for (const [name, def] of implemented) {
+    const comp = map[name];
+    if (!check(`${name.padEnd(18)} dispatched by SceneList`, !!comp)) continue;
+    check(`${name.padEnd(18)} imported as ${comp}`, imports.has(comp + ":" + comp));
 
-  const src = fs.readFileSync(path.join(T.SCRIPTS, "motifs", "canvas", name + ".js"), "utf8");
-  const scene = { s: 1, e: 6, mode: "FULL", transition: null, gb: null, motif: name, kind,
-    params: CASES[name] || {}, timing: { in: 0.2, out: 0.2, hold: "full" }, words: WORDS, bottom: 400 };
+    const file = path.join(M, "remotion", comp + ".tsx");
+    if (!check(`${name.padEnd(18)} has motifs/remotion/${comp}.tsx`, fs.existsSync(file))) continue;
 
-  const sample = async withMotif => {
-    await page.evaluate((c, sc, sch, mo, px, use) => {
-      document.getElementById("LOGO").src = px;
-      window.init({ cards: c.cards, total: c.total, outro: 5, theme: {}, scenes: [sc], schedule: sch,
-        motifs: use ? { [sc.motif]: mo } : {} });
-    }, CAPS, scene, SCHED, src, PX, withMotif);
-    await page.evaluate(px => window.setFrame(px), PX);
-    const out = [];
-    for (const t of TIMES) out.push(await page.evaluate(canvasSum, t));
-    return out;
-  };
-  const withM = await sample(true);
-  const base = await sample(false);
-  await page.close();
-  return { draws: TIMES.some((_, i) => withM[i] !== base[i]), warns };
-}
+    /* Every param declared in the registry must appear in the component's type. Two
+       conventions are in use across the motifs: a standalone `type Params = {...}` and an
+       inline `params: {...}` inside `type Props` — accept either. */
+    const tsx = fs.readFileSync(file, "utf8")
+      // strip comments first: the doc header also spells out `params: { a, b }`, which is
+      // prose, not a type, and would otherwise be picked up instead of the real declaration.
+      .replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    const at = tsx.search(/type Params\s*=\s*\{|params\??\s*:\s*\{/);
+    const block = at < 0 ? "" : (() => {          // balance braces from the opening one
+      let i = tsx.indexOf("{", at), d = 0;
+      for (let j = i; j < tsx.length; j++) {
+        if (tsx[j] === "{") d++;
+        else if (tsx[j] === "}" && --d === 0) return tsx.slice(i + 1, j);
+      }
+      return "";
+    })();
+    const declared = new Set([...block.matchAll(/([A-Za-z_$][\w$]*)\??\s*:/g)].map(m => m[1]));
+    const missing = Object.keys(def.params || {}).filter(k => !declared.has(k));
+    check(`${name.padEnd(18)} params match its declared type`, missing.length === 0,
+      missing.length ? "not in the params type: " + missing.join(", ") : "");
 
-T.withBrowser("motifs", async ({ browser, check }) => {
-  for (const [name, def] of Object.entries(idx)) {
-    if (def.status !== "implemented") continue;
-    const r = await renders(browser, name, def.kind);
-    check(name.padEnd(18) + (r.draws ? "draws" : "NO DRAW") + (r.warns.length ? "  " + r.warns.join(" | ") : ""),
-      r.draws && r.warns.length === 0);
+    check(`${name.padEnd(18)} default-exports its component`, /export default \w+/.test(tsx));
   }
+
+  /* no orphan component: every .tsx on disk is in the registry */
+  const onDisk = fs.readdirSync(path.join(M, "remotion")).filter(f => f.endsWith(".tsx"))
+    .map(f => f.replace(/\.tsx$/, ""));
+  const registered = new Set(Object.values(map));
+  const orphans = onDisk.filter(c => !registered.has(c));
+  check("no orphan component in motifs/remotion/", orphans.length === 0, orphans.join(", "));
 });
