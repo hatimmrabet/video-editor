@@ -36,21 +36,30 @@ DRY = "--dry" in sys.argv
 CP = os.path.join(W, "build", "cut-plan.json")
 
 
-def run(cmd):
-    return subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+def run(cmd, cwd=None):
+    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 def frame_metrics(src, a, span):
     """[{t, blur, mot}, ...] for the window [a, a+span] of the source (t is absolute)."""
-    mf = os.path.join(W, "build", ".settle-meta.txt")
+    build = os.path.join(W, "build")
+    meta_name = ".settle-meta.txt"
+    mf = os.path.join(build, meta_name)
     if os.path.exists(mf):
         os.remove(mf)
-    vf = ("blurdetect=low=0.05:high=0.15,signalstats,"
-          f"metadata=print:file={mf}")
-    run([_plat.FFMPEG, "-v", "error", "-ss", f"{a:.4f}", "-t", f"{span:.4f}",
-         "-i", src, "-an", "-vf", vf, "-f", "null", "-"])
-    if not os.path.exists(mf):
-        return []
+    # `metadata=print:file=...` lives inside ffmpeg's filtergraph mini-language, where `:`
+    # separates options and `\` escapes — an absolute Windows path (C:\Users\...) breaks that
+    # parser outright (issue #133). A bare relative filename with cwd=build sidesteps the
+    # whole escaping problem, on every OS.
+    vf = f"blurdetect=low=0.05:high=0.15,signalstats,metadata=print:file={meta_name}"
+    r = run([_plat.FFMPEG, "-v", "error", "-ss", f"{a:.4f}", "-t", f"{span:.4f}",
+             "-i", src, "-an", "-vf", vf, "-f", "null", "-"], cwd=build)
+    if r.returncode != 0 or not os.path.exists(mf):
+        # Real failure, not "no clean frame in range": say so loudly instead of quietly
+        # folding it into "0/N nudged", which reads as a benign, expected outcome.
+        detail = (r.stderr or "").strip().splitlines()[-1] if r.stderr else "no output produced"
+        print(f"  !! settle measurement failed at {a:.2f}s (kept as-is): {detail}")
+        return None
     rows, cur = [], None
     for ln in open(mf, encoding="utf-8", errors="replace"):
         ln = ln.strip()
@@ -117,12 +126,15 @@ def main():
     limit = min(float(c.get("settleMaxMs", 400)) / 1000.0, float(c.get("padIn", 0.22)))
     src = rush.find_source(W)
 
-    moved = 0
+    moved, failed = 0, 0
     for i, (a, b) in enumerate(keep):
         span = min(limit, max(0.0, b - a - 0.30))
         if span < 0.06:
             continue
         rows = frame_metrics(src, a, span + 1e-3)
+        if rows is None:
+            failed += 1
+            continue
         t = first_clean(rows)
         if t is None or t <= a + 1e-3:
             continue
@@ -131,7 +143,8 @@ def main():
         print(f"  seg {i+1}: {a:7.2f} -> {keep[i][0]:7.2f}  (+{keep[i][0]-a:.2f}s to a clean frame)")
 
     total = round(sum(y - x for x, y in keep), 3)
-    print(f"settle: {moved}/{len(keep)} cut-in point(s) nudged  ·  kept {total:.2f}s")
+    note = f"  ·  {failed} measurement failure(s), see above" if failed else ""
+    print(f"settle: {moved}/{len(keep)} cut-in point(s) nudged  ·  kept {total:.2f}s{note}")
     mf = os.path.join(W, "build", ".settle-meta.txt")
     if os.path.exists(mf):
         os.remove(mf)
