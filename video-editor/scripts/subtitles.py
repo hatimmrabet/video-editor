@@ -7,7 +7,7 @@ except Exception:
 """SRT subtitle file + full caption text.  python3 subtitles.py <workdir>
 Produces: video-final.srt (YouTube reads it, Instagram accepts it on upload) and
 post-caption.txt (text ready for the post caption). If config/chapters.json exists
-(long-form world), also video-final.chapters.txt — the `MM:SS Title` list for the
+also video-final.chapters.txt — the `MM:SS Title` list for the
 YouTube description.
 Reads build/captions.json — the same timings that were rendered onto the video, so sync is guaranteed."""
 import json, sys, os
@@ -52,7 +52,7 @@ open(tp, "w", encoding="utf-8").write("\n".join(txt) + "\n")
 print(f"✅ {sp}  ({len(cards)} subtitle lines)")
 print(f"✅ {tp}  ({sum(len(t.split()) for t in txt)} words — ready for the post caption)")
 
-# ── chapters (long-form) — config/chapters.json → video-final.chapters.txt ──
+# ── chapters — config/chapters.json → video-final.chapters.txt ──
 _chraw = _scn._read_json(os.path.join(W, "config", "chapters.json"))
 if isinstance(_chraw, list) and _chraw:
     def _mmss(t):

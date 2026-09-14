@@ -1,0 +1,262 @@
+{
+  "_doc": "Canonical stage list for the talking-video world: one or more recordings of someone speaking to camera -> one edited, captioned video. There is no short/long switch — the output orientation follows the source (reframe.py reads it), and every stage runs for both. Read by scripts/run.py; mirrors SKILL.md steps 3-11. `run` is the argv to spawn (cwd = skill dir), with {work} {source} {language} {skill} {ffmpeg} {ffprobe} substituted ({ffmpeg}/{ffprobe} resolve via lib/platform.py - $VEVO_FFMPEG / $VEVO_FFPROBE else PATH, issue #44). A stage with no `run` is a checkpoint: `block:true` halts run.py until `makes` exists (a genuine human decision); a checkpoint with no `makes` is advisory - printed once, never blocks. A stage runs when any `makes` path is missing or older than any `needs` path; else it is skipped. `needs`/`makes` are work-relative; a trailing / means 'non-empty directory'. `when` gates a stage on a project.config.json value.",
+  "world": "talking-video",
+  "stages": [
+    {
+      "id": "join",
+      "title": "Join the takes",
+      "run": [
+        "uv",
+        "run",
+        "scripts/join_takes.py",
+        "{work}"
+      ],
+      "needs": [
+        "rush/"
+      ],
+      "makes": [
+        "build/source-joined.mp4"
+      ]
+    },
+    {
+      "id": "cut",
+      "title": "Cut plan - measure the silences",
+      "run": [
+        "uv",
+        "run",
+        "scripts/plan_cuts.py",
+        "{work}"
+      ],
+      "needs": [
+        "build/source-joined.mp4",
+        "config/project.config.json"
+      ],
+      "makes": [
+        "build/cut-plan.json"
+      ]
+    },
+    {
+      "id": "settle",
+      "title": "Nudge each cut-in onto a clean frame",
+      "run": [
+        "uv",
+        "run",
+        "scripts/settle_check.py",
+        "{work}"
+      ],
+      "needs": [
+        "build/cut-plan.json"
+      ],
+      "makes": [
+        "build/.settled"
+      ],
+      "note": "Audio silence alone doesn't know the speaker is still moving / blurry at the cut. settle_check.py moves each segment start to the first sharp, low-motion frame (cap cut.padIn). Config: cut.settle=false skips it. --force redoes it from scratch (after a fresh plan_cuts.py)."
+    },
+    {
+      "id": "audio",
+      "title": "Extract the speech audio",
+      "run": [
+        "{ffmpeg}",
+        "-v",
+        "error",
+        "-i",
+        "{work}/build/source-joined.mp4",
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        "-y",
+        "{work}/build/transcribe-input.wav"
+      ],
+      "needs": [
+        "build/source-joined.mp4"
+      ],
+      "makes": [
+        "build/transcribe-input.wav"
+      ]
+    },
+    {
+      "id": "transcribe",
+      "title": "Transcribe with per-word timing",
+      "run": [
+        "uv",
+        "run",
+        "scripts/transcribe.py",
+        "{work}",
+        "--language",
+        "{language}"
+      ],
+      "needs": [
+        "build/transcribe-input.wav"
+      ],
+      "makes": [
+        "build/transcript-raw.json"
+      ]
+    },
+    {
+      "id": "transcript-fix",
+      "title": "Correct the transcript (Claude, whole pass)",
+      "block": true,
+      "needs": [
+        "build/transcript-raw.json"
+      ],
+      "makes": [
+        "build/transcript-fixes.json"
+      ],
+      "note": "Claude re-reads the WHOLE transcript. Every incoherent / garbled sentence: recover what was said, else reword it correctly in the video's own language and register (darija stays darija). Write build/transcript-fixes.json ({fix:[[...]], hot:[...]}) - one entry per Whisper segment; the per-sentence word count does NOT have to match Whisper anymore (captions.py spreads reworded sentences). Not a line-by-line session with the user - show a summary. See SKILL.md step 5."
+    },
+    {
+      "id": "captions",
+      "title": "Build the caption timings",
+      "run": [
+        "uv",
+        "run",
+        "scripts/captions.py",
+        "{work}"
+      ],
+      "needs": [
+        "build/cut-plan.json",
+        "build/transcript-raw.json",
+        "build/transcript-fixes.json"
+      ],
+      "makes": [
+        "build/captions.json"
+      ]
+    },
+    {
+      "id": "script-review",
+      "title": "Finalize the script - repeats gone, then your edits",
+      "needs": [
+        "build/captions.json"
+      ],
+      "note": "No detection script. Claude reads build/captions.json itself, finds every repeated/abandoned attempt at the same idea (keeping the LAST one as the real source), and calls `uv run scripts/retakes.py <work> apply` with build/retake-cuts.json it wrote itself ({cuts:[{s,e,text,reason}]}) - retakes.py only does the timeline surgery, no guessing. Genuinely unsure about a passage -> ask the user, with the exact timestamps and both texts, don't guess. THEN run `edit_script.py show`, show the numbered (now-clean) script, and drop any whole unwanted sentence the creator asks for - before scene design, because a drop shifts every downstream timestamp. Recap what was auto-removed AFTER, not before. Nothing to cut -> continue. See SKILL.md step 6."
+    },
+    {
+      "id": "tighten",
+      "title": "Jump-cut + filler pass",
+      "block": true,
+      "needs": [
+        "build/captions.json"
+      ],
+      "makes": [
+        "build/tighten-plan.json"
+      ],
+      "note": "Run `uv run scripts/tighten.py <work>` to propose word-level cuts (inter-phrase gaps > tighten.pauseMs, fillers from scripts/fillers.json). Show the user the summary, then `tighten.py <work> apply` folds it into build/cut-plan.json + build/captions.json."
+    },
+    {
+      "id": "chapters",
+      "title": "Chapter markers",
+      "needs": [
+        "build/captions.json"
+      ],
+      "note": "Optional, and only worth proposing on a long recording. Read the transcript, propose chapter breaks to the user, write config/chapters.json ([{ref, title}] - ref binds to a caption sentence). No file -> one continuous video, no markers."
+    },
+    {
+      "id": "reframe",
+      "title": "Cut and assemble the segments",
+      "run": [
+        "uv",
+        "run",
+        "scripts/reframe.py",
+        "{work}"
+      ],
+      "needs": [
+        "build/source-joined.mp4",
+        "build/cut-plan.json"
+      ],
+      "makes": [
+        "build/video-reframed.mp4"
+      ]
+    },
+    {
+      "id": "scenes",
+      "title": "Design the scenes",
+      "needs": [
+        "build/captions.json"
+      ],
+      "note": "The core creative step. Either author config/scenes.json (motif names from scripts/motifs/index.json, params bound to build/captions.json) or rewrite the scene components in <work>/remotion/src/Scenes.tsx. A scenes-less project renders with captions only - that is a valid choice, not a skip. See SKILL.md step 8."
+    },
+    {
+      "id": "sound-cues",
+      "title": "Place the sound cues",
+      "block": true,
+      "needs": [
+        "build/captions.json"
+      ],
+      "makes": [
+        "build/sound-cues.json"
+      ],
+      "note": "Author build/sound-cues.json - at minimum {\"outro\": <end-card seconds>}, plus whoosh/thud/tap arrays at meaningful moments (<= 15 events/min, rule #1). See SKILL.md step 9."
+    },
+    {
+      "id": "sound",
+      "title": "Synthesize the sound bed",
+      "run": [
+        "uv",
+        "run",
+        "scripts/sound_fx.py",
+        "{work}"
+      ],
+      "needs": [
+        "build/sound-cues.json"
+      ],
+      "makes": [
+        "build/sound-effects.wav"
+      ]
+    },
+    {
+      "id": "render",
+      "title": "Render the video",
+      "run": [
+        "bash",
+        "scripts/remotion/remotion.sh",
+        "{work}",
+        "render",
+        "{work}/build/video-raw.mp4"
+      ],
+      "needs": [
+        "build/captions.json",
+        "build/video-reframed.mp4",
+        "build/sound-effects.wav"
+      ],
+      "makes": [
+        "build/video-raw.mp4"
+      ]
+    },
+    {
+      "id": "master",
+      "title": "Audio mastering (-14 LUFS)",
+      "run": [
+        "bash",
+        "scripts/master_audio.sh",
+        "{work}",
+        "{work}/build/video-raw.mp4",
+        "{work}/video-final.mp4"
+      ],
+      "needs": [
+        "build/video-raw.mp4"
+      ],
+      "makes": [
+        "video-final.mp4"
+      ]
+    },
+    {
+      "id": "subs",
+      "title": "Subtitle file + post caption",
+      "run": [
+        "uv",
+        "run",
+        "scripts/subtitles.py",
+        "{work}"
+      ],
+      "needs": [
+        "build/captions.json"
+      ],
+      "makes": [
+        "video-final.srt",
+        "post-caption.txt"
+      ]
+    }
+  ]
+}
