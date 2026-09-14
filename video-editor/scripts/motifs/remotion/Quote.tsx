@@ -1,5 +1,6 @@
-/* quote — Remotion motif. Mirror of motifs/canvas/quote.js.
+/* quote — Remotion motif.
    Props: { theme, params }. params: { text, accent? = false, y? = 202 }. Self-contained. */
+import {H} from '../theme';
 
 type Props = {theme: {acc: string; ink: string; font: string}; params: {text?: string; accent?: boolean; y?: number}};
 
@@ -18,7 +19,7 @@ const onAccentInk = (hex: string) => {
 export default function Quote({theme, params}: Props) {
   const text = params.text || '';
   if (!text) return null;
-  const y = params.y != null ? params.y : 202;
+  const y = params.y != null ? params.y : 202 * (H / 1920);
   const accent = !!params.accent;
   return (
     <div style={{position: 'absolute', left: 0, right: 0, top: y, transform: 'translateY(-50%)',

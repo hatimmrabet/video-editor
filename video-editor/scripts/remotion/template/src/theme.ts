@@ -15,6 +15,11 @@ export const T = {
 /* where the speaker's face sits inside the video card (project.config.json ← crop.faceAnchor,
    default 0.30) — the light engine's FACE_ANCH. remotion.sh writes it into project.json. */
 export const FACE_ANCHOR = typeof (P as any).faceAnchor === 'number' ? (P as any).faceAnchor : 0.30;
+/* The composition's own size — remotion.sh reads it off build/video-reframed.mp4, so the
+   scene layer follows whatever orientation reframe.py produced (#136). 1080x1920 is only a
+   fallback for a project.json that predates this (or the CI type-check sample). */
+export const W = typeof (P as any).width  === 'number' ? (P as any).width  : 1080;
+export const H = typeof (P as any).height === 'number' ? (P as any).height : 1920;
 export const FPS   = 30;
 export const VEND  = P.total;              // end of the video's speech
 export const OUTRO = P.outro;              // the end card's duration

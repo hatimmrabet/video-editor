@@ -1,5 +1,7 @@
-/* checklist — Remotion motif. Mirror of motifs/canvas/checklist.js.
+/* checklist — Remotion motif.
    Props: { prog, wordIndex, theme, params }. params: { title?, items: string[], tick?, y? } */
+import {W, H} from '../theme';
+const SX = W / 1080, SY = H / 1920;
 
 type Props = {prog: number; wordIndex: number;
   theme: {acc: string; ink: string; mut: string; font: string};
@@ -32,13 +34,15 @@ const Check = ({k, color}: {k: number; color: string}) => {
 export default function Checklist({prog, wordIndex, theme, params}: Props) {
   const items = Array.isArray(params.items) ? params.items : [];
   if (!items.length) return null;
-  const rowH = 100;
-  const y0 = params.y != null ? params.y : 340;
+  const rowH = 100 * SY;
+  // params.y is author-placed (config/scenes.json, tuned live in the studio at the real
+  // composition size) and used verbatim; only the codebase default scales with the frame.
+  const y0 = params.y != null ? params.y : 340 * SY;
 
   return (
     <>
       {params.title && (
-        <div style={{position: 'absolute', left: 0, right: 0, top: y0 - 130 - 20, textAlign: 'center',
+        <div style={{position: 'absolute', left: 0, right: 0, top: y0 - 150 * SY, textAlign: 'center',
           fontFamily: theme.font, fontWeight: 800, fontSize: 40, color: theme.mut}}>{params.title}</div>
       )}
       {items.map((label, i) => {
@@ -47,7 +51,7 @@ export default function Checklist({prog, wordIndex, theme, params}: Props) {
         else { const t0 = 0.12 + (i / Math.max(1, items.length)) * 0.7; k = cl((prog - t0) / 0.14); }
         const y = y0 + i * rowH;
         return (
-          <div key={i} style={{position: 'absolute', left: 250, top: y - 40, width: 580, height: 80,
+          <div key={i} style={{position: 'absolute', left: 250 * SX, top: y - 40 * SY, width: 580 * SX, height: 80 * SY,
             opacity: lerp(0.32, 1, easeOut(k)),
             background: rgba(theme.ink, 0.03), border: `2.5px solid ${rgba(theme.ink, 0.09)}`,
             borderRadius: 24, boxShadow: `0 14px 34px ${rgba(theme.ink, 0.14)}`,

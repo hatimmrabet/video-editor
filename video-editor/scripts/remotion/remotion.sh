@@ -35,11 +35,12 @@ print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
   [ -f "$W/$LOGO" ] && cp "$W/$LOGO" "$R/public/logo.png"
   cp "$W/build/captions.json" "$R/src/caps.json"
   "${VEVO_PY[@]}" - "$W" "$R" <<'PY'
-import json, os, sys
+import json, os, subprocess, sys
 sys.path.insert(0, os.path.join(os.environ["VEVO_SKILL_DIR"], "scripts"))
 from lib import config as cfg          # project.config.json
 from lib import transitions as trans   # scripts/transitions.json
 from lib import scenes as scn          # config/scenes.json
+from lib import platform as plat       # $VEVO_FFPROBE resolver (issue #44)
 W, R = sys.argv[1], sys.argv[2]
 def rd(rel, dflt):
     p = os.path.join(W, rel)
@@ -48,7 +49,15 @@ caps  = json.load(open(os.path.join(W, "build", "captions.json"), encoding="utf-
 _cfg  = cfg.load(W)                     # no longer from theme.json — same migration as reframe.py (#8)
 theme = _cfg.get("theme", {})
 sfx   = rd(os.path.join("build", "sound-cues.json"), {})
+# The composition's own size, read off the cut video rather than assumed — the scene layer
+# (Root.tsx, stage.ts, every motif) follows whatever orientation reframe.py produced (#136).
+_dims = subprocess.run([plat.ffprobe(), "-v", "error", "-select_streams", "v:0",
+                        "-show_entries", "stream=width,height", "-of", "csv=p=0:s=x",
+                        os.path.join(W, "build", "video-reframed.mp4")],
+                       capture_output=True, text=True).stdout.strip()
+_ow, _oh = (int(x) for x in _dims.split("x")) if "x" in _dims else (1080, 1920)
 proj = {
+  "width": _ow, "height": _oh,
   # the whole theme block, verbatim. A whitelist here silently dropped every key it did not
   # know (Chrome.tsx reads theme.badgeUntil, which was never written, so the account badge
   # could not work) and `if theme.get(k)` dropped falsy values too — 0 and false are valid
@@ -101,18 +110,6 @@ case "$CMD" in
     ( cd "$R" && npx remotion studio --port "$PORT" ) ;;
   render)
     sync_all; ensure_deps; OUT="${ARG:-$W/build/video-raw.mp4}"
-    # The scene layer (Root.tsx, stage.ts and every motif's coordinates) is still written in
-    # a fixed 1080x1920 space. reframe.py now keeps the source's own orientation, so a
-    # horizontal recording would be composited into a vertical frame and come out cropped.
-    # Say so loudly rather than delivering a quietly broken file.
-    DIMS="$("$VEVO_FFPROBE" -v error -select_streams v:0 -show_entries stream=width,height             -of csv=p=0:s=x "$W/build/video-reframed.mp4" 2>/dev/null || echo "")"
-    case "$DIMS" in
-      1080x1920|"") ;;
-      *) echo "❌ the cut video is ${DIMS}, but the scene layer is still written for 1080x1920."
-         echo "   Rendering it would crop the picture into a vertical frame. Making the"
-         echo "   composition follow the source is the open piece of work (issue #136)."
-         exit 14 ;;
-    esac
     mkdir -p "$(dirname "$OUT")"
     grep -q '"guides": true' "$R/src/project.json" && \
       echo "⚠️  Safe-zone guides are on — they'll be burned into the video. Remove guides from config/safe.json before delivery."

@@ -1,5 +1,5 @@
 import {Img, staticFile} from 'remotion';
-import {T, VEND, OUTRO_COPY, HAS_LOGO} from './theme';
+import {T, VEND, OUTRO_COPY, HAS_LOGO, H} from './theme';
 import {p, ease, eio, back, rgba, onACC} from './util';
 
 /* The copy comes from project.json ← outro_copy — don't hardcode any text here */
@@ -15,7 +15,7 @@ export const Outro: React.FC<{t:number}> = ({t}) => {
       strokeLinecap="round" strokeLinejoin="round"><path d="M4 12.5l5 5 11-11"/></svg>);
 
   return (
-    <div style={{position:'absolute', left:0, right:0, top:1920*(1-wipe), height:1920,
+    <div style={{position:'absolute', left:0, right:0, top:H*(1-wipe), height:H,
       background:T.bg, overflow:'hidden'}}>
       {HAS_LOGO && (
         <div style={{opacity:ap(0.30), textAlign:'center', paddingTop:196+Math.sin((t-s)*1.6)*5-(1-ease(ap(0.30)))*18}}>

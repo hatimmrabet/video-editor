@@ -1,5 +1,8 @@
-/* file-merge — Remotion motif. Mirror of motifs/canvas/file-merge.js.
+/* file-merge — Remotion motif.
    Props: { prog, theme, params }. */
+import {W, H} from '../theme';
+const SX = W / 1080, SY = H / 1920;
+
 type Props = {prog: number; theme: {acc: string; ink: string; mut: string; clay?: string; font: string};
   params: {sources?: string[]; targetLabel?: string; note?: string; done?: string}};
 
@@ -21,7 +24,7 @@ const onAccentInk = (hex: string) => {
 
 export default function FileMerge({prog, theme, params}: Props) {
   const sources = Array.isArray(params.sources) ? params.sources : [];
-  const px = 170, py = 200, pw = 740, ph = 380;
+  const px = 170 * SX, py = 200 * SY, pw = 740 * SX, ph = 380 * SY;
   const lk = cl((prog - 0.8) / 0.15);
 
   return (
@@ -30,11 +33,11 @@ export default function FileMerge({prog, theme, params}: Props) {
         background: rgba(theme.ink, 0.03), border: `2.5px solid ${rgba(theme.ink, 0.09)}`,
         boxShadow: `0 18px 44px ${rgba(theme.ink, 0.2)}`, fontFamily: theme.font}}>
         {params.targetLabel && (
-          <div style={{position: 'absolute', top: 40, right: 60, fontWeight: 900, fontSize: 56, color: theme.ink}}>{params.targetLabel}</div>
+          <div style={{position: 'absolute', top: 40 * SY, right: 60 * SX, fontWeight: 900, fontSize: 56, color: theme.ink}}>{params.targetLabel}</div>
         )}
-        {params.targetLabel && <div style={{position: 'absolute', top: 142, left: 34, right: 34, borderTop: `2px solid ${rgba(theme.ink, 0.1)}`}} />}
+        {params.targetLabel && <div style={{position: 'absolute', top: 142 * SY, left: 34 * SX, right: 34 * SX, borderTop: `2px solid ${rgba(theme.ink, 0.1)}`}} />}
         {params.note && (
-          <div style={{position: 'absolute', top: 185, left: 0, right: 0, textAlign: 'center', fontWeight: 700, fontSize: 40, color: theme.mut}}>{params.note}</div>
+          <div style={{position: 'absolute', top: 185 * SY, left: 0, right: 0, textAlign: 'center', fontWeight: 700, fontSize: 40, color: theme.mut}}>{params.note}</div>
         )}
       </div>
       {sources.map((label, i) => {
@@ -43,8 +46,8 @@ export default function FileMerge({prog, theme, params}: Props) {
         const k = cl((prog - t0) / 0.3);
         if (k <= 0) return null;
         const e = eio(k);
-        const sx = 540 + (i - (n - 1) / 2) * 320;
-        const x = lerp(sx, 540, e), y = lerp(1180, py + 300, e), sc = lerp(1, 0.82, e);
+        const sx = W / 2 + (i - (n - 1) / 2) * 320 * SX;
+        const x = lerp(sx, W / 2, e), y = lerp(1180 * SY, py + 300 * SY, e), sc = lerp(1, 0.82, e);
         return (
           <div key={i} style={{position: 'absolute', left: x, top: y, transform: `translate(-50%,-50%) scale(${sc})`,
             opacity: k < 0.85 ? 1 : 1 - (k - 0.85) / 0.15,
@@ -54,7 +57,7 @@ export default function FileMerge({prog, theme, params}: Props) {
         );
       })}
       {lk > 0 && params.done && (
-        <div style={{position: 'absolute', left: 540, top: py + 300, transform: 'translate(-50%,-50%)',
+        <div style={{position: 'absolute', left: W / 2, top: py + 300 * SY, transform: 'translate(-50%,-50%)',
           opacity: easeOut(lk), background: rgba(theme.acc, 0.14), color: theme.clay || theme.acc,
           borderRadius: 999, padding: '14px 40px', fontFamily: theme.font, fontWeight: 800, fontSize: 44, whiteSpace: 'nowrap'}}>
           {String(params.done)}

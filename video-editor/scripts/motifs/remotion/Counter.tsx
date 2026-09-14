@@ -1,5 +1,7 @@
-/* counter — Remotion motif. Mirror of motifs/canvas/counter.js.
+/* counter — Remotion motif.
    Props: { t, prog, theme, params }. Self-contained. */
+import {W, H} from '../theme';
+const SY = H / 1920;
 
 type Params = {title?: string; from?: number; to?: number; prefix?: string; suffix?: string;
   decimals?: number; settleAt?: number; scramble?: boolean};
@@ -47,18 +49,18 @@ export default function Counter({t, prog, theme, params}: Props) {
   return (
     <>
       {params.title && (
-        <div style={{position: 'absolute', left: 0, right: 0, top: 262 - 22, textAlign: 'center',
+        <div style={{position: 'absolute', left: 0, right: 0, top: 262 * SY - 22, textAlign: 'center',
           fontFamily: theme.font, fontWeight: 700, fontSize: 44, color: theme.mut}}>{params.title}</div>
       )}
-      <div dir="ltr" style={{position: 'absolute', left: 540, top: 412 + sy,
+      <div dir="ltr" style={{position: 'absolute', left: W / 2, top: 412 * SY + sy,
         transform: `translate(-50%,-50%) scale(${sc})`, fontFamily: theme.font, fontWeight: 900,
         fontSize: 150, color: settleK > 0 ? theme.acc : rgba(theme.ink, 0.35), whiteSpace: 'nowrap'}}>{s}</div>
       {uk > 0 && (
-        <div style={{position: 'absolute', left: 540, top: 502, width: 460 * uk, height: 10,
+        <div style={{position: 'absolute', left: W / 2, top: 502 * SY, width: 460 * uk, height: 10,
           transform: 'translateX(-50%)', background: theme.acc, borderRadius: 5}} />
       )}
       {settleK > 0 && settleK < 1 && (
-        <div style={{position: 'absolute', left: 540, top: 412,
+        <div style={{position: 'absolute', left: W / 2, top: 412 * SY,
           width: 240 + settleK * 600, height: 240 + settleK * 600, transform: 'translate(-50%,-50%)',
           borderRadius: '50%', border: `7px solid ${theme.acc}`, opacity: (1 - settleK) * 0.4}} />
       )}

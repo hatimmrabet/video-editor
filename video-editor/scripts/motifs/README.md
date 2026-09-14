@@ -1,15 +1,18 @@
 # Motif registry — `scripts/motifs/`
 
-A **motif** is a parameterized scene type, implemented once per engine and selected by name
-from `config/scenes.json` (`"motif": "stamp"`). This replaces the ~15 hand-written scene
-components in `Scenes.tsx`.
+A **motif** is a parameterized scene type, selected by name from `config/scenes.json`
+(`"motif": "stamp"`) and dispatched by `SceneList.tsx`. This replaces hand-writing every
+scene as its own component in `Scenes.tsx`.
 
 ```
 motifs/
   index.json            name → { status, kind, bottom, from, params }
-  canvas/<motif>.js      module.exports = (ctx) => { ... }          ← light engine
-  remotion/<Motif>.tsx   export default ({ ...props }) => <.../>    ← Remotion
+  remotion/<Motif>.tsx   export default ({ ...props }) => <.../>
 ```
+
+There used to be a second implementation per motif (`canvas/<motif>.js`, for the light
+rendering engine). That engine — and every canvas motif with it — was removed; Remotion is
+the only renderer now.
 
 ## `index.json`
 
@@ -17,28 +20,18 @@ motifs/
 |---|---|
 | `status` | `implemented` \| `planned` — the interpreter only accepts `implemented` names |
 | `kind` | `scene` = drawn over everything · `overlay` = drawn on the video card (e.g. `glitch`) |
-| `bottom` | nominal graphic-bottom `y` (1920 space) — feeds the `DOWN` flex rect; a scene's `layout.gb` overrides |
-| `from` | which reference scene function(s) it generalizes — for the #19 port |
+| `bottom` | nominal graphic-bottom `y`, designed against a 1080x1920 canvas and scaled to the composition's real size at render time (a scene's `layout.gb` overrides, scaled the same way — see "Orientation" below) |
+| `from` | which reference scene function(s) it generalizes |
 | `params` | shape hint per key: `number` \| `string` \| `number[]` \| `string[]` \| `boolean`. Not JSON Schema — the values are hand-authored, this is for docs + a soft check |
 
-## The `ctx` contract (canvas)
+## The component contract
 
-**Draft — refined in #17 (light interpreter) / #18 (Remotion dispatcher).** The interpreter
-resolves each active scene, then for a canvas motif does, inside `safe()`:
+`SceneList.tsx` resolves each active scene, applies the container `rise` (enter/exit alpha
++ translateY from `timing.in`/`timing.out`) for `kind:"scene"` motifs — `kind:"overlay"`
+gets none of that, it owns its whole appearance — then renders the motif with these props:
 
-```
-X.save();
-// apply the container `rise`: globalAlpha *= ease(enter) * (1 - ease(exit));
-//                             translateY by timing.in `y`
-motif(ctx);
-X.restore();
-```
-
-`ctx` fields the interpreter guarantees:
-
-| Field | Type | Meaning |
+| Prop | Type | Meaning |
 |---|---|---|
-| `X` | `CanvasRenderingContext2D` | the frame's 2D context |
 | `t` | number | absolute seconds |
 | `prog` | number 0..1 | linear progress through the whole scene span (`(t − s) / (e − s)`) — for a motif's internal phases (a `counter` settling, a list revealing) |
 | `enter` | number 0..1 | **raw** linear progress over `timing.in` (motif eases it however it wants) |
@@ -47,19 +40,35 @@ X.restore();
 | `words` | `{t,s,e,hot}[]` | the ref sentence's words with timings (`[]` for a `range` ref) |
 | `wordIndex` | number | current word index for `hold:"words"`, else `-1` |
 | `rect` | `{x,y,w,h,r}` | the resolved video rect at this frame |
-| *(kind)* | — | for `kind:"overlay"` motifs the interpreter applies **no** container `rise` (no alpha, no translate) — the motif owns its whole appearance via `prog` / `enter` / `exit` |
 | `theme` | `{bg,ink,acc,clay,mut,font,handle}` | raw theme values |
 | `params` | object | the scene's `params`, with this motif's `index.json` keys as defaults |
-| `fx` | object | helpers: `rr, sh, nsh, card, iCheck, T, rgba, lum, onACC, pr, ease, eio, back, lerp, cl, ez` |
 
-A Remotion motif is a React component taking `{ t, prog, enter, exit, hold, words,
-wordIndex, rect, theme, params }` as props (no `X`, no `fx` — it uses JSX; small helpers
-are inlined per motif for now).
+Not every motif uses every prop — see each file's own header comment for which it takes.
+Small helpers (`lerp`, `rgba`, easings, …) are inlined per motif rather than shared, except
+for `W`/`H` (the composition's own width/height, from `../theme`) where a motif needs to
+place something relative to the frame — see "Orientation" below.
 
-## Rules (same as the reference functions)
+## Orientation (#136)
 
-- **`safe()` still wraps every call** — a motif that throws skips its frame, it doesn't
-  blacken the video (invariant #1/#2).
-- **Colours from `ctx.theme` / `T.*` only** — no hardcoded hex (invariant #3).
-- A motif that can't render (missing param, empty `words`) returns without drawing.
-- Motifs version with the skill, not per project — see the design doc.
+The composition is no longer always 1080×1920 — `reframe.py` keeps the source's own
+orientation, so a horizontal recording renders at whatever width/height it was shot in.
+Every motif was designed against the 1080×1920 canvas, so a motif with absolute pixel
+positions imports `W`/`H` from `../theme` and scales:
+
+- an **x position or width** by `W / 1080`
+- a **y position or height** by `H / 1920`
+- `540` (horizontal center) becomes `W / 2` — not scaled, computed directly
+
+**Font size, border-radius, stroke-width, box-shadow blur stay literal, unscaled** — that's
+about how big the type reads, not where things sit, and is out of scope here.
+
+**A value the author placed themselves** (`params.at`, `params.x`/`.y`, a scene's own
+`layout.gb`) is used verbatim, never re-scaled — it was tuned live in the studio against
+the real composition, so scaling it again would double-transform it. Only the *codebase's
+own default*, used when the author didn't override it, needs the `W`/`H` treatment.
+
+## Rules
+
+- A motif that can't render (missing param, empty `words`) returns `null` without drawing.
+- **Colours from `theme.*` only** — no hardcoded hex.
+- Motifs version with the skill, not per project.
