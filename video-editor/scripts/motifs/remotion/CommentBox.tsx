@@ -1,5 +1,7 @@
-/* comment-box — Remotion motif. Mirror of motifs/canvas/comment-box.js.
+/* comment-box — Remotion motif.
    Props: { t, prog, theme, params }. */
+import {W, H} from '../theme';
+
 type Props = {t: number; prog: number; theme: {acc: string; ink: string; font: string};
   params: {word?: string; placeholder?: string}};
 
@@ -19,7 +21,7 @@ const onAccentInk = (hex: string) => {
 };
 
 export default function CommentBox({t, prog, theme, params}: Props) {
-  const bx = 140, by = 1120, bw = 800, bh = 124;
+  const bx = 140 * (W / 1080), by = 1120 * (H / 1920), bw = 800 * (W / 1080), bh = 124 * (H / 1920);
   const full = String(params.word || '');
   const tk = cl((prog - 0.25) / 0.35);
   const shown = full.slice(0, Math.round(tk * full.length));

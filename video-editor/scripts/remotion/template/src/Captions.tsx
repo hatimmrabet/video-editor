@@ -1,4 +1,4 @@
-import {T, TX} from './theme';
+import {T, TX, H} from './theme';
 import {p, rgba, ease, back, ez} from './util';
 import caps from './caps.json';
 
@@ -6,8 +6,11 @@ type W = {t:string; s:number; e:number; hot:boolean};
 type C = {s:number; e:number; w:W[]};
 const CARDS = (caps as any).cards as C[];
 
-/* WARNING bottom: 1920-1500 = the card ends at y=1460, above Instagram's button area.
-   Don't push it lower — run safe_check.js after any change. */
+/* WARNING on a 9:16 render: bottom margin 460 (designed as 1920-1460, the card ending at
+   y=1460) stays above Instagram's button area only because it's a fraction of H, not a
+   fixed 460px — don't change the fraction without checking safe zones on that platform
+   (config/safe.json's guides, live in `remotion.sh <work> studio`). */
+const CAP_BOTTOM = 460 / 1920;   // fraction of H, so the caption stays above Instagram's UI at any H
 export const Captions: React.FC<{t:number}> = ({t}) => {
   const c = CARDS.find(c => t >= c.s && t < c.e);
   if (!c) return null;
@@ -18,7 +21,7 @@ export const Captions: React.FC<{t:number}> = ({t}) => {
   if (rt < ex.duration) { const k = rt/ex.duration, e = ez(ex.easing)(k); a = e; dy = (1-e)*ex.params.y; }
 
   return (
-    <div style={{position:'absolute', left:0, right:0, bottom:1920-1460, display:'flex', justifyContent:'center',
+    <div style={{position:'absolute', left:0, right:0, bottom:H*CAP_BOTTOM, display:'flex', justifyContent:'center',
       opacity:a, transform:`translateY(${dy}px) scale(${sc})`}}>
       <div dir="rtl" style={{
         maxWidth:730, background:rgba(T.bg,0.96), border:`2.5px solid ${rgba(T.ink,0.09)}`,

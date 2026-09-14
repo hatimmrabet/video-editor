@@ -2,18 +2,25 @@
    The schedule comes from project.json ← stage: [{s,e,m:"FULL"|"DOWN"|"LOWER", transition?, gb?}].
    An entry's optional `transition` (shorthand string or object) overrides type/duration/easing
    for the cut INTO that entry. On the reel video only rect-morph / cut / dissolve are
-   meaningful — see docs/design/transitions.md.
+   meaningful — see scripts/transitions.json.
 
    R_DOWN flexes per scene, mirroring compose.reference.html's rDown(gb, caption-lines):
    the card shrinks proportionally (9:16) from the graphic bottom + the caption's line count. */
 import {lerp, ez} from './util';
-import {STAGE, TX, T} from './theme';
+import {STAGE, TX, T, W, H} from './theme';
 import caps from './caps.json';
 
+/* Every rect below was designed against a 1080x1920 canvas. SX/SY carry that design to
+   whatever size the composition actually is (#136) — a horizontal recording gets the same
+   relative layout instead of a canvas that no longer matches its own frame. Border radii
+   and the caption/UI chrome's own literal sizing (Captions.tsx, Chrome.tsx) are NOT scaled
+   here — this is about where things sit, not how big the type reads. */
+const SX = W / 1080, SY = H / 1920;
+
 export type Rect = {x:number;y:number;w:number;h:number;r:number};
-export const R_FULL:  Rect = {x:0,   y:0,    w:1080, h:1920, r:0};
-export const R_LOWER: Rect = {x:350, y:1370, w:380,  h:520,  r:32};
-export const R_DOWN:  Rect = {x:0,   y:770,  w:1080, h:1150, r:0};   // full-width fallback; replaced per scene by rDown()
+export const R_FULL:  Rect = {x:0, y:0, w:W, h:H, r:0};
+export const R_LOWER: Rect = {x:350*SX, y:1370*SY, w:380*SX, h:520*SY, r:32};
+export const R_DOWN:  Rect = {x:0, y:770*SY, w:W, h:1150*SY, r:0};   // full-width fallback; replaced per scene by rDown()
 const M: Record<string,Rect> = {FULL:R_FULL, LOWER:R_LOWER, DOWN:R_DOWN};
 
 /* caption wrap — mirror of compose.reference.html layout()/rDown()/CAPH */
@@ -33,8 +40,12 @@ function capLines(ws: CW[]): number {
   return lines;
 }
 function rDown(gb: number, lines: number): Rect {
-  const top = gb + 40 + (lines * CAP_LH + CAP_PADY * 2) + 50;
-  return {x:0, y:top, w:1080, h:1920 - top, r:0};
+  // `gb` (graphic-bottom) is a motif's own "how tall is my content" declaration, designed
+  // against the 1920-tall canvas like everything else in motifs/index.json — scale it with
+  // the content it describes. The caption block below it is NOT scaled: Captions.tsx renders
+  // it at a fixed size regardless of frame height, so the room reserved for it must match.
+  const top = gb * SY + 40 + (lines * CAP_LH + CAP_PADY * 2) + 50;
+  return {x:0, y:top, w:W, h:H - top, r:0};
 }
 
 type Spec = string | {type?:string; duration?:number; easing?:string} | undefined;
