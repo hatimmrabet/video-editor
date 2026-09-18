@@ -33,6 +33,11 @@ jobs:
         run: find video-editor/scripts video-editor/test \( -name '*.js' -o -name '*.cjs' -o -name '*.mjs' \) -print0 | xargs -0 -n1 node --check
       - name: python -m compileall on every .py
         run: python -m compileall -q video-editor/scripts
+      # lib/timeline.py projects source time onto output time — every caption, sound cue
+      # and rendered segment gets its position from it (#144). Stdlib only, no ffmpeg.
+      - name: timeline projection unit tests
+        working-directory: video-editor
+        run: python -m unittest discover test
       - name: bash -n every .sh
         run: find video-editor/scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
       - name: every .json under video-editor/ parses
@@ -42,12 +47,11 @@ jobs:
 
       # The type-checker replaces lint_compose.js: scene and motif code is TypeScript now,
       # so tsc catches undefined helpers, bad props and duplicate keys exactly. It needs the
-      # data files remotion.sh normally generates into <work>/remotion/ — seed the sample.
+      # one data file remotion.sh generates into <work>/remotion/ — seed the sample (#144).
       - name: Remotion scenes + motifs type-check (tsc --noEmit)
         run: |
           cd video-editor/scripts/remotion/template
-          cp src/project.sample.json src/project.json
-          printf '%s' '{"total":46.078,"cards":[{"s":1,"e":3,"w":[{"t":"one","s":1,"e":2,"hot":false}]}]}' > src/caps.json
+          cp src/timeline.sample.json src/timeline.json
           mkdir -p src/motifs && cp ../../motifs/remotion/*.tsx src/motifs/
           npm run --silent check
 

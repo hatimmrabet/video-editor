@@ -1,13 +1,13 @@
 /* ═══════ The scenes — this is your part ═══════
    This file is a pattern library, not a template to copy. Invent new scenes for every video:
       each scene is a visual metaphor for what the speaker is saying at that moment, not decoration.
-   • Time each scene from the words in caps.json — W(i) returns the words of sentence i with their timing.
+   • Time each scene from the words in timeline.json — W(i) returns the words of sentence i with their timing.
    • VideoOverlay = what is drawn over the video itself (inside the card) — like the glitch.
    • Scenes      = what is drawn over everything (cards, counters, panels).
    • After any change: node scripts/safe_check.js <work> (safe zone + hook). */
 import {T} from './theme';
 import {p, ease, back, rgba, onACC, lerp} from './util';
-import caps from './caps.json';
+import caps from './timeline.json';
 
 const CARDS = (caps as any).cards;
 /** the words of sentence i — {t,s,e} */
@@ -54,8 +54,9 @@ const Chips = ({t, seg=1, labels=[] as string[], from=0, to=0}:
 /** over the video itself (inside the card) */
 export const VideoOverlay = ({t}:{t:number}) => (<></>);
 
-/** over everything. Empty by default — either author scenes here (no config/scenes.json),
-    or write config/scenes.json and let SceneList dispatch motifs (Ad.tsx picks one). */
+/** over everything. Empty by default — either author scenes here (and give no entry a
+    `scene`), or put a `scene` on an entry in timeline.json and let SceneList dispatch the
+    motif (Ad.tsx picks whichever is in play). */
 export const Scenes = ({t}:{t:number}) => (<>
   {/* <Stamp t={t} at={[2.45,3.30]} text="handmade"/> */}
   {/* <Chips t={t} seg={1} labels={['A','B','C','D']} from={3.3} to={8.0}/> */}

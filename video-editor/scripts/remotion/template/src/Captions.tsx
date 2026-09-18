@@ -1,6 +1,6 @@
 import {T, TX, H} from './theme';
 import {p, rgba, ease, back, ez} from './util';
-import caps from './caps.json';
+import caps from './timeline.json';
 
 type W = {t:string; s:number; e:number; hot:boolean};
 type C = {s:number; e:number; w:W[]};

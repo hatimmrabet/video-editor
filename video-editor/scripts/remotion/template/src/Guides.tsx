@@ -1,4 +1,4 @@
-/* Safe-zone guides — shown in the studio only when "guides": true in project.json.
+/* Safe-zone guides — shown in the studio only when "guides": true in timeline.json.
    The Instagram areas that cover the screen, proportional to the same 1080x1920 canvas as
    safe_check.js used. Instagram's own UI only exists on a vertical, phone-shaped output —
    a 16:9 recording has no such overlay to dodge, so there is nothing to guide there (#136). */

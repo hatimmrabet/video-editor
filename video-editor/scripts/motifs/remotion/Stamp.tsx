@@ -27,7 +27,7 @@ export default function Stamp({enter, theme, params}: Props) {
   if (!text && !lead) return null;
 
   const rot = params.rotation == null ? -7 : params.rotation;
-  // params.at is author-placed (config/scenes.json, tuned live in the studio at the real
+  // params.at is author-placed (an entry's scene.params, tuned live in the studio at the real
   // composition size) and used verbatim; only the codebase default scales with the frame.
   const at = params.at || {x: W / 2, y: 320 * (H / 1920)};
   const pop = lerp(1.5, 1, back(enter));

@@ -8,8 +8,10 @@ This is **not an application** — it is a Claude Code **skill**. `video-editor/
 the entry point: it instructs the model to run a pipeline of small scripts
 (`video-editor/scripts/`) that edit a talking-to-camera video into a captioned vertical
 9:16 reel, entirely locally. There is no server and no build step. The only automated
-tests are the headless JS suite in `video-editor/test/` (CI); pipeline changes are
-verified by a real run.
+tests are in `video-editor/test/` (CI): the headless JS suite, plus Python `unittest`
+coverage of the timeline projection — the one piece of pipeline logic that *is* unit-tested,
+because every caption, cue and rendered segment gets its position from it. Everything else
+about a pipeline change is verified by a real run.
 
 ### Installing the skill for development — the folder must be *linked*, not copied
 
@@ -71,10 +73,10 @@ end-user guide (the Arabic `GUIDE.pdf`/`GUIDE.html` were deleted — stale, upst
 
 ## Running the pipeline
 
-There's a headless suite for the moving JavaScript (`video-editor/test/`, run by CI — the
-web UI, the ffmpeg resolver, the motif registry), but **no test for
-the pipeline output**: "testing" a pipeline change means running the relevant stage on a
-real video. Every script takes a **work directory** `<work>` as its first argument and
+There's a suite in `video-editor/test/` run by CI — the ffmpeg resolver and the motif
+registry in JS, and `lib/timeline.py`'s projection plus `build_timeline.py`'s montage in
+Python (`python -m unittest discover test`) — but **no test for the pipeline output**:
+"testing" a pipeline change means running the relevant stage on a real video. Every script takes a **work directory** `<work>` as its first argument and
 reads/writes its files there.
 
 **Python scripts run via `uv run` from the skill dir** (`cd video-editor`); `uv` syncs the
@@ -89,16 +91,16 @@ bash scripts/setup.sh              # report only
 bash scripts/setup.sh --install    # install + sync
 
 # reel pipeline (SKILL.md has the full order + the manual steps)
-uv run scripts/plan_cuts.py <work>                 # silences -> build/cut-plan.json
-uv run scripts/settle_check.py <work>              # nudge each cut-in onto a clean frame
+uv run scripts/find_silences.py <work>             # measures silence -> build/silences.json
 uv run scripts/transcribe.py <work> --language ar-MA   # -> build/transcript-raw.json (model auto-picks)
-# Claude then rewrites build/transcript-fixes.json whole (SKILL.md step 5), not line-by-line
-uv run scripts/captions.py <work>                  # -> build/captions.json
-# Claude finds the repeats itself and writes build/retake-cuts.json (SKILL.md step 6) — no detection script
-uv run scripts/retakes.py <work> apply             # applies build/retake-cuts.json — the only fiddly, error-prone part
-uv run scripts/edit_script.py <work> show          # drop whole sentences (BEFORE scene design)
+uv run scripts/build_timeline.py <work>            # the two measurements -> <work>/timeline.json
+uv run scripts/settle_cuts.py <work>               # nudge each cut-in onto a clean frame
+# Claude then corrects caption.text entry by entry in timeline.json (SKILL.md step 5)
+uv run scripts/sync_captions.py <work>             # re-space only the sentences that were reworded
+# Claude finds the repeats itself (SKILL.md step 6) — no detection script
+uv run scripts/cut_entries.py <work> drop e007     # `on: false`; `restore` puts it back
 uv run scripts/tighten.py <work>                   # propose word-level cuts; `apply` commits them
-uv run scripts/reframe.py <work>                   # applies the cut plan -> build/video-reframed.mp4
+uv run scripts/reframe.py <work>                   # applies the montage -> build/video-reframed.mp4
 bash  scripts/master_audio.sh <work> <work>/build/video-raw.mp4 <work>/video-final.mp4
 
 # rendering — Remotion, the only engine. Every command installs the toolchain on first use
@@ -123,17 +125,31 @@ rather than reading it whole.
   clips into a montage is explicitly out of scope; the speech drives every decision here,
   so footage without it has nothing to edit.
 - **One rendering engine: Remotion.** `remotion.sh` builds `<work>/remotion/` from
-  `scripts/remotion/template/` plus the project's `captions.json`, `project.config.json`,
-  `video-reframed.mp4` and `sound-effects.wav`, then renders with `npx remotion render`.
+  `scripts/remotion/template/` plus one generated data file — `render_data.py` flattens
+  `timeline.json` + `project.config.json` into `<work>/remotion/src/timeline.json`, with
+  output times already resolved — alongside `video-reframed.mp4` and `sound-effects.wav`,
+  then renders with `npx remotion render`.
   There is no second engine and no `engine` config key — the canvas engine
   (`compose.html` / `render_frames.js` / `studio.html` / `safe_check.js` and the canvas
   motifs) was removed because keeping three hand-written mirrors in sync was a standing
   source of drift.
-- **Scenes are per-video code, not data (yet):** designing scenes = rewriting the
-  components in `<work>/remotion/src/Scenes.tsx` (never wiped by a re-sync), or authoring
-  `config/scenes.json` and letting `SceneList.tsx` dispatch motifs. Timestamps are
-  hardcoded per video. `edit_script.py` shifts all times, so run it *before* scene design.
-  Making scenes data-driven is the largest open piece of work — tracked in GitHub Issues.
+- **One file holds the montage: `<work>/timeline.json`** (issue #144). An ordered list of
+  self-contained entries, one per spoken sentence: what source seconds it keeps (`src`),
+  its words, and whatever it was given — a scene, sound cues, a video treatment. Two rules
+  make it work, and breaking either reintroduces the drift it replaced:
+  **(1)** anything measured off the recording is in **absolute source time** and never
+  moves; anything authored by hand is **relative to its entry**; the output time is
+  **never stored**, it is the running sum of the active entries.
+  **(2)** cutting is either editing an entry's `src` or setting `on: false` — never
+  deleting, never shifting. `lib/timeline.py` owns the schema and the projection; it is
+  the most load-bearing code here and `test/test_timeline.py` guards it.
+  `build/silences.json` and `build/transcript-raw.json` sit beside it as **measurements**:
+  nothing ever edits them, so they cannot disagree with the montage, and it can always be
+  rebuilt from them.
+- **Scenes are still per-video code where it counts:** a scene is either a `scene` block on
+  an entry (motif + params, dispatched by `SceneList.tsx`) or a component in
+  `<work>/remotion/src/Scenes.tsx` (never wiped by a re-sync). Retiring the hand-written
+  file is phase 3 — issue #147.
 - **A motif lives in two places and both must agree:** its entry in
   `scripts/motifs/index.json` and its component in `scripts/motifs/remotion/`.
   `test/motifs.test.js` enforces that; `tsc` checks the component itself.
@@ -181,8 +197,10 @@ rather than reading it whole.
 
 `.github/workflows/ci.yml` gates every PR (one job, < 2 min): the static checks
 (`node --check` / `compileall` / `bash -n` / JSON parse / the Remotion lockfile) then the
-headless suite `video-editor/test/` (web UI, the ffmpeg
-resolver, the motifs). Add a `*.test.js` there when you touch moving JavaScript.
+suite `video-editor/test/` (the ffmpeg resolver and the motifs in
+JS; the timeline projection and the montage in Python). Add a `*.test.js` there when you
+touch moving JavaScript, and a `test_*.py` when you touch `lib/timeline.py` or anything
+that edits `timeline.json`.
 
 `main` still carries the fork's line (reset to upstream v2.4 as the base for the rename +
 Passes 0–7; upstream v2.5 stays on `majed-v2.5`). Upstream references to

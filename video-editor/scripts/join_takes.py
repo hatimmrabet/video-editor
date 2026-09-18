@@ -18,8 +18,8 @@ runs for every talking video, not just a long one. Reads every video at rush/'s 
   they don't, ffmpeg errors and the recordings need a re-encode first.
 
 Everything downstream resolves the source through lib/rush.find_source(), which prefers
-build/source-joined.mp4 when it exists — so plan_cuts.py / reframe.py / the audio extract
-all use the joined file with no change.
+build/source-joined.mp4 when it exists — so find_silences.py / reframe.py / the audio
+extract all use the joined file with no change.
 """
 import os
 import shutil

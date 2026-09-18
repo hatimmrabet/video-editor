@@ -4,9 +4,10 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""Applies the cut plan: trims and concatenates the kept segments, with a different zoom
-per segment and an optional color grade.
-python3 reframe.py <workdir>
+"""Applies the montage: trims and concatenates the kept pieces, with a zoom per sentence
+and an optional color grade.
+
+    uv run scripts/reframe.py <work>
 
 **The output keeps the source's orientation and size.** A vertical recording gives a
 vertical video, a horizontal one gives a horizontal video — there is no `format` setting
@@ -15,14 +16,25 @@ source (rounded to even numbers, which h264 requires); the per-segment zoom crop
 that frame, anchored by crop.xAnchor / crop.yAnchor.
 
 The source resolves through lib/rush — build/source-joined.mp4, written by join_takes.py.
+The pieces to keep come from <work>/timeline.json via lib/timeline.program() (issue #144).
+
+ZOOM IS PER ENTRY, not per cut. An entry may state its own `video.zoom` and `video.anchor`;
+whatever it does not state falls back to the Z cycle below, indexed by the entry's position
+— so a project that has authored nothing still gets the same restless framing it always
+did, and one that has authored a zoom gets exactly that.
+
 project.config.json (optional): crop.xAnchor (0-1, horizontal · default 0.5) ·
 crop.yAnchor (0-1, vertical · default 0.30) · grade (bool · default false)
 """
 import json, subprocess, sys, os
-from lib import config as _cfg, rush as _rush, platform as _plat
+from lib import config as _cfg, rush as _rush, platform as _plat, timeline as _tl
 W=os.path.abspath(sys.argv[1]); SRC=_rush.find_source(W)
 os.makedirs(os.path.join(W,"build"),exist_ok=True)
-k=json.load(open(os.path.join(W,"build","cut-plan.json"),encoding="utf-8-sig"))["keep"]
+_T=_tl.load(W)
+_PROG=_tl.program(_T)
+if not _PROG: sys.exit("[X] the timeline has nothing to render - every entry is cut or empty")
+_ORDER={e["id"]:i for i,e in enumerate(_tl.entries(_T))}
+_DEF=(_T.get("defaults") or {}).get("video") or {}
 _cfg_data=_cfg.load(W)
 GRADE=_cfg_data.get("grade",False)
 _crop=_cfg_data.get("crop",{})
@@ -38,15 +50,21 @@ BW,BH = OW,OH
 _ratio = "9:16" if OH > OW else ("16:9" if OW > OH else "1:1")
 print(f"output: {OW}x{OH} ({_ratio}, from the source — no reframing)")
 fc=[];v=[];a=[]
-for i,(s,e) in enumerate(k):
-    z=Z[i%len(Z)]; cw=int(BW/z)//2*2; ch=int(BH/z)//2*2
-    x=max(0,min(SW-cw,int((SW-cw)*XANCH))); y=max(0,min(SH-ch,int((SH-ch)*YANCH)))
+for i,piece in enumerate(_PROG):
+    s,e=piece["src"]
+    _e=_tl.by_id(_T,piece["entry"]) or {}
+    _vid={**_DEF, **((_e.get("video") or {}))}
+    z=float(_vid.get("zoom") or Z[_ORDER.get(piece["entry"],i)%len(Z)])
+    _anc=_vid.get("anchor") or [XANCH,YANCH]
+    xa,ya=float(_anc[0]),float(_anc[1])
+    cw=int(BW/z)//2*2; ch=int(BH/z)//2*2
+    x=max(0,min(SW-cw,int((SW-cw)*xa))); y=max(0,min(SH-ch,int((SH-ch)*ya)))
     fc.append(f"[0:v]trim=start={s:.4f}:end={e:.4f},setpts=PTS-STARTPTS,crop={cw}:{ch}:{x}:{y},"
               f"scale={OW}:{OH}:flags=lanczos,setsar=1[v{i}]")
     fc.append(f"[0:a]atrim=start={s:.4f}:end={e:.4f},asetpts=PTS-STARTPTS[a{i}]")
     v.append(f"[v{i}]"); a.append(f"[a{i}]")
-fc.append("".join(v)+f"concat=n={len(k)}:v=1:a=0[vc]")
-fc.append("".join(a)+f"concat=n={len(k)}:v=0:a=1[ac]")
+fc.append("".join(v)+f"concat=n={len(_PROG)}:v=1:a=0[vc]")
+fc.append("".join(a)+f"concat=n={len(_PROG)}:v=0:a=1[ac]")
 # The color grade is entirely optional — off by default (the video keeps its original colors)
 _g = ("eq=brightness=0.015:saturation=0.96:contrast=1.05,"
       "colorbalance=rs=0.02:gs=0.005:bs=-0.02,") if GRADE else ""
@@ -56,7 +74,7 @@ fc.append("[vc]fps=30," + _g +
           "setparams=color_primaries=bt709:color_trc=bt709:colorspace=bt709,format=yuv420p[vo]")
 print("color grade:", "on" if GRADE else "off (original colors)")
 fc.append("[ac]afade=t=in:st=0:d=0.06,dynaudnorm=f=200:g=5:p=0.9[ao]")
-print(f"{len(k)} segment(s) → {os.path.join(W,'build','video-reframed.mp4')}")
+print(f"{len(_PROG)} piece(s) from {len(_tl.entries(_T))} sentence(s) → {os.path.join(W,'build','video-reframed.mp4')}  ({_tl.duration(_T):.2f}s)")
 graph=";".join(fc)
 cmd=[_plat.FFMPEG,"-v","error","-stats","-i",SRC,"-filter_complex",graph,
      "-map","[vo]","-map","[ao]","-c:v","libx264","-preset","medium","-crf","16",
