@@ -80,7 +80,8 @@ _DOC = ("The montage, and the only state this pipeline keeps. An ordered list of
         "Cutting is either editing an entry's `src` or setting `on:false`. Nothing else ever "
         "moves. See scripts/lib/timeline.py and issue #144.")
 
-LAYOUTS = ("FULL", "DOWN", "LOWER")
+LAYOUTS = ("FULL", "DOWN", "LOWER", "HIDDEN")   # HIDDEN: no face — a full-screen motion
+                                                 # graphic (Background.tsx) carries the entry instead (issue #154)
 
 
 def path(work):

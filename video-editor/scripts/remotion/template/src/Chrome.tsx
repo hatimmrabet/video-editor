@@ -1,5 +1,5 @@
 import {staticFile, Img} from 'remotion';
-import {T, VEND, HAS_LOGO, W, H} from './theme';
+import {T, VEND, HAS_LOGO, H} from './theme';
 import {p, rgba} from './util';
 
 const card = (a=0.96) => ({
@@ -25,18 +25,6 @@ export const Badge: React.FC<{t:number}> = ({t}) => {
         <span dir="ltr" style={{fontWeight:700, fontSize:30, color:T.ink}}>{T.handle}</span>
         {HAS_LOGO && <Img src={staticFile('logo.png')} style={{width:42, height:42}} />}
       </div>
-    </div>
-  );
-};
-
-/** The progress bar — raised above the screen edge because Instagram covers the bottom */
-export const Bar: React.FC<{t:number}> = ({t}) => {
-  const a = t > VEND-0.3 ? 1-p(t,VEND-0.3,VEND) : 1;
-  if (a <= 0) return null;
-  return (
-    <div style={{position:'absolute', left:60*(W/1080), right:60*(W/1080), top:1492*(H/1920), height:7, opacity:a,
-      background:rgba(T.ink,0.13), borderRadius:4}}>
-      <div style={{height:'100%', width:`${Math.min(1,t/VEND)*100}%`, background:T.acc, borderRadius:4}} />
     </div>
   );
 };
