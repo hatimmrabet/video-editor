@@ -6,34 +6,37 @@ except Exception:
     pass
 """Nudge every cut-in point onto a clean frame — sharp and settled, not mid-motion.
 
-    python3 settle_check.py <workdir> [--force] [--dry]
+    uv run scripts/settle_cuts.py <work> [--dry]
 
-Reads : the rush source (via lib/rush) · <work>/build/cut-plan.json · config `cut` block
-Writes: <work>/build/cut-plan.json  (in place — `keep` starts shifted forward, `total`
-        recomputed, `"settled": true` added) + a <work>/build/.settled pipeline marker.
-        With `"settled": true` already set it just refreshes the marker (a re-run is a
-        no-op) unless --force. Terminal timeline edits (retakes.py, edit_script.py) leave
-        the flag on so they are not undone by a second settle pass.
+Reads : the rush source (via lib/rush) · <work>/timeline.json · config `cut` block
+Writes: <work>/timeline.json — the first `src` span of each entry starts a little later
 
-Why: plan_cuts.py places segment boundaries from audio silence only. The audio can't tell
-that at the cut-in the speaker is still shifting position (blurry) or the camera hasn't
-settled. For each segment start `a`, this looks at the first `cut.settleMaxMs` (default
-400) of frames via ffmpeg `blurdetect` + `signalstats.YDIF` — the same no-dependency
-metric pass — and moves `a` to the first frame that is both sharp and
-low-motion. The nudge never crosses into speech: it is capped at `cut.padIn` (the lead-in
-plan_cuts.py added), so worst case it trims the whole lead-in, never a spoken word.
+Renamed from settle_check.py (issue #144): it never was a check, it EDITS the cut-in
+points. And it no longer carries a sticky `"settled": true` flag. That flag existed to stop
+a re-run from rewriting cut-plan.json and re-triggering captions.py, which would clobber
+every edit — a hazard that no longer exists, because nothing here touches anything but the
+in-point of each entry. Re-running is now useful rather than dangerous: after a tighten
+pass there are new cut-in points, and this finds clean frames for them too. A cut-in that
+already lands on a good frame is left alone, so a second pass over settled material is a
+no-op anyway.
+
+Why: find_silences.py places boundaries from audio alone. The audio cannot tell that at the
+cut-in the speaker is still shifting position (blurry) or the camera has not settled. For
+each entry start `a`, this looks at the first `cut.settleMaxMs` (default 400) of frames via
+ffmpeg `blurdetect` + `signalstats.YDIF` — the same no-dependency metric pass — and moves
+`a` to the first frame that is both sharp and low-motion. The nudge never crosses into
+speech: it is capped at `cut.padIn` (the lead-in build_timeline.py added), so worst case it
+trims the whole lead-in, never a spoken word.
 
 Eyes-open / gaze is out of scope (needs a face-detection dependency — issue #128).
 
-Exit 0 always (a segment with no clean frame in range is left as-is and reported).
+Exit 0 always (an entry with no clean frame in range is left as-is and reported).
 """
 import json, os, re, subprocess, sys
-from lib import rush, platform as _plat, config as _cfg
+from lib import rush, platform as _plat, config as _cfg, timeline as tl
 
 W = os.path.abspath(sys.argv[1])
-FORCE = "--force" in sys.argv
 DRY = "--dry" in sys.argv
-CP = os.path.join(W, "build", "cut-plan.json")
 
 
 def run(cmd, cwd=None):
@@ -103,59 +106,55 @@ def first_clean(rows):
 
 
 def main():
-    if not os.path.exists(CP):
-        sys.exit("no build/cut-plan.json — run plan_cuts.py first")
-    mk = os.path.join(W, "build", ".settled")
-    plan = json.load(open(CP, encoding="utf-8-sig"))
-    if plan.get("settled") and not FORCE:
-        # already nudged (or a later stage — retakes.py / edit_script.py — shifted the
-        # plan and left the flag on): just refresh the pipeline marker, do NOT rewrite
-        # cut-plan.json (that would re-trigger captions.py and clobber its edits).
-        if not DRY:
-            open(mk, "w").close()
-        print("cut-plan already settled (use --force to redo)")
-        return
-    keep = [list(x) for x in plan["keep"]]
-    if not keep:
-        sys.exit("cut-plan has no segments")
+    if not os.path.exists(tl.path(W)):
+        sys.exit("no timeline.json - run build_timeline.py first")
+    t = tl.load(W)
+    entries = [e for e in tl.entries(t) if tl.span_list(e)]
+    if not entries:
+        sys.exit("the timeline has no entries to settle")
 
     c = (_cfg.load(W).get("cut", {}) or {})
     if not c.get("settle", True):
-        print("cut.settle is off — nothing to do")
+        print("cut.settle is off - nothing to do")
         return
     limit = min(float(c.get("settleMaxMs", 400)) / 1000.0, float(c.get("padIn", 0.22)))
     src = rush.find_source(W)
 
     moved, failed = 0, 0
-    for i, (a, b) in enumerate(keep):
-        span = min(limit, max(0.0, b - a - 0.30))
+    for e in entries:
+        spans = tl.span_list(e)
+        a, b = spans[0]
+        # never eat into speech: stop short of the first word if there is one
+        words = (e.get("caption") or {}).get("words") or []
+        ceiling = min(a + limit, (words[0].get("src") or [b])[0] if words else b)
+        span = min(limit, max(0.0, min(b, ceiling) - a - 0.06))
         if span < 0.06:
             continue
         rows = frame_metrics(src, a, span + 1e-3)
         if rows is None:
             failed += 1
             continue
-        t = first_clean(rows)
-        if t is None or t <= a + 1e-3:
+        clean = first_clean(rows)
+        if clean is None or clean <= a + 1e-3:
             continue
-        keep[i][0] = round(min(t, a + limit), 4)
+        spans[0][0] = round(min(clean, ceiling), 4)
+        e["src"] = spans
         moved += 1
-        print(f"  seg {i+1}: {a:7.2f} -> {keep[i][0]:7.2f}  (+{keep[i][0]-a:.2f}s to a clean frame)")
+        print("  %s: %7.2f -> %7.2f  (+%.2fs to a clean frame)" % (e["id"], a, spans[0][0], spans[0][0] - a))
 
-    total = round(sum(y - x for x, y in keep), 3)
-    note = f"  ·  {failed} measurement failure(s), see above" if failed else ""
-    print(f"settle: {moved}/{len(keep)} cut-in point(s) nudged  ·  kept {total:.2f}s{note}")
+    note = "  -  %d measurement failure(s), see above" % failed if failed else ""
+    print("settle: %d/%d cut-in point(s) nudged  -  %.2fs kept%s"
+          % (moved, len(entries), tl.duration(t), note))
+
     mf = os.path.join(W, "build", ".settle-meta.txt")
     if os.path.exists(mf):
         os.remove(mf)
     if DRY:
-        print("(dry run — cut-plan.json not written)")
+        print("(dry run - timeline.json not written)")
         return
-    plan["keep"] = keep
-    plan["total"] = total
-    plan["settled"] = True
-    json.dump(plan, open(CP, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-    # pipeline marker: run.py re-runs settle when cut-plan.json is newer than this
+    tl.save(W, t)
+    # pipeline marker: run.py re-runs settle when the timeline is newer than this
+    os.makedirs(os.path.join(W, "build"), exist_ok=True)
     open(os.path.join(W, "build", ".settled"), "w").close()
 
 

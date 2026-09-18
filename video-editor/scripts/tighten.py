@@ -4,199 +4,175 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""The jump-cut + filler pass.
+"""The jump-cut + filler pass, on <work>/timeline.json (issue #144).
 
-    uv run scripts/tighten.py <work>          # propose — prints the summary, writes build/tighten-plan.json
-    uv run scripts/tighten.py <work> apply    # commit — folds into build/cut-plan.json + build/captions.json
+    uv run scripts/tighten.py <work>          # propose - prints what it would cut
+    uv run scripts/tighten.py <work> apply    # commit
 
-Two kinds of word-level cut, both from build/captions.json's per-word timings:
+Two kinds of word-level cut, both read off each entry's own word timings:
 
-  1. inter-word gaps longer than `tighten.pauseMs` (config, default 250 ms) are trimmed
-     to `tighten.keepMs` (default 90 ms) — a hard jump cut.
-  2. filler words / short runs matching scripts/fillers.json for the project language are
-     dropped.
+  1. a silence longer than `tighten.pauseMs` (config, default 250 ms) is trimmed back to
+     `tighten.keepMs` (default 90 ms) - a hard jump cut. Silences considered: between two
+     words of a sentence, and the air at either end of one.
+  2. filler words and short filler runs matching scripts/fillers.json for the project
+     language are dropped, word and audio together.
 
-`apply` is the same terminal mutation as edit_script.py: it does NOT re-run captions.py
-afterward — rebuild the video with reframe.py. Undo restores the .bak files.
+WHAT CHANGED, AND WHY RE-RUNNING IS NOW SAFE. This used to cache build/tighten-plan.json
+and re-apply it later against a timeline that had moved underneath it, double-cutting
+(issue #144). There is no plan file any more: `apply` measures and cuts in one pass, and it
+measures the CURRENT timeline. Running it twice finds no gap over the threshold the second
+time, so it is a no-op rather than a second cut.
 
-Runs after the retake pass (SKILL.md step 6) and before reframe.py, for every talking
-video — a reel gets the same tight jump cuts as a long recording.
+Each cut edits one entry's `src` and, for a filler, drops that word from its caption.
+Nothing outside the entry is touched, because nothing outside it stores an output time.
 """
 import json
 import os
 import re
-import shutil
+import sys
 
-_sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from lib import config as _config   # noqa: E402
-from lib import timeline            # noqa: E402
+from lib import config as _config, timeline as tl
 
-W = os.path.abspath(_sys.argv[1]) if len(_sys.argv) > 1 else _sys.exit("usage: tighten.py <work> [apply]")
-APPLY = len(_sys.argv) > 2 and _sys.argv[2] == "apply"
-B = lambda n: os.path.join(W, "build", n)
-MIN_SEG = 0.20
+MIN_PIECE = 0.05          # a scrap of video shorter than this is not worth keeping
 
 
-def load(p):
-    with open(p, encoding="utf-8-sig") as f:
-        return json.load(f)
-
-
-def save(p, d):
-    if os.path.exists(p):
-        if not os.path.exists(p + ".orig"):
-            shutil.copy(p, p + ".orig")
-        shutil.copy(p, p + ".bak")
-    with open(p, "w", encoding="utf-8") as f:
-        json.dump(d, f, ensure_ascii=False, indent=1)
-
-
-def _norm(s):
+def norm(s):
     return re.sub(r"[^\w؀-ۿ]", "", s.lower())
 
 
-def filler_tokens():
-    cfg = _config.load(W)
+def filler_tokens(work):
+    """The filler list for the project language, from scripts/fillers.json."""
+    cfg = _config.load(work)
     lang = str(cfg.get("language", "en")).lower().split("-")[0]
-    if not cfg.get("tighten", {}).get("fillers", True):
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fillers.json")
+    try:
+        with open(path, encoding="utf-8-sig") as f:
+            data = json.load(f)
+    except Exception:
         return lang, []
-    data = load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "fillers.json"))
-    return lang, [f.split() for f in data.get(lang, []) if isinstance(f, str)]
+    raw = data.get(lang) or data.get(lang.split("_")[0]) or []
+    return lang, [[norm(x) for x in str(p).split()] for p in raw if str(p).strip()]
 
 
-def build_plan():
-    cfg = _config.load(W)
-    lf = cfg.get("tighten", {})
-    pause_ms = float(lf.get("pauseMs", 250))
-    keep_ms = float(lf.get("keepMs", 90))
-    caps = load(B("captions.json"))
-    cards = caps["cards"]
-    lang, ftoks = filler_tokens()
+def plan_entry(entry, fillers, pause, keep):
+    """What to cut from one entry: (spans to remove, filler words found, gaps found).
 
-    flat = [(ci, wi, w["s"], w["e"], w["t"])
-            for ci, c in enumerate(cards) for wi, w in enumerate(c["w"])]
-    if not flat:
-        _sys.exit("captions.json has no words")
+    Silences are measured between the entry's own word timings, so a sentence that already
+    reads tight yields nothing — which is what makes a second run a no-op."""
+    spans, found, gaps = [], [], []
+    words = (entry.get("caption") or {}).get("words") or []
+    src = tl.span_list(entry)
+    if not src:
+        return spans, found, gaps
 
-    # 1) gap cuts
-    gaps = []
-    for k in range(len(flat) - 1):
-        g = flat[k + 1][2] - flat[k][3]
-        if g * 1000.0 > pause_ms:
-            cs = flat[k][3] + keep_ms / 1000.0
-            ce = flat[k + 1][2]
-            if ce - cs > 0.02:
-                gaps.append({"s": round(cs, 3), "e": round(ce, 3), "gap": round(g, 3)})
-
-    # 2) filler cuts (single words + consecutive runs; longest match wins)
-    fillers, i = [], 0
+    # --- filler words and runs, longest match first
+    flat = [(i, w, norm(w.get("t", ""))) for i, w in enumerate(words)]
+    i = 0
     while i < len(flat):
         best = 0
-        for toks in ftoks:
-            n = len(toks)
-            if i + n <= len(flat) and all(_norm(flat[i + j][4]) == _norm(toks[j]) for j in range(n)):
+        for phrase in fillers:
+            n = len(phrase)
+            if n and i + n <= len(flat) and [flat[i + j][2] for j in range(n)] == phrase:
                 best = max(best, n)
         if best:
-            s0 = flat[i][2]
-            e0 = flat[i + best - 1][3]
-            prev_e = flat[i - 1][3] if i > 0 else 0.0
-            next_s = flat[i + best][2] if i + best < len(flat) else caps["total"]
-            fillers.append({
-                "text": " ".join(flat[i + j][4] for j in range(best)),
-                "s": round(max(s0 - 0.03, prev_e), 3),
-                "e": round(min(e0 + 0.03, next_s), 3),
-                "ctx": " ".join(flat[j][4] for j in range(max(0, i - 3), min(len(flat), i + best + 3))),
-            })
+            a = flat[i][1]["src"][0]
+            b = flat[i + best - 1][1]["src"][1]
+            found.append({"text": " ".join(flat[i + j][1].get("t", "") for j in range(best)),
+                          "src": [a, b],
+                          "ctx": " ".join(flat[j][1].get("t", "")
+                                          for j in range(max(0, i - 3), min(len(flat), i + best + 3)))})
+            spans.append([a, b])
             i += best
         else:
             i += 1
 
-    cuts = timeline.merge([[g["s"], g["e"]] for g in gaps] + [[f["s"], f["e"]] for f in fillers])
-    saved = round(sum(b - a for a, b in cuts), 3)
-    return {
-        "before": round(caps["total"], 3),
-        "after": round(caps["total"] - saved, 3),
-        "saved": saved,
-        "language": lang,
-        "pauseMs": pause_ms, "keepMs": keep_ms,
-        "gaps": gaps,
-        "fillers": fillers,
-        "cuts": cuts,
-    }
+    # --- silences: the air before the first word, between words, and after the last
+    lo, hi = src[0][0], src[-1][1]
+    points = [(lo, lo)]
+    for w in words:
+        s = w.get("src") or []
+        if len(s) >= 2:
+            points.append((s[0], s[1]))
+    points.append((hi, hi))
+    for (_, prev_end), (next_start, _) in zip(points, points[1:]):
+        # Measured in OUTPUT seconds, not source seconds: what matters is the pause the
+        # viewer hears. A pause trimmed by an earlier run reads as the ~90 ms that was
+        # kept, so it is not cut again — this is what makes `apply` safe to re-run.
+        gap = tl.elapsed(entry, next_start) - tl.elapsed(entry, prev_end)
+        if gap > pause:
+            start = tl.unproject_rel(entry, tl.elapsed(entry, prev_end) + keep)
+            cut = [round(start, 3), round(next_start, 3)]
+            if cut[1] - cut[0] > 0.01:
+                spans.append(cut)
+                gaps.append({"src": cut, "gap": round(gap, 3)})
+
+    return spans, found, gaps
 
 
-def print_plan(p):
-    print(f"tighten: {len(p['gaps'])} gap cut(s), {len(p['fillers'])} filler(s)  ·  "
-          f"{p['before']:.1f}s -> {p['after']:.1f}s  (-{p['saved']:.1f}s)")
-    if p["fillers"]:
-        print("\nfillers (review before apply):")
-        for f in p["fillers"]:
-            print(f"  {f['s']:7.2f}  \"{f['text']}\"   … {f['ctx']} …")
-    long_gaps = sorted(p["gaps"], key=lambda g: -g["gap"])[:8]
-    if long_gaps:
-        print("\nlongest gaps trimmed:")
-        for g in long_gaps:
-            print(f"  {g['s']:7.2f}  {g['gap']:.2f}s pause")
-    print(f"\nwrote {B('tighten-plan.json')}")
-    print("apply:  uv run scripts/tighten.py <work> apply")
+def main(argv):
+    work = os.path.abspath(argv[1])
+    apply = len(argv) > 2 and argv[2] == "apply"
 
+    t = tl.load(work)
+    cfg = (_config.load(work).get("tighten") or {})
+    pause = float(cfg.get("pauseMs", 250)) / 1000.0
+    keep = float(cfg.get("keepMs", 90)) / 1000.0
+    lang, fillers = filler_tokens(work)
 
-def apply_plan(p):
-    cuts = [[a, b] for a, b in p["cuts"]]
-    if not cuts:
-        _sys.exit("nothing to tighten — no cuts in the plan")
-    shift, _ = timeline.make_shift(cuts)
-    fspans = [(f["s"], f["e"]) for f in p["fillers"]]
+    before = tl.duration(t)
+    all_fillers, all_gaps, saved = [], [], 0.0
 
-    caps = load(B("captions.json"))
+    for e in tl.entries(t):
+        spans, found, gaps = plan_entry(e, fillers, pause, keep)
+        if not spans:
+            continue
+        all_fillers += [dict(f, entry=e["id"]) for f in found]
+        all_gaps += [dict(g, entry=e["id"]) for g in gaps]
+        if apply:
+            saved += tl.subtract(e, spans, MIN_PIECE)
+            if found:
+                cap = e.get("caption") or {}
+                gone = [tuple(f["src"]) for f in found]
+                cap["words"] = [w for w in cap.get("words") or []
+                                if tuple(w.get("src") or []) not in gone]
+                cap["text"] = " ".join(w.get("t", "") for w in cap["words"])
+                e["caption"] = cap
+        else:
+            saved += sum(b - a for a, b in spans)
 
-    cut = load(B("cut-plan.json"))
-    cut["keep"], cut["total"] = timeline.remap_keep(cut["keep"], cuts, MIN_SEG)
-    save(B("cut-plan.json"), cut)
+    print("tighten (%s): %d gap cut(s), %d filler(s)  -  %.1fs -> %.1fs  (-%.1fs)"
+          % (lang, len(all_gaps), len(all_fillers), before, before - saved, saved))
 
-    def is_filler(w):
-        return any(fs - 1e-6 <= w["s"] and w["e"] <= fe + 1e-6 for fs, fe in fspans)
+    if all_fillers:
+        print("\nfillers:")
+        for f in all_fillers[:40]:
+            print("  %s  \"%s\"   ... %s ..." % (f["entry"], f["text"], f["ctx"]))
+        if len(all_fillers) > 40:
+            print("  ... and %d more" % (len(all_fillers) - 40))
+    if all_gaps:
+        print("\nlongest pauses trimmed:")
+        for g in sorted(all_gaps, key=lambda x: -x["gap"])[:8]:
+            print("  %s  %.2fs pause" % (g["entry"], g["gap"]))
 
-    new_cards = []
-    for c in caps["cards"]:
-        ws = [w for w in c["w"] if not is_filler(w)]
-        ws = [{**w, "s": round(shift(w["s"]), 3), "e": round(shift(w["e"]), 3)} for w in ws]
-        if ws:
-            new_cards.append({"s": ws[0]["s"], "e": ws[-1]["e"], "w": ws})
-    for k in range(len(new_cards) - 1):
-        if new_cards[k]["e"] > new_cards[k + 1]["s"]:
-            new_cards[k]["e"] = round(new_cards[k + 1]["s"] - 0.02, 3)
-    new_total = round(min(caps["total"] - p["saved"], cut["total"]), 3)
-    save(B("captions.json"), {"total": new_total, "cards": new_cards})
+    if not apply:
+        if all_gaps or all_fillers:
+            print("\napply:  uv run scripts/tighten.py <work> apply")
+        return 0
 
-    sfxp = B("sound-cues.json")
-    if os.path.exists(sfxp):
-        sfx = load(sfxp)
-        for k, v in list(sfx.items()):
-            if isinstance(v, list):
-                sfx[k] = [round(shift(t), 3) for t in v
-                          if not any(a - 1e-6 <= t <= b + 1e-6 for a, b in cuts)]
-        save(sfxp, sfx)
+    if not (all_gaps or all_fillers):
+        print("nothing to tighten - the timeline is already tight")
+        return 0
 
-    print(f"tightened: {p['before']:.1f}s -> {new_total:.1f}s  (-{p['saved']:.1f}s, "
-          f"{len(p['fillers'])} fillers, {len(p['gaps'])} gaps)")
-    print(f"""
-next: rebuild the video
-   uv run scripts/reframe.py {W}
-undo: restore build/*.bak (cut-plan.json, captions.json)""")
-
-
-def main():
-    if APPLY:
-        pp = B("tighten-plan.json")
-        p = load(pp) if os.path.exists(pp) else build_plan()
-        apply_plan(p)
-    else:
-        p = build_plan()
-        with open(B("tighten-plan.json"), "w", encoding="utf-8") as f:
-            json.dump(p, f, ensure_ascii=False, indent=1)
-        print_plan(p)
+    problems = tl.validate(t)
+    tl.save(work, t)
+    print("\n%.1fs -> %.1fs. Rebuild:  bash scripts/remotion/remotion.sh %s render"
+          % (before, tl.duration(t), work))
+    for p in problems:
+        print("  ! " + p)
+    return 1 if problems else 0
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) < 2:
+        sys.exit("usage: tighten.py <work> [apply]")
+    sys.exit(main(sys.argv))

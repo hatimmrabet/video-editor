@@ -1,6 +1,7 @@
 # Motif registry — `scripts/motifs/`
 
-A **motif** is a parameterized scene type, selected by name from `config/scenes.json`
+A **motif** is a parameterized scene type, selected by name from an entry's `scene.motif`
+in `<work>/timeline.json`
 (`"motif": "stamp"`) and dispatched by `SceneList.tsx`. This replaces hand-writing every
 scene as its own component in `Scenes.tsx`.
 

@@ -35,7 +35,7 @@ export default function Checklist({prog, wordIndex, theme, params}: Props) {
   const items = Array.isArray(params.items) ? params.items : [];
   if (!items.length) return null;
   const rowH = 100 * SY;
-  // params.y is author-placed (config/scenes.json, tuned live in the studio at the real
+  // params.y is author-placed (an entry's scene.params, tuned live in the studio at the real
   // composition size) and used verbatim; only the codebase default scales with the frame.
   const y0 = params.y != null ? params.y : 340 * SY;
 

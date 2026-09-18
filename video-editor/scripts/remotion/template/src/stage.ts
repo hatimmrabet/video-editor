@@ -1,5 +1,5 @@
 /* The video display rects and the transition between them.
-   The schedule comes from project.json ← stage: [{s,e,m:"FULL"|"DOWN"|"LOWER", transition?, gb?}].
+   The schedule comes from timeline.json ← stage: [{s,e,m:"FULL"|"DOWN"|"LOWER", transition?, gb?}].
    An entry's optional `transition` (shorthand string or object) overrides type/duration/easing
    for the cut INTO that entry. On the reel video only rect-morph / cut / dissolve are
    meaningful — see scripts/transitions.json.
@@ -8,7 +8,7 @@
    the card shrinks proportionally (9:16) from the graphic bottom + the caption's line count. */
 import {lerp, ez} from './util';
 import {STAGE, TX, T, W, H} from './theme';
-import caps from './caps.json';
+import caps from './timeline.json';
 
 /* Every rect below was designed against a 1080x1920 canvas. SX/SY carry that design to
    whatever size the composition actually is (#136) — a horizontal recording gets the same

@@ -5,7 +5,7 @@ type Props = {prog: number; theme: {acc: string}; params: {rings?: number; x?: n
 export default function Suspense({prog, theme, params}: Props) {
   const sy = H / 1920;   // uniform scale for the ring radius — keeps the rings circular, not stretched
   const n = params.rings != null ? params.rings : 2;
-  // params.x/y are author-placed (config/scenes.json, tuned live at the real composition
+  // params.x/y are author-placed (an entry's scene.params, tuned live at the real composition
   // size) and used verbatim; only the codebase default scales with the frame.
   const cx = params.x != null ? params.x : W / 2;
   const cy = params.y != null ? params.y : 760 * sy;

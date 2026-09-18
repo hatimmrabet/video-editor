@@ -283,17 +283,15 @@ each one, and the conversation stays yours.
 
 ## Steps 3–13 — production
 
-### 3) Cut the silences
+### 3) Measure the silences
 ```bash
-uv run scripts/plan_cuts.py <work>
-uv run scripts/settle_check.py <work>
+uv run scripts/find_silences.py <work>
 ```
-`plan_cuts.py` removes the silences (asymmetric pad — more air before each line than after,
-tunable in the `cut` config block). Then `settle_check.py` walks every cut-in point and
-nudges it to the first sharp, still frame — so a line never starts on a blurred frame or
-mid-reposition. It only ever eats into the lead-in pad, never a spoken word.
-
-Tell them how much was removed: "Removed 52 seconds of dead air — the video is 46 now, not 98."
+Records where the speaker is quiet, into `build/silences.json`. That file is a
+**measurement** — nothing ever edits it — so the montage can always be rebuilt from it.
+The padding (asymmetric: more air before each line than after, tunable in the `cut` config
+block) is applied in step 5, when the timeline is built, and the cut-in points are nudged
+onto clean frames there too.
 
 ### 4) Transcribe the speech
 ```bash
@@ -317,108 +315,130 @@ uv run scripts/transcribe.py <work> --language <LANG>
 language or empty, `<LANG>` is wrong. Darija is rough even with a fine-tune; that is what
 step 5 is for — and it is *your* job, not the user's.
 
-### 5) Correct the transcript, build the captions — Claude does it
+### 5) Build the timeline, then correct the transcript — Claude does it
 
-**5a — correct the whole transcript.** Read `build/transcript-raw.json` end to end. For
+**5a — build the timeline.**
+```bash
+uv run scripts/build_timeline.py <work>
+uv run scripts/settle_cuts.py <work>
+```
+`build_timeline.py` crosses the silences with the transcript into **`<work>/timeline.json`** —
+one entry per spoken sentence, each carrying the source spans kept for it and its words.
+**From here on, that one file is the montage**: the cuts, the captions, the scenes, the
+sound cues, the chapters. Nothing else holds editing state. Then `settle_cuts.py` nudges
+every cut-in onto the first sharp, still frame, so a line never starts blurred or
+mid-reposition; it only ever eats into the lead-in pad, never a spoken word.
+
+Tell them how much was removed: "Removed 52 seconds of dead air — the video is 46 now, not 98."
+
+An entry looks like this, and everything about it is local to it:
+```jsonc
+{ "id": "e014",
+  "src": [[112.30, 113.94], [114.21, 115.82]],   // what is kept, in SOURCE seconds
+  "on": true,                                     // false = cut, still readable, reversible
+  "caption": { "text": "...", "words": [{"t": "...", "src": [112.30, 112.52]}] } }
+```
+Anything you author later on an entry — a scene, a sound cue — is timed **relative to that
+entry**. Output times are never written down: they are the running sum of the active
+entries. That is why nothing in the next steps can knock anything else out of sync.
+
+**5b — correct the whole transcript.** Read the entries end to end. For
 every sentence: if it is garbled, first try to recover what was actually said; if you
 cannot, **reword it so it reads correctly and means what they were saying**, in the
 video's own language and register — darija stays darija, same level of speech. Do **not**
 switch to Modern Standard Arabic or another language unless the user explicitly asked for
-the captions in that language. Write `<work>/build/transcript-fixes.json`:
-```json
-{ "fix": [["كل","شي","كتشوفو"], ["الكابشن","و","الزوم"]], "hot": ["كتشوفو","الزوم"] }
+the captions in that language. Edit that entry's `caption.text` **in `timeline.json`
+itself** — there is no separate fixes file, and no "one entry per Whisper segment" contract
+to satisfy.
+
+Then re-space the words of whatever you reworded:
+```bash
+uv run scripts/sync_captions.py <work>
 ```
-- One `fix` entry per Whisper segment (that structure must match). The **word count per
-  sentence no longer has to match Whisper** — `captions.py` spreads a reworded sentence
-  across its span.
-- `hot` = words held in the accent pill when spoken.
+It only touches sentences whose `text` no longer matches their `words`, so Whisper's real
+per-word timings survive everywhere you did not rewrite. A re-spaced sentence has invented
+word timings — only its start and end are real — so prefer recovering what was said over
+rewriting it.
+
+- `"hot": true` on a word = held in the accent pill when spoken.
 - **This is not a line-by-line session with the user.** Do it yourself, then show a short
   summary: "23 sentences · 6 reworded (Whisper had them garbled) · the rest as spoken".
-
-**5b — build the caption timings**
-```bash
-uv run scripts/captions.py <work>
-```
 
 ### 6) Finalize the script — repeats gone, then your edits
 
 **One step, you do both parts before showing anything.**
 
-**6a — cut the repeats and false starts yourself, first.** Read `build/captions.json` end
-to end. The creator often restarts an idea — stops after 3 words, tries again at 5, gets it
-right at 9 — no two attempts the same length. Find every one of these, and **treat the
-LAST attempt as the real source** of what gets shown. There is no detection script for
-this: you decide, from the text and its timing, exactly like you're doing when you read a
-transcript in conversation. Write `<work>/build/retake-cuts.json`:
-```json
-{ "cuts": [ { "s": 12.34, "e": 15.02, "text": "wach kayn chi mushkil", "reason": "restarted 3x, kept the last" } ] }
-```
-then apply it — this is the one part that must go through code, because it has to shift
-`cut-plan.json`, `captions.json` and `sound-cues.json` **in exact sync**, the same
-timeline math `edit_script.py` and `tighten.py` already share:
+**6a — cut the repeats and false starts yourself, first.** Read the entries end to end.
+The creator often restarts an idea — stops after 3 words, tries again at 5, gets it right
+at 9 — no two attempts the same length. Find every one of these, and **treat the LAST
+attempt as the real source** of what gets shown. There is no detection script for this: you
+decide, from the text and its timing, exactly like you're doing when you read a transcript
+in conversation.
+
+Switch those entries off — set `"on": false` and a `"why"` directly in `timeline.json`, or:
 ```bash
-uv run scripts/retakes.py <work> apply
+uv run scripts/cut_entries.py <work> drop e007 e012 --why "restarted 3x, kept the last"
 ```
+Nothing is deleted: the entry stays in the file with its text, and `restore` puts it back.
+
 **Don't show this list before cutting.** Apply it, then fold it into the recap at the end
 of this step (before/after text, how much shorter). Most passages are clear-cut — decide
 and move on.
 
 **Genuinely unsure whether a passage is a repeat or real content?** That's the one time to
 stop and ask — and when you do, hand over everything needed to check it in seconds: the
-exact timestamps of both passages, their exact text, and why you're unsure. Never guess on
-a real doubt, and never make the user go hunting for what you're asking about.
+exact ids of both passages, their exact text, and why you're unsure. Never guess on a real
+doubt, and never make the user go hunting for what you're asking about.
 
 **6b — then, and only then, the creator's own edits.**
 ```bash
-uv run scripts/edit_script.py <work> show
+uv run scripts/cut_entries.py <work> show
 ```
-Prints the now-clean speech, numbered and timecoded, and writes `build/transcript-editable.txt`.
+Prints the now-clean speech, one id per line, and writes `build/transcript-editable.txt`.
 **Show them the list in the chat and say: "What do you want me to remove?"** — this part
 *is* shown before cutting, because dropping a whole sentence (a tangent, a point that
-didn't land) is the creator's call, not yours. `edit_script.py dupes` still flags any two
-whole sentences that rephrase each other, in case one slipped through 6a:
+didn't land) is the creator's call, not yours. `dupes` still flags any two whole sentences
+that rephrase each other, in case one slipped through 6a:
 ```bash
-uv run scripts/edit_script.py <work> dupes
+uv run scripts/cut_entries.py <work> dupes
+uv run scripts/cut_entries.py <work> drop e006 e008    # out of the video and the audio
+uv run scripts/cut_entries.py <work> keep e001 e002    # keep only these (a shortened cut)
+uv run scripts/cut_entries.py <work> restore e006      # put one back
 ```
-```bash
-uv run scripts/edit_script.py <work> drop 6 8       # removes both sentences from video and audio
-uv run scripts/edit_script.py <work> keep 1 2 5 9   # keeps only these (for a shortened cut)
-uv run scripts/edit_script.py <work> undo           # undo
-```
-The sentence is removed from the video and the audio, everything after it shifts back, and
-`build/cut-plan.json`, `build/captions.json` and `build/sound-cues.json` all update.
 
-**Do this here — before designing the scenes.** If you drop a sentence after designing
-the scenes, all their times shift and you have to redo them. And after any deletion: re-run
-`reframe.py`, re-extract the frames, and re-render with `--force`.
+**This no longer has to happen before designing the scenes.** A scene belongs to its own
+entry and is timed relative to it, so cutting a sentence elsewhere cannot move it. After
+any cut, re-run `reframe.py` and re-render — that is all.
 
 ### 7) Tighten the pauses and the filler words
 ```bash
-uv run scripts/tighten.py <work>              # proposes the cuts, writes build/tighten-plan.json
+uv run scripts/tighten.py <work>              # proposes the cuts, writes nothing
 ```
 It trims every inter-word pause over 250 ms down to 90 ms (hard jump cuts) and drops filler
 words (`um`, `euh`, `يعني` …) from `scripts/fillers.json`. **Show the user the summary** —
 "847 micro-cuts, 41 fillers, 3m12s removed, 18m04 → 14m52" — and the filler list in
 context. If they want a specific filler kept or an extra one dropped, adjust and re-run:
 ```bash
-uv run scripts/tighten.py <work> apply        # folds it into cut-plan.json + captions.json
+uv run scripts/tighten.py <work> apply        # commits into timeline.json
 ```
-This is terminal (like `edit_script.py apply`) — don't re-run `captions.py` after it. Undo
-= restore the `.bak` files. Thresholds live under `tighten` in the config (`pauseMs` 250,
-`keepMs` 90, `fillers` true); the defaults are good, only touch them if the user wants a
-looser or tighter cut.
+**Safe to re-run**: it measures the current timeline, so a second `apply` finds nothing
+left over the threshold and says so. Thresholds live under `tighten` in the config
+(`pauseMs` 250, `keepMs` 90, `fillers` true); the defaults are good, only touch them if the
+user wants a looser or tighter cut.
 
 **On a short reel this usually finds little** — say so in one line and move on. On a long
 recording it is the single biggest win of the whole edit.
 
 ### 8) Chapters — only worth proposing on a long recording
 Read the corrected transcript and **propose 3–8 chapter breaks** — the topic shifts, keyed
-to a sentence number. After they confirm, write `<work>/config/chapters.json`:
+to a sentence. After they confirm, add them to `timeline.json`'s `chapters`:
 ```json
-[ { "ref": { "sentence": 0 }, "title": "Intro" },
-  { "ref": { "sentence": 34 }, "title": "The three mistakes" } ]
+[ { "at": "e001", "title": "Intro" },
+  { "at": "e034", "title": "The three mistakes" } ]
 ```
-Optional, and pointless under a few minutes: no file means no chapter markers. With one,
+`at` is an **entry id**, not a number — so cutting a sentence can never silently move a
+chapter or drop it. Optional, and pointless under a few minutes: no chapters means no
+markers. With them,
 `subtitles.py` also writes `video-final.chapters.txt` (the first is forced to `00:00`) —
 the list to paste into a YouTube description.
 
@@ -435,8 +455,16 @@ speaker sits off-centre, set `crop.xAnchor` / `crop.yAnchor` in `project.config.
 ### 10) Design the scenes and the on-screen captions ← the most important step
 The scene code lives at `<work>/remotion/src/Scenes.tsx` — `remotion/remotion.sh <work>
 sync` creates it on first use and **never overwrites it afterwards**. Rewrite its scene
-components (or author `config/scenes.json` instead — the data-driven path, dispatched by
-`SceneList.tsx`). Type-check before rendering: `remotion/remotion.sh <work> check`.
+components — or give an entry a `scene` in `timeline.json` instead (the data-driven path,
+dispatched by `SceneList.tsx`):
+
+```jsonc
+{ "id": "e014", "...": "...",
+  "video": { "layout": "DOWN" },
+  "scene": { "motif": "stamp", "params": { "text": "3 etapes" }, "at": 0.3, "dur": 2.4 } }
+```
+`at`/`dur` are relative to the entry, and motif names come from `scripts/motifs/index.json`.
+Type-check before rendering: `remotion/remotion.sh <work> check`.
 
 **The structure is ready, don't touch it:** shrinking the video into a card (`R_FULL` /
 `R_DOWN` / `R_LOWER` with a smooth transition), the account badge, the progress bar, the
@@ -457,8 +485,8 @@ the theme.
 | "one file" | a file card, and chips flying in and merging into it |
 | a call to comment | a comment box, and the word typing itself letter by letter |
 
-Each scene function takes `t` and draws based on the word timing from `build/captions.json` — the
-scene sticks to the word, not to an approximate time.
+Each scene function takes `t` and draws based on the word timing the renderer resolved from
+`timeline.json` — the scene sticks to the word, not to an approximate time.
 
 **No account badge over the video** (`theme.badgeUntil: 0` — the default): the name is on
 the platform itself and on the end card, and the top of the screen is space for the
@@ -541,14 +569,19 @@ sheet = one read instead of five. **Don't render the whole video before previewi
 least 6 shots**, and show the sheet to the user.
 
 ### 11) Sound effects
-Write `<work>/build/sound-cues.json`:
-```json
-{ "outro": 5.2, "whoosh_up": [3.1,11.25], "whoosh_down": [7.85],
-  "thud": [27.27,29.47], "tap": [23.08,24.06] }
+Give the entries that want one an `sfx` list, in `timeline.json`:
+```jsonc
+{ "id": "e014", "...": "...",
+  "sfx": [ { "cue": "whoosh_up", "at": 0.0 } ] }   // `at` is relative to this entry
 ```
+Cues: `whoosh_up` · `whoosh_down` · `thud` · `tap`. The end card's length is
+`outro.seconds` at the top level. Because a cue belongs to its sentence, it stays glued to
+it whatever gets cut elsewhere.
 ```bash
 uv run scripts/sound_fx.py <work>
 ```
+Keep it under ~15 events per minute — past that it stops reading as punctuation and starts
+reading as noise (`sound_fx.py` warns).
 
 ### 12) Final render, assembly and audio mastering
 
@@ -616,16 +649,18 @@ Produces `<work>/video-final.srt` (YouTube and LinkedIn read it) and
      over the live video, so a caption or a graphic straying into them is visible at a
      glance. **Turn it back off before rendering** (the render warns you if you forget —
      the guides would be burned into the file).
-   - **Hook:** `build/captions.json`'s first card must start before **0.5 s**. That is one
-     number to read, not a check to run.
+   - **Hook:** the first sentence must start before **0.5 s**. That is one number to read
+     (`uv run scripts/lib/timeline.py <work>` prints the montage's shape), not a check to run.
 
-1. **Sync** — transcribe the output audio again and compare sentence starts to
-   `build/captions.json`; the difference should be under 0.1 seconds:
+1. **Sync** — transcribe the output audio again and compare sentence starts to the
+   timeline's own; the difference should be under 0.1 seconds:
 ```bash
 ffmpeg -v error -i <work>/video-final.mp4 -vn -ac 1 -ar 16000 -y <work>/build/fa.wav
 uv run scripts/transcribe.py <work> --language <LANG> --model medium --wav <work>/build/fa.wav --out <work>/build/fa.json
 ```
-Compare the sentence starts of `build/fa.json` to `build/captions.json`.
+Compare the sentence starts of `build/fa.json` to the entry starts in `timeline.json`
+(`video-final.srt`, written by `subtitles.py` from the same entries, is the easiest side to
+read).
 2. **Audio** — after `master_audio.sh` it prints the final loudness: it must be ≈ −14 LUFS
    with a peak of −1.5 dBTP or lower.
 3. **The eye** — a 6-shot contact sheet, actually looked at.
@@ -642,7 +677,7 @@ image ≈ 150k characters; the same at 300 wide ≈ 20k.
    one image.
 3. **One shot per stage**, not per attempt. Changed something? Check it by the numbers
    first, the image last.
-4. **Numbers before pixels:** a timing question is answered by reading `captions.json`, not
+4. **Numbers before pixels:** a timing question is answered by reading `timeline.json`, not
    by taking a screenshot.
 5. **ffmpeg output** is always trimmed: `2>&1 | tail -2`.
 6. **Don't read a scene file whole** — `grep -n` for the component you need.
@@ -659,7 +694,9 @@ the whole conversation.
 3. **Batch independent commands into one turn.**
 4. **Run the long thing in the background** and wait for the completion notification once.
 5. **Don't change the architecture in prose** — build on the reference file.
-6. **Save `build/captions.json` and `build/cut-plan.json`** — any later edit won't need re-transcription.
+6. **Keep `timeline.json`** — it is the whole edit. With it and the two measurements beside
+   it (`build/silences.json`, `build/transcript-raw.json`), any later change re-renders
+   without re-transcribing anything.
 
 ## Delivery
 
@@ -678,20 +715,23 @@ for the post caption). And mention that you didn't publish anything.
 | `lib/config.py` · `lib/config.js` | reads/merges `project.config.json` | shared |
 | `preflight.py` | **step 1** — inventory the input, check the tools, build `work/{rush,config,build}` | shared |
 | `lib/rush.py` | finds the input file(s) in `rush/` without assuming a fixed name | shared |
-| `lib/timeline.py` | the cut-plan / caption timeline surgery shared by `edit_script.py` + `tighten.py` | shared |
+| `lib/timeline.py` | **`timeline.json` itself** — the schema, and the projection from source time onto output time | shared |
 | `run.py` | the config-driven conductor — runs the stages, stops at the decisions | shared |
 | `transcribe.py` | transcription → `build/transcript-raw.json` (faster-whisper GPU/CPU ← whisper) | shared |
-| `plan_cuts.py` | measures the silences and produces the speech segments | shared |
-| `captions.py` | per-word timing on the new timeline | shared |
-| `reframe.py` | applies the cut plan: trim + concat + per-segment zoom + bt709 tag, in the source's own size | talking video |
-| `join_takes.py` | joins the `rush/` recording take(s) → `build/source-joined.mp4` | talking video |
+| `find_silences.py` | measures where the speaker is quiet → `build/silences.json` | shared |
+| `build_timeline.py` | crosses the two measurements into `timeline.json` — one entry per sentence | shared |
+| `settle_cuts.py` | nudges each entry's cut-in onto a sharp, settled frame | talking video |
+| `sync_captions.py` | re-spaces the words of the sentences you reworded, and only those | shared |
+| `cut_entries.py` | switch a sentence off (`on: false`) or back on — repeats, tangents, whole drops | shared |
 | `tighten.py` | jump-cut + filler pass (word-level cuts) | talking video |
+| `reframe.py` | applies the montage: trim + concat + per-sentence zoom + bt709 tag, in the source's own size | talking video |
+| `join_takes.py` | joins the `rush/` recording take(s) → `build/source-joined.mp4` | talking video |
+| `render_data.py` | flattens `timeline.json` into the single file Remotion renders from | shared |
 | `remotion/remotion.sh` | the renderer — `sync` · `studio` · `render` · `still` · `check` | shared |
-| `sound_fx.py` | the sound effects from `build/sound-cues.json` | shared |
+| `sound_fx.py` | the sound bed, from each entry's `sfx` cues | shared |
 | `master_audio.sh` | −14 LUFS + ducked background audio | shared |
 | `contact_sheet.sh` | one contact sheet (token economy) | shared |
-| `subtitles.py` | subtitle file + caption text (+ `video-final.chapters.txt` from `config/chapters.json`) | shared |
-| `edit_script.py` | drop a sentence from the text → it drops from the video | shared |
+| `subtitles.py` | subtitle file + caption text (+ `video-final.chapters.txt` from the timeline's `chapters`) | shared |
 
 **This file is the source of truth for the pipeline.** Beyond it: each script's own
 docstring, and the stage lists in `scripts/pipeline/<world>.json`. Nothing else.

@@ -21,7 +21,7 @@ def find_source(work):
     """The primary video file.
 
     - build/source-joined.mp4 (join_takes.py's output) when it exists, so
-      plan_cuts.py / reframe.py / the audio extract all use the joined recording.
+      find_silences.py / reframe.py / the audio extract all use the joined recording.
     - otherwise: the one file at rush/'s root.
     """
     joined = os.path.join(work, "build", "source-joined.mp4")

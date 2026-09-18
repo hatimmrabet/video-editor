@@ -55,5 +55,27 @@
    }
   }
  },
- "logo": false
+ "logo": false,
+ "fps": 30,
+ "cards": [
+  {
+   "s": 1.0,
+   "e": 3.0,
+   "w": [
+    {
+     "t": "one",
+     "s": 1.0,
+     "e": 1.8,
+     "hot": false
+    },
+    {
+     "t": "two",
+     "s": 1.9,
+     "e": 3.0,
+     "hot": true
+    }
+   ]
+  }
+ ],
+ "_doc": "Sample render payload - the shape scripts/render_data.py writes into <work>/remotion/src/timeline.json. Kept so CI can type-check the scene and motif code without a real project. Not read at render time."
 }

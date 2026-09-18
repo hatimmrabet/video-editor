@@ -1,7 +1,7 @@
 /* SceneList — the scenes-as-data dispatcher (issue #18). Mirror of compose.html's
-   drawScenes(t). Renders one motif per active scene from project.json.scenes, with the
+   drawScenes(t). Renders one motif per active scene from timeline.json.scenes, with the
    container `rise` (enter/exit alpha + translateY) applied here so the motif only draws
-   its steady state. Null scene list (no config/scenes.json) → renders nothing; Ad.tsx
+   its steady state. Null scene list (no entry authored a `scene`) → renders nothing; Ad.tsx
    falls back to the hand-written Scenes.tsx. */
 import {T, SCENES} from './theme';
 import {vrect} from './stage';

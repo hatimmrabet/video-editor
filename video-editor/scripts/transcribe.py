@@ -23,9 +23,11 @@ Model: --model wins; else `transcribe.model` in project.config.json; else the pe
 fine-tune in DIALECT_MODEL (issue #126); else large-v3.
 
 --hard-dialect : for Moroccan/Algerian darija etc. — enables VAD + no cross-segment
-                 priming (kept deliberately WITHOUT a repetition penalty, so retakes.py
-                 can still see the stammers). The transcript is still rough — Claude
-                 re-reads and rewrites it whole before captioning (SKILL.md step 5).
+                 priming (kept deliberately WITHOUT a repetition penalty, so the
+                 repeated attempts and stammers stay visible — Claude finds and cuts
+                 them with cut_entries.py, SKILL.md step 6). The transcript is still
+                 rough — Claude re-reads and rewrites it whole before captioning
+                 (SKILL.md step 5).
 """
 import argparse, importlib.util, json, os, wave
 
@@ -119,7 +121,7 @@ def run_faster_whisper(wav, language, model, device, hard):
     kw = dict(language=language, word_timestamps=True, temperature=0)
     if hard:
         # VAD + no cross-segment priming. NO repetition_penalty / no_repeat_ngram_size:
-        # those hide the retakes and stammers that retakes.py needs to see (issue #126).
+        # those hide the retakes and stammers Claude needs to see and cut (issue #126).
         kw.update(condition_on_previous_text=False, vad_filter=True,
                   vad_parameters=dict(min_silence_duration_ms=350, speech_pad_ms=200))
     segs_iter, info = m.transcribe(wav, **kw)
