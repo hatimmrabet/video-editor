@@ -7,11 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is **not an application** — it is a Claude Code **skill**. `video-editor/SKILL.md` is
 the entry point: it instructs the model to run a pipeline of small scripts
 (`video-editor/scripts/`) that edit a talking-to-camera video into a captioned vertical
-9:16 reel, entirely locally. There is no server and no build step. The only automated
-tests are in `video-editor/test/` (CI): the headless JS suite, plus Python `unittest`
-coverage of the timeline projection — the one piece of pipeline logic that *is* unit-tested,
-because every caption, cue and rendered segment gets its position from it. Everything else
-about a pipeline change is verified by a real run.
+9:16 reel, entirely locally. There is no server and no build step. `video-editor/test/`
+carries the automated suite that already exists (CI): the headless JS suite, plus Python
+`unittest` coverage of the timeline projection. **No new tests are added to this repo** —
+see "Testing policy" below. Everything about a pipeline change is verified by a real run.
 
 ### Installing the skill for development — the folder must be *linked*, not copied
 
@@ -71,13 +70,22 @@ copy, and the transcript/filler examples that illustrate them. There is no separ
 end-user guide (the Arabic `GUIDE.pdf`/`GUIDE.html` were deleted — stale, upstream, and
 3 MB in every release package); the skill walks the user through each step itself.
 
+## Testing policy
+
+`video-editor/test/` holds what it already holds — the headless JS suite (the ffmpeg
+resolver, the motif registry) and the Python `unittest` suite (`lib/timeline.py`'s
+projection, `build_timeline.py`'s montage). Keep this working: if a change breaks one of
+these tests, fix it. **Do not add new test files, and do not add new test cases to an
+existing file.** This is a deliberate decision, not an oversight — do not "helpfully" add
+coverage for a new script or a new function. Verifying a pipeline change means running the
+relevant stage on a real video (see below), not writing a unit test for it.
+
 ## Running the pipeline
 
-There's a suite in `video-editor/test/` run by CI — the ffmpeg resolver and the motif
-registry in JS, and `lib/timeline.py`'s projection plus `build_timeline.py`'s montage in
-Python (`python -m unittest discover test`) — but **no test for the pipeline output**:
-"testing" a pipeline change means running the relevant stage on a real video. Every script takes a **work directory** `<work>` as its first argument and
-reads/writes its files there.
+`python -m unittest discover test` runs the existing Python suite; CI runs both suites on
+every PR. Beyond that, there's **no test for the pipeline output**: "testing" a pipeline
+change means running the relevant stage on a real video. Every script takes a **work
+directory** `<work>` as its first argument and reads/writes its files there.
 
 **Python scripts run via `uv run` from the skill dir** (`cd video-editor`); `uv` syncs the
 `.venv/` on demand. Node scripts via `node`, shell steps via `bash`. Dependencies are
@@ -197,10 +205,9 @@ rather than reading it whole.
 
 `.github/workflows/ci.yml` gates every PR (one job, < 2 min): the static checks
 (`node --check` / `compileall` / `bash -n` / JSON parse / the Remotion lockfile) then the
-suite `video-editor/test/` (the ffmpeg resolver and the motifs in
-JS; the timeline projection and the montage in Python). Add a `*.test.js` there when you
-touch moving JavaScript, and a `test_*.py` when you touch `lib/timeline.py` or anything
-that edits `timeline.json`.
+existing suite in `video-editor/test/` (the ffmpeg resolver and the motifs in JS; the
+timeline projection and the montage in Python). See "Testing policy" above — keep it
+green, don't grow it.
 
 `main` still carries the fork's line (reset to upstream v2.4 as the base for the rename +
 Passes 0–7; upstream v2.5 stays on `majed-v2.5`). Upstream references to
