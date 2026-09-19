@@ -73,3 +73,7 @@ own default*, used when the author didn't override it, needs the `W`/`H` treatme
 - A motif that can't render (missing param, empty `words`) returns `null` without drawing.
 - **Colours from `theme.*` only** — no hardcoded hex.
 - Motifs version with the skill, not per project.
+- A motif that shows a project's own image (`image-card`'s `src`, say) reads it from
+  `<remotion-dir>/public/images/<file>` via `staticFile('images/<file>')` — `remotion.sh`'s
+  `sync_all` copies every file under `<work>/config/images/` there. That folder is per
+  project, unlike the motif code itself.

@@ -1,25 +1,30 @@
 import {AbsoluteFill, Audio, OffthreadVideo, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {T, VEND, HAS_SFX, GUIDES, SCENES, FACE_ANCHOR} from './theme';
 import {rgba} from './util';
-import {videoLayers} from './stage';
-import {Badge, Bar} from './Chrome';
+import {videoLayers, videoHidden} from './stage';
+import {Badge} from './Chrome';
 import {Captions} from './Captions';
 import {Scenes, VideoOverlay} from './Scenes';
 import {SceneList} from './SceneList';
 import {Outro} from './Outro';
 import {Guides} from './Guides';
 import {Grid} from './Grid';
+import {Background} from './Background';
 
 export const Ad: React.FC = () => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps;
   const showVideo = t < VEND;
-  const layers = showVideo ? videoLayers(t) : [];
+  // HIDDEN entries (issue #154): no face on screen — Background.tsx fills the frame instead,
+  // and the voice still needs a source now that OffthreadVideo isn't mounted for this span.
+  const hidden = showVideo && videoHidden(t);
+  const layers = showVideo && !hidden ? videoLayers(t) : [];
 
   return (
     <AbsoluteFill style={{background:T.bg, fontFamily:T.font}}>
       <Grid />
+      {hidden && <Background t={t} />}
       {layers.map((L, idx) => (
         <div key={idx} style={{position:'absolute', left:L.rect.x, top:L.rect.y, width:L.rect.w, height:L.rect.h,
           borderRadius:L.rect.r, overflow:'hidden', opacity:L.opacity,
@@ -29,9 +34,9 @@ export const Ad: React.FC = () => {
           {idx === layers.length - 1 && <VideoOverlay t={t} />}
         </div>
       ))}
+      {hidden && <Audio src={staticFile('video.mp4')} />}
       {HAS_SFX && <Audio src={staticFile('sfx.wav')} />}
       <Badge t={t} />
-      <Bar t={t} />
       {SCENES ? <SceneList t={t} /> : <Scenes t={t} />}
       <Captions t={t} />
       <Outro t={t} />

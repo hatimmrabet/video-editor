@@ -78,6 +78,13 @@
       "bottom": 0,
       "from": "suspense",
       "params": { "rings": "number", "x": "number", "y": "number" }
+    },
+    "image-card": {
+      "status": "implemented",
+      "kind": "scene",
+      "bottom": 600,
+      "from": "issue #154",
+      "params": { "src": "string", "caption": "string", "fit": "string" }
     }
   }
 }

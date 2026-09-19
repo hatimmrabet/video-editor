@@ -18,7 +18,7 @@ sync_all(){
   # Structural files: always updated, except what the user edits
   for f in package.json package-lock.json tsconfig.json remotion.config.ts .gitignore README.md; do
     [ -f "$TPL/$f" ] && cp "$TPL/$f" "$R/$f"; done
-  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts util.tsx Chrome.tsx Captions.tsx Outro.tsx Guides.tsx Grid.tsx SceneList.tsx; do
+  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts capPages.ts util.tsx Chrome.tsx Captions.tsx Background.tsx Outro.tsx Guides.tsx Grid.tsx SceneList.tsx; do
     cp "$TPL/src/$f" "$R/src/$f"; done
   # Scenes.tsx: copied once only — a project's hand-written scene components are never wiped
   # (an entry with a `scene` makes the scenes data, and SceneList.tsx dispatches them instead)
@@ -33,6 +33,12 @@ sys.path.insert(0, os.path.join(os.environ['VEVO_SKILL_DIR'],'scripts'))
 from lib import config as cfg
 print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
   [ -f "$W/$LOGO" ] && cp "$W/$LOGO" "$R/public/logo.png"
+  # config/images/*: whatever the image-card motif references (scene.params.src) — resolved
+  # into that folder by the media-use skill, one file per image (issue #154).
+  if [ -d "$W/config/images" ]; then
+    mkdir -p "$R/public/images"
+    cp "$W/config/images/"* "$R/public/images/" 2>/dev/null || true
+  fi
   "${VEVO_PY[@]}" "$VEVO_SKILL_DIR/scripts/render_data.py" "$W" "$R" || return 1
   [ -f "$W/build/video-reframed.mp4" ] && cp "$W/build/video-reframed.mp4" "$R/public/video.mp4"
   [ -f "$W/build/sound-effects.wav" ]  && cp "$W/build/sound-effects.wav"  "$R/public/sfx.wav"

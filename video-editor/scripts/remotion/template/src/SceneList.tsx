@@ -16,11 +16,12 @@ import Glitch from './motifs/Glitch';
 import CommentBox from './motifs/CommentBox';
 import SyncViz from './motifs/SyncViz';
 import Suspense from './motifs/Suspense';
+import ImageCard from './motifs/ImageCard';
 
 const MOTIFS: Record<string, React.FC<any>> = {
   stamp: Stamp, counter: Counter, quote: Quote, checklist: Checklist, 'card-stack': CardStack,
   'transcript-panel': TranscriptPanel, 'file-merge': FileMerge, glitch: Glitch,
-  'comment-box': CommentBox, 'sync-viz': SyncViz, suspense: Suspense,
+  'comment-box': CommentBox, 'sync-viz': SyncViz, suspense: Suspense, 'image-card': ImageCard,
 };
 
 /* the four named easings — same curves as compose.html / transitions.json */

@@ -467,9 +467,11 @@ dispatched by `SceneList.tsx`):
 Type-check before rendering: `remotion/remotion.sh <work> check`.
 
 **The structure is ready, don't touch it:** shrinking the video into a card (`R_FULL` /
-`R_DOWN` / `R_LOWER` with a smooth transition), the account badge, the progress bar, the
-caption cards with the spoken word highlighted, the end card, and deriving the colors from
-the theme.
+`R_DOWN` / `R_LOWER` with a smooth transition), the account badge, the caption cards with
+the spoken word highlighted (shown a page — at most 2 lines — at a time, never the whole
+sentence, issue #153), the end card, and deriving the colors from the theme. There is no
+progress bar (issue #153 removed it — the space it used to reserve near the bottom edge is
+now the caption's).
 
 **What you invent:** the scenes. Brainstorm 3–4 ideas per sentence; the idea must be a
 **visual metaphor for what's being said**, not decoration:
@@ -484,9 +486,19 @@ the theme.
 | a fix | a progress bar + a list checking itself off |
 | "one file" | a file card, and chips flying in and merging into it |
 | a call to comment | a comment box, and the word typing itself letter by letter |
+| names a real tool / brand / app / place / person | `image-card` — their actual logo or a real screenshot |
 
 Each scene function takes `t` and draws based on the word timing the renderer resolved from
 `timeline.json` — the scene sticks to the word, not to an approximate time.
+
+**`image-card` is on you to fill, not the user.** When a sentence names something that has
+a real visual (a product, a brand, a website, a public figure), go get the real thing the
+same way you'd invent any other scene — don't ask the user for a file and don't wait for one:
+search the web for it (`WebSearch`/`WebFetch`, or the `media-use` skill, which already
+resolves logos/icons/screenshots to a frozen local file), download it into
+`<work>/config/images/<file>.png`, then reference it as that entry's
+`scene.params.src: "<file>.png"`. If nothing suitable turns up, fall back to a different
+scene idea from the table above instead of leaving a broken reference.
 
 **No account badge over the video** (`theme.badgeUntil: 0` — the default): the name is on
 the platform itself and on the end card, and the top of the screen is space for the
@@ -498,9 +510,10 @@ per-project exception, not something to ask about (see step 2).
 
 | Moment | Rectangle | Shape |
 |---|---|---|
-| speech, no graphic | `R_FULL` | face fills the screen, caption below at 1460 |
+| speech, no graphic | `R_FULL` | face fills the screen, caption below at 1560 |
 | any graphic or motion | `R_DOWN` (default) | **graphic on top (y 280–520) ← caption riding the video's edge ← face below, full screen width** |
 | B-roll or a big panel | `R_LOWER` | the big card on top ← caption ← small face below |
+| pure motion graphic, no face needed | `video.layout: "HIDDEN"` | full-screen ambient background (`Background.tsx`, theme-driven, not a scene you author) ← the `scene` motif draws on top ← caption still at 1560. Voice keeps playing — only the face is gone |
 
 **Why:** the old middle-of-screen layout (video in the middle, graphic above the head,
 caption below) created three separated focus points and the viewer got lost. Those rects
@@ -524,6 +537,13 @@ caption below) created three separated focus points and the viewer got lost. Tho
   for more than **8 seconds** without a full-screen shot in between — otherwise the video
   becomes a static panel with a small face under it.
 - No graphic at this moment? Then full-screen. **The panel comes for the idea, not to fill.**
+
+**`HIDDEN` is rarer still than `R_DOWN`.** It drops the face entirely, so the same
+"never more than 8 seconds without a full-screen shot" rule applies at least as hard — use
+it for one dense, data-heavy beat (a stat, a list, a price) that a motion graphic explains
+better than a talking head, not as a default look for the whole video. It always needs a
+`scene` motif on top (a bare `HIDDEN` span with nothing drawn over the ambient background is
+a video with no video and no point).
 
 **"Full screen" is defined by area, not by corners** (`isFull()`): `R_DOWN` now has no
 rounded corners, like `R_FULL`, so any old check that relies on `r` is fooled and triggers
@@ -550,9 +570,10 @@ video card automatically in this mode.
 | bottom | last 300 px (and a caution belt from 1500) |
 | right | 180 px wide, y from 1100 to 1750 (like · comment · share) |
 
-The reference file is already set correctly: the badge at 190, the progress bar at 1600,
-and the caption card's bottom edge at 1500. **And the first caption must appear in the
-first half second** — a late hook loses half the viewers before the speech even starts.
+The reference file is already set correctly: the badge at 190, and the caption card's
+bottom edge at 1560 — inside the caution belt, 60px clear of the hard bottom zone.
+**And the first caption must appear in the first half second** — a late hook loses half
+the viewers before the speech even starts.
 
 Preview before rendering everything:
 ```bash
