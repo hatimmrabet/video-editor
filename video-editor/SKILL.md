@@ -364,6 +364,12 @@ rewriting it.
 - **This is not a line-by-line session with the user.** Do it yourself, then show a short
   summary: "23 sentences · 6 reworded (Whisper had them garbled) · the rest as spoken".
 
+Then mark the step done, so `run.py` knows the transcript was actually reviewed (not just
+that `timeline.json` exists):
+```bash
+uv run scripts/mark_checkpoint.py <work> transcript-fix
+```
+
 ### 6) Finalize the script — repeats gone, then your edits
 
 **One step, you do both parts before showing anything.**
@@ -410,6 +416,11 @@ uv run scripts/cut_entries.py <work> restore e006      # put one back
 entry and is timed relative to it, so cutting a sentence elsewhere cannot move it. After
 any cut, re-run `reframe.py` and re-render — that is all.
 
+Then, whether or not anything was cut:
+```bash
+uv run scripts/mark_checkpoint.py <work> cut-review
+```
+
 ### 7) Tighten the pauses and the filler words
 ```bash
 uv run scripts/tighten.py <work>              # proposes the cuts, writes nothing
@@ -429,6 +440,10 @@ user wants a looser or tighter cut.
 **On a short reel this usually finds little** — say so in one line and move on. On a long
 recording it is the single biggest win of the whole edit.
 
+```bash
+uv run scripts/mark_checkpoint.py <work> tighten
+```
+
 ### 8) Chapters — only worth proposing on a long recording
 Read the corrected transcript and **propose 3–8 chapter breaks** — the topic shifts, keyed
 to a sentence. After they confirm, add them to `timeline.json`'s `chapters`:
@@ -441,6 +456,11 @@ chapter or drop it. Optional, and pointless under a few minutes: no chapters mea
 markers. With them,
 `subtitles.py` also writes `video-final.chapters.txt` (the first is forced to `00:00`) —
 the list to paste into a YouTube description.
+
+Whether or not you proposed any:
+```bash
+uv run scripts/mark_checkpoint.py <work> chapters
+```
 
 ### 9) Cut and assemble
 ```bash
@@ -592,13 +612,19 @@ bash scripts/remotion/remotion.sh <work> still 4.6 12.3 27.6 31.0 48.4
 bash scripts/contact_sheet.sh <work> <work>/build/contact-sheet.jpg 4.6 12.3 27.6 31.0 48.4
 ```
 
-**Asked to edit it themselves?** Open the live timeline — same scene file, nothing to redo:
+**Asked to edit it themselves?** Open the live timeline — it reads the same `timeline.json`,
+so nothing needs regenerating first:
 ```bash
 bash scripts/remotion/remotion.sh <work> studio           # a live timeline in the browser
 ```
 **Read `build/contact-sheet.jpg` as one image — don't read the frames one by one.** One
 sheet = one read instead of five. **Don't render the whole video before previewing at
 least 6 shots**, and show the sheet to the user.
+
+Once the scenes are designed — even if that means deliberately none:
+```bash
+uv run scripts/mark_checkpoint.py <work> scenes
+```
 
 ### 11) Sound effects
 Give the entries that want one an `sfx` list, in `timeline.json`:
@@ -614,6 +640,9 @@ uv run scripts/sound_fx.py <work>
 ```
 Keep it under ~15 events per minute — past that it stops reading as punctuation and starts
 reading as noise (`sound_fx.py` warns).
+```bash
+uv run scripts/mark_checkpoint.py <work> sound-cues
+```
 
 ### 12) Final render, assembly and audio mastering
 
@@ -749,6 +778,7 @@ for the post caption). And mention that you didn't publish anything.
 | `lib/rush.py` | finds the input file(s) in `rush/` without assuming a fixed name | shared |
 | `lib/timeline.py` | **`timeline.json` itself** — the schema, and the projection from source time onto output time | shared |
 | `run.py` | the config-driven conductor — runs the stages, stops at the decisions | shared |
+| `mark_checkpoint.py` | marks a human/agent decision step addressed, so `run.py` genuinely blocks until it is | shared |
 | `transcribe.py` | transcription → `build/transcript-raw.json` (faster-whisper GPU/CPU ← whisper) | shared |
 | `find_silences.py` | measures where the speaker is quiet → `build/silences.json` | shared |
 | `build_timeline.py` | crosses the two measurements into `timeline.json` — one entry per sentence | shared |
