@@ -20,7 +20,7 @@ Engines (auto = tries the fastest first):
   openai-whisper on CPU  ← fallback
 
 Model: --model wins; else `transcribe.model` in project.config.json; else the per-dialect
-fine-tune in DIALECT_MODEL (issue #126); else large-v3.
+fine-tune in DIALECT_MODEL; else large-v3.
 
 --hard-dialect : for Moroccan/Algerian darija etc. — enables VAD + no cross-segment
                  priming (kept deliberately WITHOUT a repetition penalty, so the
@@ -38,7 +38,7 @@ HARD_DIALECTS = {
     "darija": "ar", "maghrebi": "ar", "moroccan": "ar",
 }
 
-# ── a fine-tuned model to use instead of large-v3 for a hard dialect (issue #126) ──
+# ── a fine-tuned model to use instead of large-v3 for a hard dialect ──
 # ar-ma → the local CT2 conversion of anaszil/whisper-large-v3-turbo-darija (a LoRA over
 # whisper-large-v3-turbo, MIT, WER 24.88% on its own eval set). Spot-checked against 5 real
 # darija sentences from abnajlae/darija-asr-benchmark-6speaker: it fixed several words
@@ -121,7 +121,7 @@ def run_faster_whisper(wav, language, model, device, hard):
     kw = dict(language=language, word_timestamps=True, temperature=0)
     if hard:
         # VAD + no cross-segment priming. NO repetition_penalty / no_repeat_ngram_size:
-        # those hide the retakes and stammers Claude needs to see and cut (issue #126).
+        # those hide the retakes and stammers Claude needs to see and cut.
         kw.update(condition_on_previous_text=False, vad_filter=True,
                   vad_parameters=dict(min_silence_duration_ms=350, speech_pad_ms=200))
     segs_iter, info = m.transcribe(wav, **kw)
@@ -171,7 +171,7 @@ def main():
     language = HARD_DIALECTS.get(lang, args.language)
 
     # model: --model if the caller set it explicitly, else transcribe.model from the
-    # project config, else a per-dialect fine-tune (issue #126), else large-v3.
+    # project config, else a per-dialect fine-tune, else large-v3.
     model = args.model
     if model == "large-v3":
         cfg_model = None
@@ -215,8 +215,8 @@ def main():
                 # CUDA "works" per cuda_available() (driver-level device detection) but a
                 # given model can still fail to load on it — e.g. the nvidia-cublas-cu12 /
                 # nvidia-cudnn-cu12 pip extra (`uv sync --extra gpu`) isn't installed, and
-                # some models need it while others (int8-native CT2 conversions) don't
-                # (issue #130). Retry the SAME model on CPU before giving up on it.
+                # some models need it while others (int8-native CT2 conversions) don't.
+                # Retry the SAME model on CPU before giving up on it.
                 if device == "cuda":
                     print(f"⚠️  CUDA transcription failed ({e}) — retrying on CPU…")
                     segs, detected = run_faster_whisper(wav, language, model, "cpu", hard)

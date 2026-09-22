@@ -1,9 +1,9 @@
 /* The face-optional ambient background — shown instead of the speaker's video wherever an
-   entry's `video.layout` is "HIDDEN" (issue #154). Purely `theme.*`-driven (no hardcoded
-   colour) so it works on any project without being designed per video: it's chrome, like
-   Grid.tsx, not a `scene`-authored motif — whatever the entry's own `scene` motif draws
-   (a counter, a checklist, ...) still renders on top of it exactly like it does over the
-   face today; this only supplies the "something is alive back there" motion.
+   entry's `video.layout` is "HIDDEN". Purely `theme.*`-driven (no hardcoded colour) so it
+   works on any project without being designed per video: it's chrome, like Grid.tsx, not
+   a `scene`-authored motif — whatever the entry's own `scene` motif draws (a counter, a
+   checklist, ...) still renders on top of it, exactly like it does over the face; this
+   only supplies the "something is alive back there" motion.
 
    Every position is a deterministic function of `t` (sine/cosine, long periods so nothing
    visibly loops inside a normal video) — never a CSS @keyframes tied to wall-clock time,

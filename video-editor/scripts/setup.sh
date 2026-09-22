@@ -25,7 +25,7 @@ GPU=0; have nvidia-smi && GPU=1
 # ─────────────────────────── report mode ──────────────────────────────────
 if [ $INSTALL -eq 0 ]; then
   miss=()
-  have "$VEVO_FFMPEG" || miss+=("ffmpeg")   # honours $VEVO_FFMPEG if it points elsewhere (issue #44)
+  have "$VEVO_FFMPEG" || miss+=("ffmpeg")   # honours $VEVO_FFMPEG if it points elsewhere
   have node   || miss+=("node")
   have uv     || miss+=("uv")
   pyok "import numpy, PIL" || miss+=("python-env (.venv)")
@@ -34,7 +34,7 @@ if [ $INSTALL -eq 0 ]; then
     if pyok "import nvidia.cublas, nvidia.cudnn"; then
       line "🎮 NVIDIA GPU + CUDA libs → transcription on GPU"
     else
-      NOTE+=("GPU detected but CUDA libs not installed (nvidia-cublas/cudnn) — uv sync --extra gpu, or transcription falls back to CPU on its own (issue #130)")
+      NOTE+=("GPU detected but CUDA libs not installed (nvidia-cublas/cudnn) — uv sync --extra gpu, or transcription falls back to CPU on its own")
     fi
   fi
   [ ${#NOTE[@]} -gt 0 ] && printf 'ℹ️  %s\n' "${NOTE[@]}"
@@ -80,15 +80,15 @@ else
   NOTE+=("uv missing → Python scripts fall back to system python3 (numpy/pillow/faster-whisper must be there)")
 fi
 
-# ── darija fine-tune (issue #126) — automatic, not a step to remember by hand ──────
+# ── darija fine-tune — automatic, not a step to remember by hand ──────────────────
 # `--needed` is cheap (no torch/transformers import): exit 0 only if defaults.config.json's
 # language is a hard dialect AND the model isn't built yet. The extra is dropped again
 # right after (`uv sync "${EXTRA[@]}"`) so the runtime venv doesn't carry
 # torch/transformers/peft. Re-passing "${EXTRA[@]}" both times keeps the `gpu` extra (if it
 # was synced above) from being stripped by these follow-up syncs — `uv sync` makes the venv
-# match exactly the extras given *this* call, it doesn't add to what's already there (issue #130).
+# match exactly the extras given *this* call, it doesn't add to what's already there.
 if have uv && ( cd "$SKILL" && uv run scripts/prepare_darija_model.py --needed ) >/dev/null 2>&1; then
-  line "⏬ darija fine-tune (one-time, ~1.7 GB — issue #126)…"
+  line "⏬ darija fine-tune (one-time, ~1.7 GB)…"
   ( cd "$SKILL" && uv sync "${EXTRA[@]}" --extra darija-convert \
       && uv run scripts/prepare_darija_model.py \
       && uv sync "${EXTRA[@]}" ) \
@@ -102,7 +102,7 @@ have node   || { FAIL=1; NOTE+=("node still missing"); }
 pyok "import numpy, PIL" || { FAIL=1; NOTE+=("python deps not importable"); }
 { pyok "import faster_whisper" || pyok "import whisper"; } || NOTE+=("no transcription engine")
 [ $GPU -eq 1 ] && ! pyok "import nvidia.cublas, nvidia.cudnn" \
-  && NOTE+=("GPU detected but CUDA libs not installed (nvidia-cublas/cudnn) — uv sync --extra gpu, or transcription falls back to CPU on its own (issue #130)")
+  && NOTE+=("GPU detected but CUDA libs not installed (nvidia-cublas/cudnn) — uv sync --extra gpu, or transcription falls back to CPU on its own")
 
 [ ${#NOTE[@]} -gt 0 ] && printf 'ℹ️  %s\n' "${NOTE[@]}"
 [ $FAIL -eq 0 ] && { line "✅ ready."; exit 0; }

@@ -1,8 +1,7 @@
-/* SceneList — the scenes-as-data dispatcher (issue #18), and the only scene renderer: the
-   hand-written Scenes.tsx fallback was retired (issue #147). Renders one motif per active
-   scene from timeline.json.scenes, with the container `rise` (enter/exit alpha +
-   translateY) applied here so the motif only draws its steady state. An empty scene list
-   (no entry authored a `scene`) simply renders nothing. */
+/* SceneList — the scenes-as-data dispatcher, and the only scene renderer. Renders one
+   motif per active scene from timeline.json.scenes, with the container `rise` (enter/exit
+   alpha + translateY) applied here so the motif only draws its steady state. An empty
+   scene list (no entry authored a `scene`) simply renders nothing. */
 import {T, SCENES} from './theme';
 import {vrect} from './stage';
 import Stamp from './motifs/Stamp';       // one static import per implemented motif
@@ -24,7 +23,7 @@ const MOTIFS: Record<string, React.FC<any>> = {
   'comment-box': CommentBox, 'sync-viz': SyncViz, suspense: Suspense, 'image-card': ImageCard,
 };
 
-/* the four named easings — same curves as compose.html / transitions.json */
+/* the four named easings — same curves as scripts/transitions.json */
 const linear = (k: number) => k;
 const easeOut = (k: number) => 1 - Math.pow(1 - k, 3);
 const eio = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);

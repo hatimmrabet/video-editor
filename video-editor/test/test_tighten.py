@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-"""tighten.py — the jump-cut pass, and the double-cut it used to commit (issue #144).
+"""tighten.py — the jump-cut pass, and why applying it twice is safe.
 
-The old tighten.py cached build/tighten-plan.json and, on a later `apply`, re-applied
-timestamps measured against a timeline that had moved underneath it. The headline test here
-is test_applying_twice_changes_nothing_the_second_time: it is the regression that motivated
-the rewrite, and it passes now for a structural reason — `apply` measures the CURRENT
-timeline, so the second run finds no gap over the threshold.
+The headline test here is test_applying_twice_changes_nothing_the_second_time: `apply`
+always measures the CURRENT timeline rather than a cached plan, so a second run finds no
+gap over the threshold and is a structural no-op, not a second cut.
 
 Run: uv run python -m unittest discover test
 """
@@ -98,8 +96,7 @@ class Apply(unittest.TestCase):
         self.assertEqual(json.dumps(tl.load(self.work)), before)
 
     def test_applying_twice_changes_nothing_the_second_time(self):
-        """THE regression (issue #144): the old version re-applied a cached plan against a
-        timeline that had already moved, cutting the same seconds twice."""
+        """Applying twice must never cut the same seconds twice."""
         run(self.work, "apply")
         once = tl.duration(tl.load(self.work))
         run(self.work, "apply")

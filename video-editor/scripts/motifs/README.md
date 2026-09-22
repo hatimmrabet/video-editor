@@ -3,8 +3,7 @@
 A **motif** is a parameterized scene type, selected by name from an entry's `scene.motif`
 in `<work>/timeline.json`
 (`"motif": "stamp"`) and dispatched by `SceneList.tsx`. It is the *only* way to draw a
-scene — the old hand-written per-video `Scenes.tsx` was retired (issue #147); a one-off
-visual now means writing a reusable motif here, never a throwaway component.
+scene: a one-off visual means writing a reusable motif here, never a throwaway component.
 
 ```
 motifs/
@@ -12,9 +11,7 @@ motifs/
   remotion/<Motif>.tsx   export default ({ ...props }) => <.../>
 ```
 
-There used to be a second implementation per motif (`canvas/<motif>.js`, for the light
-rendering engine). That engine — and every canvas motif with it — was removed; Remotion is
-the only renderer now.
+Remotion is the only renderer — one implementation per motif.
 
 ## `index.json`
 
@@ -50,12 +47,12 @@ Small helpers (`lerp`, `rgba`, easings, …) are inlined per motif rather than s
 for `W`/`H` (the composition's own width/height, from `../theme`) where a motif needs to
 place something relative to the frame — see "Orientation" below.
 
-## Orientation (#136)
+## Orientation
 
-The composition is no longer always 1080×1920 — `reframe.py` keeps the source's own
-orientation, so a horizontal recording renders at whatever width/height it was shot in.
-Every motif was designed against the 1080×1920 canvas, so a motif with absolute pixel
-positions imports `W`/`H` from `../theme` and scales:
+The composition is not always 1080×1920 — `reframe.py` keeps the source's own orientation,
+so a horizontal recording renders at whatever width/height it was shot in. Every motif is
+designed against the 1080×1920 canvas, so one with absolute pixel positions imports `W`/`H`
+from `../theme` and scales:
 
 - an **x position or width** by `W / 1080`
 - a **y position or height** by `H / 1920`

@@ -11,13 +11,13 @@ const CARDS = (caps as any).cards as C[];
    y=1560, inside Guides.tsx's "caution" band 1500-1620 but 60px clear of its hard "bottom"
    band at 1620) stays above Instagram's button area only because it's a fraction of H, not
    a fixed 360px — don't change the fraction without checking safe zones on that platform
-   (`remotion.sh <work> studio`, "guides": true in timeline.json). Room to sit this low
-   opened up when the progress bar (it used to occupy 1492-1499) was removed (issue #153). */
+   (`remotion.sh <work> studio`, "guides": true in timeline.json). */
 const CAP_BOTTOM = 360 / 1920;   // fraction of H, so the caption stays above Instagram's UI at any H
 
 // A card is one whole spoken sentence — too much text for one caption to show at once
-// without swallowing the face (the bug capPages.ts's header explains). Pages are cheap to
-// recompute (a handful of words, no more than a sentence) but stable per card, so cache them.
+// without swallowing the face (the constraint capPages.ts's header explains). Pages are
+// cheap to recompute (a handful of words, no more than a sentence) but stable per card,
+// so cache them.
 const _pages = new WeakMap<C, ReturnType<typeof capPages<W>>>();
 function pagesFor(c: C) {
   let pg = _pages.get(c);

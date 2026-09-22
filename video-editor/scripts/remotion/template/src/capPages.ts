@@ -5,8 +5,8 @@
    wrap here matches the wrap the box will actually render) and groups the wrapped lines
    into pages of at most CAP_MAX_LINES lines. Captions.tsx shows one page at a time,
    switching as `t` reaches the next page's first word — never the whole sentence at once.
-   stage.ts reuses the same pages to size the DOWN rect, so the two stay in lockstep instead
-   of drifting the way compose.reference.html's hand-mirrored copy used to (issue #147). */
+   stage.ts reuses the same pages to size the DOWN rect, so the two stay in lockstep — one
+   wrap computation, not two hand-mirrored copies that could quietly disagree. */
 import {T} from './theme';
 
 export const CAP_FS = 55, CAP_LH = 79, CAP_MAXW = 730, CAP_GAP = 16, CAP_PADY = 30;

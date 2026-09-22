@@ -4,7 +4,7 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""Turns the two measurements into the montage: <work>/timeline.json (issue #144).
+"""Turns the two measurements into the montage: <work>/timeline.json.
 
     uv run scripts/build_timeline.py <workdir> [--force]
 
@@ -12,21 +12,18 @@ Reads : build/silences.json (find_silences.py) · build/transcript-raw.json (tra
         config/project.config.json (`cut` block)
 Writes: <work>/timeline.json  — one entry per spoken sentence, in order
 
-Replaces captions.py. It has no transcript-fixes.json to read: corrections are made
-directly in timeline.json afterwards (SKILL.md step 5), one entry's `caption.text` at a
-time, and `lib/timeline.sync_words()` re-spaces the words of whatever was reworded. The old
-"one fix entry per Whisper segment or I exit" contract is gone with it.
+Corrections are made directly in timeline.json afterwards (SKILL.md step 5), one entry's
+`caption.text` at a time, and `lib/timeline.sync_words()` re-spaces the words of whatever
+was reworded.
 
 REFUSES TO OVERWRITE an existing timeline.json without --force. Everything downstream --
 the cuts, the scenes, the sound cues, the corrected text -- lives in that file; rebuilding
-it from the measurements throws all of it away. This is the guard the old pipeline did not
-have, and its absence is what let a re-run of captions.py resurrect deleted speech.
+it from the measurements throws all of it away.
 
 HOW A SENTENCE BECOMES AN ENTRY
 
-  1. The kept speech is computed from the silences exactly the way plan_cuts.py did --
-     complement, pad (asymmetric: more before than after), merge, drop the scraps. The set
-     of seconds in the montage is therefore identical to the old cut-plan.json `keep`.
+  1. The kept speech is computed from the silences: complement, pad (asymmetric: more
+     before than after), merge, drop the scraps.
   2. Every point on the source timeline is claimed by exactly one sentence: claims meet at
      the midpoint between one sentence's last word and the next one's first. So no kept
      second is orphaned, and none is counted twice.
@@ -58,8 +55,8 @@ def _read(W, name):
 
 
 def speech_runs(silences, duration, pad_in, pad_out, merge):
-    """The kept speech, in absolute source seconds. Mirrors plan_cuts.py exactly, so the
-    montage this produces is the same set of seconds the old pipeline produced."""
+    """The kept speech, in absolute source seconds: complement the silences, pad, merge
+    runs closer than `merge` seconds apart, drop anything shorter than MIN_RUN."""
     runs, cur = [], 0.0
     for a, b in silences:
         if a - cur > 0.01:

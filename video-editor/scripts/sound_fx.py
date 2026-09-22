@@ -14,8 +14,8 @@ A cue is authored on its own entry, at a time RELATIVE to that entry:
 
     {"id": "e014", ..., "sfx": [{"cue": "whoosh_up", "at": 0.0}]}
 
-so it stays glued to the sentence it punctuates no matter what gets cut elsewhere
-(issue #144). This script projects those onto the output clock and renders them.
+so it stays glued to the sentence it punctuates no matter what gets cut elsewhere. This
+script projects those onto the output clock and renders them.
 
 Four cues, all synthesised here with numpy - no sample files, no dependency:
   whoosh_up / whoosh_down   filtered noise sweep, for a scene entering or leaving

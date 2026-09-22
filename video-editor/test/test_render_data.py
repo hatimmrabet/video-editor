@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """render_data.py — flattening timeline.json into what the Remotion template reads.
 
-Worth pinning: `scenes` and `overlays` are always present, even empty — there is no more
-hand-written fallback for either to accidentally disable (`Scenes.tsx` was retired, issue
-#147) — and the `bottom` passthrough, also #147 — the old resolver dropped a motif's own
-declared height and every DOWN rect defaulted to 500px.
+Worth pinning: `scenes` and `overlays` are always present, even empty — nothing renders a
+scene besides `SceneList.tsx`, so there's no fallback for an empty list to disable — and a
+motif's own declared `bottom` reaches the DOWN rect schedule (not just an explicit
+`layout.gb`), so a tall motif never gets a rect sized for a shorter one.
 
 Run: uv run python -m unittest discover test
 """
@@ -61,16 +61,16 @@ def render(work, registry=None):
 
 class NoScenes(unittest.TestCase):
     def test_scenes_key_is_an_empty_list_not_omitted(self):
-        """Scenes.tsx (the hand-written fallback) is retired (#147) — there is nothing left
-        for an omitted/empty `scenes` key to accidentally disable, so it is always present."""
+        """There is no fallback renderer for an omitted/empty `scenes` key to disable, so
+        the key is always present, even for a project with no data-driven scene."""
         work = work_with([entry("e001", [[0.0, 2.0]], [("hi", 0.0, 1.0)])])
         rc, payload = render(work)
         self.assertEqual(rc, 0)
         self.assertEqual(payload["scenes"], [])
 
     def test_the_summary_line_does_not_crash_without_scenes(self):
-        """render_data.py's summary print used to do len(payload["scenes"]) unconditionally,
-        which KeyErrors on every video without a data-driven scene — i.e. most of them."""
+        """The summary print must handle a project with no data-driven scene at all — the
+        common case, not the exception."""
         work = work_with([entry("e001", [[0.0, 2.0]])])
         rc, _ = render(work)
         self.assertEqual(rc, 0)
@@ -88,8 +88,9 @@ class Scenes(unittest.TestCase):
         self.assertAlmostEqual(sc["e"], 1.5)
 
     def test_bottom_from_the_registry_reaches_the_stage_schedule(self):
-        """Issue #147: the old resolver copied only an explicit layout.gb and dropped the
-        motif's own declared bottom, so a tall motif got a 500px-default rect."""
+        """A motif's own declared `bottom` must reach the DOWN rect schedule even when the
+        entry states no explicit `layout.gb` — otherwise a tall motif gets a rect sized for
+        a shorter one."""
         work = work_with([entry("e001", [[0.0, 2.0]], [("hi", 0.0, 1.0)],
                                 video={"layout": "DOWN"},
                                 scene={"motif": "comment-box"})])

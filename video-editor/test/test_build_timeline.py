@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-"""build_timeline.py — the montage must be the same seconds the old pipeline produced.
-
-The whole migration rests on one claim: moving from cut-plan.json + captions.json to
-timeline.json changes the DATA MODEL, not the edit. This file pins that claim without
+"""build_timeline.py — the montage keeps exactly the seconds a silence-complement
+algorithm says to keep, no more and no less. This file pins that guarantee without
 needing a video:
 
-  - speech_runs() is checked against plan_cuts.py's own algorithm, copied verbatim below,
-    over randomised silence patterns.
+  - speech_runs() is checked against a reference silence-complement algorithm (copied
+    verbatim below) over randomised silence patterns.
   - the entries are checked to PARTITION that kept speech: union of every entry's `src`
     == the kept runs, exactly. Nothing orphaned, nothing counted twice.
 
@@ -29,8 +27,8 @@ PAD_IN, PAD_OUT, MERGE = 0.22, 0.10, 0.20
 
 
 def plan_cuts_reference(sil, dur, pad_in=PAD_IN, pad_out=PAD_OUT, merge=MERGE):
-    """plan_cuts.py's body, copied verbatim as it stood before issue #144 (commit bf90249).
-    This is the oracle: whatever it keeps, build_timeline.py must keep."""
+    """A reference silence-complement algorithm, copied verbatim here as the oracle:
+    whatever it keeps, build_timeline.py must keep."""
     keep = []
     cur = 0.0
     for a, b in sil:
@@ -193,8 +191,8 @@ class Partition(unittest.TestCase):
 
 class Guard(unittest.TestCase):
     def test_it_refuses_to_clobber_an_existing_timeline(self):
-        """The guard the old pipeline lacked: re-running captions.py silently destroyed
-        every cut and correction. Rebuilding must be an explicit choice."""
+        """Rebuilding the timeline discards every cut and correction in it, so it must be
+        an explicit choice, never a silent side effect of re-running the stage."""
         with tempfile.TemporaryDirectory() as d:
             build(d, [[5.0, 6.0]], 20.0, [seg(0, [("a", 1.0, 2.0)])])
             t = tl.load(d)

@@ -13,8 +13,8 @@ Reads : <work>/timeline.json · config/project.config.json · scripts/motifs/ind
 Writes: <remotion-dir>/src/timeline.json
 
 This is a BUILD ARTIFACT, not state: remotion.sh regenerates it on every sync and nothing
-reads it back. It replaces the old pair src/project.json + src/caps.json, which came from
-two different places and could disagree.
+reads it back. It is the single source of theme + duration + rect schedule + scenes +
+overlays + end-card copy that the Remotion project renders from.
 
 Everything in it is derived from the timeline, with output times already resolved, so the
 TSX never has to know that source time exists:
@@ -25,14 +25,13 @@ TSX never has to know that source time exists:
   stage    the video-rect schedule, derived from each entry's `video.layout`
   total    the speech duration; `outro` is added on top by theme.ts
 
-`scenes` and `overlays` are always present, even empty — there is no more hand-written
-fallback for either (`Scenes.tsx` was retired, issue #147), so there is nothing left for an
-empty list to silently disable.
+`scenes` and `overlays` are always present, even empty: `SceneList.tsx`/`VideoOverlays.tsx`
+are the only renderers for either, so there is no fallback for an empty list to disable.
 
 WHY THE SCHEDULE CARRIES `gb`. stage.ts sizes a DOWN rect from `gb` — how tall the graphic
-sitting above the captions is. The old resolver (lib/scenes.py) copied only an explicit
-`layout.gb` and never the motif's own declared `bottom`, so a tall motif got a rect sized
-for a 500px one (issue #147). Here `bottom` from the registry is the fallback.
+sitting above the captions is. A motif's own declared `bottom` (from the registry) is the
+fallback whenever an entry states no explicit `layout.gb`, so a tall motif never gets a
+rect sized for a shorter one.
 """
 import json
 import os
@@ -67,7 +66,7 @@ def motif_registry(skill_dir):
 
 def video_size(work, fallback=(1080, 1920)):
     """The composition's own size, read off the cut video rather than assumed, so a
-    horizontal recording gets a horizontal canvas (issue #136)."""
+    horizontal recording gets a horizontal canvas."""
     path = os.path.join(work, "build", "video-reframed.mp4")
     if not os.path.exists(path):
         return fallback

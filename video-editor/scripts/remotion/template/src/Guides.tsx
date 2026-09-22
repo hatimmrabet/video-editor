@@ -1,7 +1,7 @@
 /* Safe-zone guides — shown in the studio only when "guides": true in timeline.json.
-   The Instagram areas that cover the screen, proportional to the same 1080x1920 canvas as
-   safe_check.js used. Instagram's own UI only exists on a vertical, phone-shaped output —
-   a 16:9 recording has no such overlay to dodge, so there is nothing to guide there (#136). */
+   The Instagram areas that cover the screen, proportional to a 1080x1920 canvas.
+   Instagram's own UI only exists on a vertical, phone-shaped output — a 16:9 recording
+   has no such overlay to dodge, so there is nothing to guide there. */
 import {W, H} from './theme';
 const SX = W / 1080, SY = H / 1920;
 export const ZONES = H >= W ? [

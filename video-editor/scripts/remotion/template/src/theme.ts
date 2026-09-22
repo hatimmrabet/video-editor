@@ -13,11 +13,11 @@ export const T = {
   badgeUntil: typeof P.theme.badgeUntil === 'number' ? P.theme.badgeUntil : 0,
 };
 /* where the speaker's face sits inside the video card (project.config.json ← crop.faceAnchor,
-   default 0.30) — the light engine's FACE_ANCH. remotion.sh writes it into timeline.json. */
+   default 0.30). remotion.sh writes it into timeline.json. */
 export const FACE_ANCHOR = typeof (P as any).faceAnchor === 'number' ? (P as any).faceAnchor : 0.30;
 /* The composition's own size — remotion.sh reads it off build/video-reframed.mp4, so the
-   scene layer follows whatever orientation reframe.py produced (#136). 1080x1920 is only a
-   fallback for a timeline.json that predates this (or the CI type-check sample). */
+   scene layer follows whatever orientation the source was shot in. 1080x1920 is only a
+   fallback for a timeline.json missing width/height (e.g. the CI type-check sample). */
 export const W = typeof (P as any).width  === 'number' ? (P as any).width  : 1080;
 export const H = typeof (P as any).height === 'number' ? (P as any).height : 1920;
 export const FPS   = 30;
@@ -27,16 +27,15 @@ export const DUR_F = Math.round((VEND + OUTRO) * FPS);
 export const HAS_SFX = !!P.sfx;
 export const OUTRO_COPY = P.outro_copy || {recap:[]};
 export const STAGE = P.stage || [{s:0,e:1e9,m:'FULL'}];
-/* The scenes the timeline's entries authored, resolved by render_data.py (#144) — always an
-   array, possibly empty; SceneList.tsx is the only renderer (the hand-written Scenes.tsx
-   fallback was retired, issue #147). */
+/* The scenes the timeline's entries authored, resolved by render_data.py — always an
+   array, possibly empty; SceneList.tsx is the only renderer. */
 export const SCENES = ((P as any).scenes as any[] | undefined) || [];
 /* Per-entry image/logo overlays (`entry.overlay[]`), output-resolved by render_data.py —
    drawn on the video card itself by VideoOverlays.tsx, not over the whole frame. */
 export const OVERLAYS = ((P as any).overlays as any[] | undefined) || [];
 /* Transition defaults from scripts/transitions.json (remotion.sh copies them into
    timeline.json). Fallback = today's exact values, so nothing changes without a project
-   setting a non-default. Full vocabulary: docs/design/transitions.md */
+   setting a non-default. */
 const _TXD = {
   sceneToScene: {type:'rect-morph', duration:0.42, easing:'eio'},
   sceneEnter:   {type:'rise', duration:0.20, easing:'ease',   params:{y:28,  scale:true}},
@@ -44,7 +43,7 @@ const _TXD = {
 };
 export const TX = {..._TXD, ...((P as any).transitions || {})} as typeof _TXD;
 /* whether <work>/config/logo.png exists — remotion.sh writes it. A project without a logo
-   must still render: every <Img> of it is guarded on this (it used to abort the render). */
+   must still render: every <Img> of it is guarded on this. */
 export const HAS_LOGO = !!(P as any).logo;
 /* the faint background grid — theme.grid:false turns it off (default on) */
 export const GRID = (P as any).theme.grid !== false;

@@ -16,8 +16,8 @@ export const Ad: React.FC = () => {
   const {fps} = useVideoConfig();
   const t = frame / fps;
   const showVideo = t < VEND;
-  // HIDDEN entries (issue #154): no face on screen — Background.tsx fills the frame instead,
-  // and the voice still needs a source now that OffthreadVideo isn't mounted for this span.
+  // HIDDEN entries: no face on screen — Background.tsx fills the frame instead, and the
+  // voice needs its own source since OffthreadVideo isn't mounted for this span.
   const hidden = showVideo && videoHidden(t);
   const layers = showVideo && !hidden ? videoLayers(t) : [];
 

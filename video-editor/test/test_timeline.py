@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-"""scripts/lib/timeline.py — the projection from source time to output time (issue #144).
+"""scripts/lib/timeline.py — the projection from source time to output time.
 
 This is the most load-bearing logic in the pipeline: every caption, every sound cue and
-every rendered segment gets its position from it. The old design shifted stored timestamps
-on every cut, which is what made a re-run resurrect deleted speech; here nothing is stored,
-so the cases worth pinning are the ones where a time falls somewhere awkward — inside a
-removed silence, past the end of a shortened sentence, or in an entry that was cut.
+every rendered segment gets its position from it. Output time is never stored, only
+computed, so the cases worth pinning are the ones where a time falls somewhere awkward —
+inside a removed silence, past the end of a shortened sentence, or in an entry that was cut.
 
 Run: uv run python -m unittest discover test
 """

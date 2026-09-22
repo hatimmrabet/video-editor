@@ -303,8 +303,8 @@ uv run scripts/transcribe.py <work> --language <LANG>
   `ar-DZ` / `darija` (which turns hard-dialect mode on by itself).
 - The model picks itself: `transcribe.model` in the config, else the darija fine-tune for
   a hard dialect, else `large-v3`. **Step 1's `setup.sh --install` already prepared the
-  darija fine-tune** if the default language calls for it (issue #126) — nothing to do
-  here. Engine: faster-whisper GPU ← CPU ← openai-whisper.
+  darija fine-tune** if the default language calls for it — nothing to do here. Engine:
+  faster-whisper GPU ← CPU ← openai-whisper.
 - **The command always prints `model: <name>`** — read it back to the user in one line
   ("transcribing with the darija fine-tune" / "transcribing with large-v3") so which one
   ran is never a guess. `build/transcript-raw.json` records it too (`"model"` field).
@@ -412,7 +412,7 @@ uv run scripts/cut_entries.py <work> keep e001 e002    # keep only these (a shor
 uv run scripts/cut_entries.py <work> restore e006      # put one back
 ```
 
-**This no longer has to happen before designing the scenes.** A scene belongs to its own
+**This can happen in any order relative to scene design.** A scene belongs to its own
 entry and is timed relative to it, so cutting a sentence elsewhere cannot move it. After
 any cut, re-run `reframe.py` and re-render — that is all.
 
@@ -500,9 +500,7 @@ Type-check before rendering: `remotion/remotion.sh <work> check`.
 **The structure is ready, don't touch it:** shrinking the video into a card (`R_FULL` /
 `R_DOWN` / `R_LOWER` with a smooth transition), the account badge, the caption cards with
 the spoken word highlighted (shown a page — at most 2 lines — at a time, never the whole
-sentence, issue #153), the end card, and deriving the colors from the theme. There is no
-progress bar (issue #153 removed it — the space it used to reserve near the bottom edge is
-now the caption's).
+sentence), the end card, and deriving the colors from the theme. There is no progress bar.
 
 **What you invent:** the scenes. Brainstorm 3–4 ideas per sentence; the idea must be a
 **visual metaphor for what's being said**, not decoration:
@@ -546,11 +544,10 @@ per-project exception, not something to ask about (see step 2).
 | B-roll or a big panel | `R_LOWER` | the big card on top ← caption ← small face below |
 | pure motion graphic, no face needed | `video.layout: "HIDDEN"` | full-screen ambient background (`Background.tsx`, theme-driven, not a scene you author) ← the `scene` motif draws on top ← caption still at 1560. Voice keeps playing — only the face is gone |
 
-**Why:** the old middle-of-screen layout (video in the middle, graphic above the head,
-caption below) created three separated focus points and the viewer got lost. Those rects
-(`R_STAGE` / `R_SIDE`) are gone.
+**Why:** a middle-of-screen layout (video in the middle, graphic above the head, caption
+below) creates three separated focus points and the viewer gets lost.
 
-**Three details that matter (from the layout revision):**
+**Three details that matter:**
 1. **The video is the full screen width, no margins, no rounded corners** — the face comes
    out one and a half times bigger than in the narrow card. The cost: the top and bottom
    edges of the frame get cropped, and that's acceptable because the face is what matters.
@@ -705,7 +702,7 @@ Produces `<work>/video-final.srt` (YouTube and LinkedIn read it) and
 ## Verification before delivery (mandatory)
 
 0. **Safe zone and hook** — read them off the two things you already have:
-   - **Safe zone:** set `"guides": true` in `<work>/config/safe.json` and open
+   - **Safe zone:** set `"guides": true` in `<work>/config/project.config.json` and open
      `remotion/remotion.sh <work> studio` — the platform's button zones are drawn in red
      over the live video, so a caption or a graphic straying into them is visible at a
      glance. **Turn it back off before rendering** (the render warns you if you forget —

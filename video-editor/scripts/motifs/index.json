@@ -1,5 +1,5 @@
 {
-  "_doc": "Motif registry — parameterized scene types, one implementation per engine, selected by name from an entry's `scene.motif` in <work>/timeline.json (issue #144). See ./README.md. `kind`: scene = drawn over everything · overlay = drawn on the video card. `bottom`: nominal graphic-bottom y, designed against a 1080x1920 canvas and scaled to the composition's real size at render time (stage.ts's SY, issue #136) — feeds the DOWN flex rect, carried into the render payload by render_data.py (an entry's video.gb overrides, scaled the same way). `params`: a shallow shape hint (number | string | number[] | string[] | boolean) — not JSON Schema; values are hand-authored. `status`: implemented | planned.",
+  "_doc": "Motif registry — parameterized scene types, one implementation per engine, selected by name from an entry's `scene.motif` in <work>/timeline.json. See ./README.md. `kind`: scene = drawn over everything · overlay = drawn on the video card. `bottom`: nominal graphic-bottom y, designed against a 1080x1920 canvas and scaled to the composition's real size at render time (stage.ts's SY) — feeds the DOWN flex rect, carried into the render payload by render_data.py (an entry's video.gb overrides, scaled the same way). `params`: a shallow shape hint (number | string | number[] | string[] | boolean) — not JSON Schema; values are hand-authored. `status`: implemented | planned.",
 
   "motifs": {
     "stamp": {
@@ -83,7 +83,7 @@
       "status": "implemented",
       "kind": "scene",
       "bottom": 600,
-      "from": "issue #154",
+      "from": "",
       "params": { "src": "string", "caption": "string", "fit": "string" }
     }
   }

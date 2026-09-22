@@ -26,7 +26,7 @@ re-copy.
   New-Item -ItemType Junction -Path $l -Target $t
   ```
   **Do not** use `ln -s` from Git-Bash (it silently *copies* the folder and exits 0 — the
-  skill then freezes at that copy and drifts, issue #125) and **do not** use a `.lnk`
+  skill then freezes at that copy and drifts) and **do not** use a `.lnk`
   shortcut (Claude Code does not follow `.lnk` files). Verify with
   `(Get-Item $l).LinkType` → `Junction`.
 - **Linux** — `ln -s "$(pwd)/video-editor" ~/.claude/skills/video-editor`.
@@ -53,6 +53,19 @@ Consequences, and they are not optional:
   it, and in the `_doc` field of the JSON file itself where one exists.
 - **Never write a design document, a plan file, or a status/progress file into the repo.**
   Design decisions and progress live in **GitHub Issues**, not in tracked Markdown.
+- **A comment or a doc describes what IS, never what changed.** No `issue #NNN` references,
+  no "used to" / "no longer" / "was removed" / "was retired" / "replaces X" / "the old Y" —
+  that is a changelog, and it belongs in the git commit message and the GitHub issue, not
+  duplicated forever in something someone has to keep reading. Explain the current behavior
+  or the current constraint; if a constraint is only there because of a real edge case,
+  name the edge case itself, not the fix that used to be missing.
+  Bad: `// Retired the hand-written fallback (issue #147) — SceneList is now the only renderer.`
+  Good: `// SceneList is the only scene renderer.`
+  Bad: `// used to occupy 1492-1499, removed (issue #153) — space reclaimed for the caption.`
+  Good: `// stays clear of Instagram's UI at any composition height.`
+  The one exception: a pointer to a still-**open** issue for a deliberate, currently-live
+  limitation (e.g. "this still does two encodes, not fixed yet") — that names present-tense
+  reality, not history.
 
 ## When you find a problem, open a GitHub issue
 
@@ -146,14 +159,13 @@ rather than reading it whole.
   `timeline.json` + `project.config.json` into `<work>/remotion/src/timeline.json`, with
   output times already resolved — alongside `video-reframed.mp4` and `sound-effects.wav`,
   then renders with `npx remotion render`.
-  There is no second engine and no `engine` config key — the canvas engine
-  (`compose.html` / `render_frames.js` / `studio.html` / `safe_check.js` and the canvas
-  motifs) was removed because keeping three hand-written mirrors in sync was a standing
-  source of drift.
-- **One file holds the montage: `<work>/timeline.json`** (issue #144). An ordered list of
+  There is no second engine and no `engine` config key — each motif has exactly one
+  implementation to keep correct, not several hand-written mirrors that can quietly
+  disagree.
+- **One file holds the montage: `<work>/timeline.json`.** An ordered list of
   self-contained entries, one per spoken sentence: what source seconds it keeps (`src`),
   its words, and whatever it was given — a scene, sound cues, a video treatment. Two rules
-  make it work, and breaking either reintroduces the drift it replaced:
+  make it work, and breaking either reintroduces cross-file drift:
   **(1)** anything measured off the recording is in **absolute source time** and never
   moves; anything authored by hand is **relative to its entry**; the output time is
   **never stored**, it is the running sum of the active entries.
@@ -165,16 +177,15 @@ rather than reading it whole.
   rebuilt from them.
 - **Scenes are data, not per-video code.** A `scene` block on an entry (motif + params) is
   dispatched by `SceneList.tsx`; an `overlay` block (a logo/badge riding the video itself)
-  is drawn by `VideoOverlays.tsx`. There is no hand-written scene file any more — the old
-  `<work>/remotion/src/Scenes.tsx` escape hatch was retired (phase 3, issue #147): a one-off
-  visual now means writing a reusable motif in `scripts/motifs/`, never a throwaway
-  per-video component.
+  is drawn by `VideoOverlays.tsx`. There is no hand-written scene file: a one-off visual
+  means writing a reusable motif in `scripts/motifs/`, never a throwaway per-video
+  component.
 - **A motif lives in two places and both must agree:** its entry in
   `scripts/motifs/index.json` and its component in `scripts/motifs/remotion/`.
   `test/motifs.test.js` enforces that; `tsc` checks the component itself.
-- **`run.py` gates on `timeline.json`'s own content, not just file mtimes** (phase 4, issue
-  #148). A human/agent decision step that edits entries in place (transcript-fix, cut-review,
-  tighten, chapters, scenes, sound-cues) has no output file of its own to prove it ran, so it
+- **`run.py` gates on `timeline.json`'s own content, not just file mtimes.** A human/agent
+  decision step that edits entries in place (transcript-fix, cut-review, tighten, chapters,
+  scenes, sound-cues) has no output file of its own to prove it ran, so it
   blocks on `timeline.json#checkpoints.<id>` instead — set once by
   `mark_checkpoint.py <work> <id>`, an explicit "considered" mark, same spirit as `on:false`,
   never inferred from what changed. A media file in a stage's `makes` (`.mp4`/`.wav`/…) is
@@ -183,18 +194,17 @@ rather than reading it whole.
 - **Cross-platform layer:** `scripts/lib/platform.sh` (sourced by every `.sh`; provides
   `VEVO_SKILL_DIR` + the `VEVO_PY` array) and `scripts/lib/platform.js` (required by the
   Node scripts) absorb Windows/Linux differences. Nothing else may hard-code a path.
-  macOS is no longer supported.
+  Windows and Linux only.
 - **Isolated deps:** Python via `uv` (`.venv/`), the renderer via `<work>/remotion/`'s own
   `node_modules`. `setup.sh` installs only ffmpeg/node/uv at system level — nothing at the
-  skill root needs an `npm install` of its own (there is no `package.json` there any more;
-  `scripts/lib/*.js` and the test suite are stdlib-only).
+  skill root needs its own `npm install` (`scripts/lib/*.js` and the test suite are
+  stdlib-only).
 
 ## Constraints when editing
 
 - **Scene code must type-check** — `remotion.sh <work> check` (and the CI step) run
-  `tsc --noEmit`. This replaced the old regex linter: it is the thing that catches an
-  undefined helper, a bad prop or a duplicate style key before a render, so never merge
-  scene or motif changes past a red type-check.
+  `tsc --noEmit`. It catches an undefined helper, a bad prop or a duplicate style key
+  before a render, so never merge scene or motif changes past a red type-check.
 - **No hardcoded colors in scene code** — everything derives from `project.config.json`'s
   `theme` block through `theme.ts` (`T`) and the `util.tsx` helpers (`rgba`, `onACC`).
 - **No color grade / filter over the person's video** by default (`reframe.py` only
@@ -222,22 +232,16 @@ rather than reading it whole.
   and cuts a GitHub Release named from `/VERSION`. To release, bump `VERSION` in the
   `develop → main` PR (idempotent — no bump, no release).
 
-**A branch is one unit of work, and it dies with its PR.** The squash merge that lands a
-branch on `develop` writes a brand-new commit — `develop` never gains the branch's own
-commits, only a flattened copy of their diff. So a branch's history and "the same change,
-already on `develop`" are never the same commit, even seconds after the merge. Keep
-committing to that branch for a second, unrelated piece of work and the next PR's merge-base
-is still the point *before* the first PR, not after it — git replays the first PR's entire
-diff a second time and collides with itself on every file the second piece of work also
-touched. This is exactly what happened on 2026-09-19: PR #152 (from `feat/timeline-state`)
-squash-merged into `develop`, the branch was never deleted, a second round of work landed
-more commits on that same branch, and PR #155 (same branch) hit conflicts on files nobody
-had touched twice — SKILL.md, `lib/timeline.py`, `stage.ts` — purely from replaying #152's
-diff against a `develop` that already had it. **So: once a PR merges, delete its branch
-before starting anything else.** Before adding a commit to a branch that already exists,
-check `gh pr list --state merged --head <branch>` (or that the branch's name matches a
-closed PR) — if it has an already-merged PR, cut a fresh branch from `develop` instead of
-reusing it, even for a closely related follow-up.
+**A branch is one unit of work, and it dies with its PR.** A squash merge writes `develop`
+a brand-new commit — `develop` never gains the branch's own commits, only a flattened copy
+of their diff. So a branch's history and "the same change, already on `develop`" are never
+the same commit, even seconds after the merge: keep committing to that branch for a second,
+unrelated piece of work, and the next PR's merge-base is still the point *before* the first
+PR — git replays the first PR's entire diff again and collides with itself on every file
+the second piece of work also touched. **So: once a PR merges, delete its branch before
+starting anything else.** Before adding a commit to a branch that already exists, check
+`gh pr list --state merged --head <branch>` — if it has an already-merged PR, cut a fresh
+branch from `develop` instead of reusing it, even for a closely related follow-up.
 
 `.github/workflows/ci.yml` gates every PR (one job, < 2 min): the static checks
 (`node --check` / `compileall` / `bash -n` / JSON parse / the Remotion lockfile) then the
@@ -245,7 +249,5 @@ existing suite in `video-editor/test/` (the ffmpeg resolver and the motifs in JS
 timeline projection and the montage in Python). See "Testing policy" above — keep it
 green, don't grow it.
 
-`main` still carries the fork's line (reset to upstream v2.4 as the base for the rename +
-Passes 0–7; upstream v2.5 stays on `majed-v2.5`). Upstream references to
-`majedphotos/video-ad-editor` are left as-is. Work is tracked as GitHub Issues + the
-"video-editor roadmap" Project.
+Upstream references to `majedphotos/video-ad-editor` are left as-is — see `FORK.md`. Work
+is tracked as GitHub Issues + the "video-editor roadmap" Project.

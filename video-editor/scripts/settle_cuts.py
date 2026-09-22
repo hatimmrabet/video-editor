@@ -11,14 +11,11 @@ except Exception:
 Reads : the rush source (via lib/rush) · <work>/timeline.json · config `cut` block
 Writes: <work>/timeline.json — the first `src` span of each entry starts a little later
 
-Renamed from settle_check.py (issue #144): it never was a check, it EDITS the cut-in
-points. And it no longer carries a sticky `"settled": true` flag. That flag existed to stop
-a re-run from rewriting cut-plan.json and re-triggering captions.py, which would clobber
-every edit — a hazard that no longer exists, because nothing here touches anything but the
-in-point of each entry. Re-running is now useful rather than dangerous: after a tighten
-pass there are new cut-in points, and this finds clean frames for them too. A cut-in that
-already lands on a good frame is left alone, so a second pass over settled material is a
-no-op anyway.
+Edits the cut-in points directly, in `timeline.json`, and is safe to re-run: it only ever
+touches the in-point of each entry, so nothing it does can clobber another edit. After a
+tighten pass there are new cut-in points, and this finds clean frames for them too. A
+cut-in that already lands on a good frame is left alone, so a second pass over settled
+material is a no-op.
 
 Why: find_silences.py places boundaries from audio alone. The audio cannot tell that at the
 cut-in the speaker is still shifting position (blurry) or the camera has not settled. For
@@ -28,7 +25,7 @@ ffmpeg `blurdetect` + `signalstats.YDIF` — the same no-dependency metric pass 
 speech: it is capped at `cut.padIn` (the lead-in build_timeline.py added), so worst case it
 trims the whole lead-in, never a spoken word.
 
-Eyes-open / gaze is out of scope (needs a face-detection dependency — issue #128).
+Eyes-open / gaze is out of scope (needs a face-detection dependency).
 
 Exit 0 always (an entry with no clean frame in range is left as-is and reported).
 """
@@ -52,7 +49,7 @@ def frame_metrics(src, a, span):
         os.remove(mf)
     # `metadata=print:file=...` lives inside ffmpeg's filtergraph mini-language, where `:`
     # separates options and `\` escapes — an absolute Windows path (C:\Users\...) breaks that
-    # parser outright (issue #133). A bare relative filename with cwd=build sidesteps the
+    # parser outright. A bare relative filename with cwd=build sidesteps the
     # whole escaping problem, on every OS.
     vf = f"blurdetect=low=0.05:high=0.15,signalstats,metadata=print:file={meta_name}"
     r = run([_plat.FFMPEG, "-v", "error", "-ss", f"{a:.4f}", "-t", f"{span:.4f}",

@@ -1,7 +1,6 @@
-/* The faint background grid — ported from the light engine's compose.html grid().
-   Gives the frame depth and keeps empty areas from reading as dead space, while staying
-   light enough not to pull focus. Drawn BEFORE the video, so the part behind the video
-   card never shows. 60 px pitch, ink at 7.5% — the same numbers as the original. */
+/* The faint background grid. Gives the frame depth and keeps empty areas from reading as
+   dead space, while staying light enough not to pull focus. Drawn BEFORE the video, so
+   the part behind the video card never shows. 60 px pitch, ink at 7.5%. */
 import {T, GRID} from './theme';
 import {rgba} from './util';
 
