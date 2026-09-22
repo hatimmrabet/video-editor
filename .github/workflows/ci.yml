@@ -1,10 +1,9 @@
 name: ci
 
 # One job, kept under ~2 min. Fast static checks, then the headless suite in
-# video-editor/test/ (web UI + lint_compose + behind_text + the ffmpeg resolver + the
-# motifs). The suite needs ffmpeg (installed + cached below — ubuntu-latest has none),
-# Chromium (cached), and the system python3 — no `uv sync` (the tested scripts are
-# stdlib + lib/).
+# video-editor/test/ (the ffmpeg resolver + the motif registry — both plain Node, no
+# browser, no server). The suite needs ffmpeg (installed + cached below — ubuntu-latest
+# has none) and the system python3 — no `uv sync` (the tested scripts are stdlib + lib/).
 
 on:
   pull_request:
@@ -29,26 +28,32 @@ jobs:
         with:
           python-version-file: video-editor/.python-version
 
-      - name: cache node_modules (incl. Puppeteer's Chromium under .cache/)
-        id: nm
-        uses: actions/cache@v6
-        with:
-          path: video-editor/node_modules
-          key: nm-${{ runner.os }}-${{ hashFiles('video-editor/package-lock.json') }}
-
       # --- fast static checks ---
-      - run: node docs/check-script-coverage.mjs
-      - run: for f in docs/*.mjs; do node --check "$f"; done
       - name: node --check every .js / .cjs / .mjs
         run: find video-editor/scripts video-editor/test \( -name '*.js' -o -name '*.cjs' -o -name '*.mjs' \) -print0 | xargs -0 -n1 node --check
       - name: python -m compileall on every .py
         run: python -m compileall -q video-editor/scripts
+      # lib/timeline.py projects source time onto output time — every caption, sound cue
+      # and rendered segment gets its position from it (#144). Stdlib only, no ffmpeg.
+      - name: timeline projection unit tests
+        working-directory: video-editor
+        run: python -m unittest discover test
       - name: bash -n every .sh
         run: find video-editor/scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
       - name: every .json under video-editor/ parses
         run: find video-editor -name '*.json' -not -path '*/node_modules/*' -print0 | xargs -0 -r -n1 python -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8-sig'))"
       - name: Remotion template — package-lock.json installs cleanly (#45)
         run: cd video-editor/scripts/remotion/template && npm ci --silent --ignore-scripts
+
+      # The type-checker replaces lint_compose.js: scene and motif code is TypeScript now,
+      # so tsc catches undefined helpers, bad props and duplicate keys exactly. It needs the
+      # one data file remotion.sh generates into <work>/remotion/ — seed the sample (#144).
+      - name: Remotion scenes + motifs type-check (tsc --noEmit)
+        run: |
+          cd video-editor/scripts/remotion/template
+          cp src/timeline.sample.json src/timeline.json
+          mkdir -p src/motifs && cp ../../motifs/remotion/*.tsx src/motifs/
+          npm run --silent check
 
       # --- the headless suite ---
       # ffmpeg: cache the static binaries so a bad download can't redden CI. The cache
@@ -87,11 +92,7 @@ jobs:
           fi
           printf '%s\n' "$DEST" >> "$GITHUB_PATH"
           "$DEST/ffmpeg" -version | head -n1 || true
-      - name: node deps + bundled Chromium (skipped on a cache hit)
-        if: steps.nm.outputs.cache-hit != 'true'
-        working-directory: video-editor
-        run: npm ci --silent
       - name: headless suite
         working-directory: video-editor
-        run: xvfb-run -a node test/run.mjs
+        run: node test/run.mjs
 

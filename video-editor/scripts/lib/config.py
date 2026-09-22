@@ -5,12 +5,14 @@ try:
 except Exception:
     pass
 """Shared project.config.json — load() reads it and merges it over the skill defaults.
-Full schema: docs/design/project-config.md. Does not invent a missing `theme` or
-`language` — that's the configuration phase's job (SKILL.md), not load()'s.
 
-No bridge to the old theme.json/stage.json/outro.json/safe.json: one user, no existing
-project to preserve — the scripts that consume those fields migrate straight to
-config.load() (see docs/design/roadmap.md, Pass 2)."""
+`defaults.config.json` carries the creator's own handle, language and theme today, so
+load() always returns a usable `theme` and `language` even with no project file at all —
+SKILL.md step 2 reads them and asks nothing. A `<work>/config/project.config.json`, when
+one exists, still wins field by field.
+
+One file, one loader — every script that needs a config value reads it through
+config.load(); nothing reads a legacy or per-purpose config file of its own."""
 import json
 import os
 

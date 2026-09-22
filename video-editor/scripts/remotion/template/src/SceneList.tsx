@@ -1,8 +1,7 @@
-/* SceneList — the scenes-as-data dispatcher (issue #18). Mirror of compose.html's
-   drawScenes(t). Renders one motif per active scene from project.json.scenes, with the
-   container `rise` (enter/exit alpha + translateY) applied here so the motif only draws
-   its steady state. Null scene list (no config/scenes.json) → renders nothing; Ad.tsx
-   falls back to the hand-written Scenes.tsx. */
+/* SceneList — the scenes-as-data dispatcher, and the only scene renderer. Renders one
+   motif per active scene from timeline.json.scenes, with the container `rise` (enter/exit
+   alpha + translateY) applied here so the motif only draws its steady state. An empty
+   scene list (no entry authored a `scene`) simply renders nothing. */
 import {T, SCENES} from './theme';
 import {vrect} from './stage';
 import Stamp from './motifs/Stamp';       // one static import per implemented motif
@@ -16,14 +15,15 @@ import Glitch from './motifs/Glitch';
 import CommentBox from './motifs/CommentBox';
 import SyncViz from './motifs/SyncViz';
 import Suspense from './motifs/Suspense';
+import ImageCard from './motifs/ImageCard';
 
 const MOTIFS: Record<string, React.FC<any>> = {
   stamp: Stamp, counter: Counter, quote: Quote, checklist: Checklist, 'card-stack': CardStack,
   'transcript-panel': TranscriptPanel, 'file-merge': FileMerge, glitch: Glitch,
-  'comment-box': CommentBox, 'sync-viz': SyncViz, suspense: Suspense,
+  'comment-box': CommentBox, 'sync-viz': SyncViz, suspense: Suspense, 'image-card': ImageCard,
 };
 
-/* the four named easings — same curves as compose.html / transitions.json */
+/* the four named easings — same curves as scripts/transitions.json */
 const linear = (k: number) => k;
 const easeOut = (k: number) => 1 - Math.pow(1 - k, 3);
 const eio = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);

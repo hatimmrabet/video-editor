@@ -1,0 +1,81 @@
+{
+ "width": 1080,
+ "height": 1920,
+ "theme": {
+  "bg": "#F3EFEA",
+  "ink": "#1F1F1D",
+  "acc": "#D97757",
+  "clay": "#BD5D3A",
+  "mut": "#8A847A",
+  "font": "Cairo",
+  "handle": "@handle",
+  "badgeUntil": 0,
+  "grid": true
+ },
+ "faceAnchor": 0.3,
+ "total": 46.078,
+ "outro": 5.2,
+ "sfx": true,
+ "stage": [
+  {
+   "s": 0,
+   "e": 99,
+   "m": "FULL"
+  }
+ ],
+ "outro_copy": {
+  "line": "",
+  "recap": [],
+  "cta_top": "علّق بكلمة",
+  "cta_word": "فيديو",
+  "tail": ""
+ },
+ "transitions": {
+  "sceneToScene": {
+   "type": "rect-morph",
+   "duration": 0.42,
+   "easing": "eio"
+  },
+  "sceneEnter": {
+   "type": "rise",
+   "duration": 0.2,
+   "easing": "ease",
+   "params": {
+    "y": 28,
+    "scale": true
+   }
+  },
+  "sceneExit": {
+   "type": "rise",
+   "duration": 0.13,
+   "easing": "linear",
+   "params": {
+    "y": -10,
+    "scale": false
+   }
+  }
+ },
+ "logo": false,
+ "fps": 30,
+ "cards": [
+  {
+   "s": 1.0,
+   "e": 3.0,
+   "w": [
+    {
+     "t": "one",
+     "s": 1.0,
+     "e": 1.8,
+     "hot": false
+    },
+    {
+     "t": "two",
+     "s": 1.9,
+     "e": 3.0,
+     "hot": true
+    }
+   ]
+  }
+ ],
+ "_doc": "Sample render payload - the shape scripts/render_data.py writes into <work>/remotion/src/timeline.json. Kept so CI can type-check the scene and motif code without a real project. Not read at render time."
+}

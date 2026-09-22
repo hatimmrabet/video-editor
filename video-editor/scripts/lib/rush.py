@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """rush/ helpers — resolve the input file(s) without assuming a fixed name. `rush/` keeps
-whatever name the creator's file already had (file-layout.md, 2026-09-05); scripts that
-used to hardcode "src.mov" call find_source() instead."""
+whatever name the creator's file already had; every script that needs the source calls
+find_source() rather than hardcoding a filename."""
 import os
 
 
@@ -20,9 +20,9 @@ def _root_files(rush):
 def find_source(work):
     """The primary video file.
 
-    - long-form: build/source-joined.mp4 (join_takes.py's output) when it exists, so
-      plan_cuts.py / reframe.py / the audio extract all use the joined recording.
-    - otherwise: the one file at rush/'s root — reel-speech (one talking-head video).
+    - build/source-joined.mp4 (join_takes.py's output) when it exists, so
+      find_silences.py / reframe.py / the audio extract all use the joined recording.
+    - otherwise: the one file at rush/'s root.
     """
     joined = os.path.join(work, "build", "source-joined.mp4")
     if os.path.exists(joined):
@@ -31,23 +31,15 @@ def find_source(work):
     cands = _root_files(rush)
     if len(cands) != 1:
         raise SystemExit(
-            f"rush/ must hold exactly one source file for reel-speech (found {len(cands)}): {cands}")
+            f"rush/ must hold exactly one source file (found {len(cands)}): {cands}")
     return os.path.join(rush, cands[0])
 
 
 def find_clips(work):
-    """Every file at rush/'s root, sorted — broll-montage mode (many clips)."""
+    """Every video at rush/'s root, sorted (bg-audio.mp3 excluded) — what join_takes.py
+    concatenates into build/source-joined.mp4 when a talk arrives as several takes."""
     rush = _rush_dir(work)
     return [os.path.join(rush, f) for f in _root_files(rush)]
-
-
-def find_broll(work):
-    """Every file under rush/broll/, sorted — always optional, [] if the folder is absent."""
-    broll = os.path.join(work, "rush", "broll")
-    if not os.path.isdir(broll):
-        return []
-    return sorted(os.path.join(broll, f) for f in os.listdir(broll)
-                  if os.path.isfile(os.path.join(broll, f)))
 
 
 def background_audio(work):

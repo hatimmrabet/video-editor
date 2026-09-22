@@ -25,6 +25,9 @@ out/
 build/
 dist/
 
+# === Locally-built models (issue #126) — machine-local, never committed ===
+video-editor/scripts/.models/
+
 # === Médias / rendus (fichiers lourds) ===
 *.mov
 *.mp4

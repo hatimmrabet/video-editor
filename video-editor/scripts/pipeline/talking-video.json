@@ -1,0 +1,276 @@
+{
+  "_doc": "Canonical stage list for the talking-video world: one or more recordings of someone speaking to camera -> one edited, captioned video. There is no short/long switch — the output orientation follows the source (reframe.py reads it), and every stage runs for both. Read by scripts/run.py; mirrors SKILL.md steps 3-13. `run` is the argv to spawn (cwd = skill dir), with {work} {source} {language} {skill} {ffmpeg} {ffprobe} substituted ({ffmpeg}/{ffprobe} resolve via lib/platform.py - $VEVO_FFMPEG / $VEVO_FFPROBE else PATH). A stage with no `run` is a checkpoint: `block:true` halts run.py until `makes` exists (a genuine human decision); a checkpoint with no `makes` is advisory - printed once, never blocks. A stage runs when any `makes` path is missing or older than any `needs` path; else it is skipped. `needs`/`makes` are work-relative; a trailing / means 'non-empty directory'; a `makes` of `timeline.json#checkpoints.<id>` means content, not a file — true only once `mark_checkpoint.py <work> <id>` marked that decision step addressed. `when` gates a stage on a project.config.json value. The montage lives in one file, <work>/timeline.json, and the human steps edit THAT file rather than each producing one of their own — transcript-fix, cut-review, tighten, chapters, scenes and sound-cues all block on their own `checkpoints` mark this way.",
+  "world": "talking-video",
+  "stages": [
+    {
+      "id": "join",
+      "title": "Join the takes",
+      "run": [
+        "uv",
+        "run",
+        "scripts/join_takes.py",
+        "{work}"
+      ],
+      "needs": [
+        "rush/"
+      ],
+      "makes": [
+        "build/source-joined.mp4"
+      ]
+    },
+    {
+      "id": "silences",
+      "title": "Measure the silences",
+      "run": [
+        "uv",
+        "run",
+        "scripts/find_silences.py",
+        "{work}"
+      ],
+      "needs": [
+        "build/source-joined.mp4",
+        "config/project.config.json"
+      ],
+      "makes": [
+        "build/silences.json"
+      ],
+      "note": "A measurement, not a decision: where the speaker is quiet, in source seconds. Nothing ever edits it, so it cannot disagree with the montage. `cut.noiseDb` / `cut.minSilence` shape it; the padding and merging are applied later, by build_timeline.py."
+    },
+    {
+      "id": "audio",
+      "title": "Extract the speech audio",
+      "run": [
+        "{ffmpeg}",
+        "-v",
+        "error",
+        "-i",
+        "{work}/build/source-joined.mp4",
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        "-y",
+        "{work}/build/transcribe-input.wav"
+      ],
+      "needs": [
+        "build/source-joined.mp4"
+      ],
+      "makes": [
+        "build/transcribe-input.wav"
+      ]
+    },
+    {
+      "id": "transcribe",
+      "title": "Transcribe with per-word timing",
+      "run": [
+        "uv",
+        "run",
+        "scripts/transcribe.py",
+        "{work}",
+        "--language",
+        "{language}"
+      ],
+      "needs": [
+        "build/transcribe-input.wav"
+      ],
+      "makes": [
+        "build/transcript-raw.json"
+      ],
+      "note": "The second measurement. Like build/silences.json it is never edited — corrections go into timeline.json, so this stays the thing the montage can always be rebuilt from."
+    },
+    {
+      "id": "timeline",
+      "title": "Build the timeline - one entry per sentence",
+      "run": [
+        "uv",
+        "run",
+        "scripts/build_timeline.py",
+        "{work}"
+      ],
+      "needs": [
+        "build/silences.json",
+        "build/transcript-raw.json"
+      ],
+      "makes": [
+        "timeline.json"
+      ],
+      "note": "Crosses the two measurements into <work>/timeline.json: one entry per spoken sentence, each carrying the source spans kept for it, its words, and later its scene, its sound cues and its video treatment. From here on this file IS the montage. It REFUSES to overwrite itself without --force, because rebuilding discards every cut, correction and scene in it."
+    },
+    {
+      "id": "settle",
+      "title": "Nudge each cut-in onto a clean frame",
+      "run": [
+        "uv",
+        "run",
+        "scripts/settle_cuts.py",
+        "{work}"
+      ],
+      "needs": [
+        "timeline.json"
+      ],
+      "makes": [
+        "build/.settled"
+      ],
+      "note": "Nudges each entry's cut-in onto a sharp, settled frame — audio silence alone cannot tell that the speaker is still moving. Config: `cut.settle=false` skips it. Safe to re-run: a cut-in already on a good frame is left alone, and after a tighten pass there are new ones worth settling."
+    },
+    {
+      "id": "transcript-fix",
+      "title": "Correct the transcript (Claude, whole pass)",
+      "needs": [
+        "timeline.json"
+      ],
+      "makes": [
+        "timeline.json#checkpoints.transcript-fix"
+      ],
+      "block": true,
+      "note": "Claude re-reads the WHOLE transcript in timeline.json. Every incoherent / garbled sentence: recover what was said, else reword it correctly in the video's own language and register (darija stays darija). Edit that entry's `caption.text`, then re-space its words — lib/timeline.sync_words() does it, and only for the sentences whose text actually changed, so Whisper's timings survive everywhere else. No separate fixes file and no 'one entry per Whisper segment' contract any more. Not a line-by-line session with the user — show a summary. See SKILL.md step 5. Then: `uv run scripts/mark_checkpoint.py <work> transcript-fix`."
+    },
+    {
+      "id": "cut-review",
+      "title": "Finalize the script - repeats gone, then your edits",
+      "needs": [
+        "timeline.json"
+      ],
+      "makes": [
+        "timeline.json#checkpoints.cut-review"
+      ],
+      "block": true,
+      "note": "Claude reads timeline.json itself, finds every repeated/abandoned attempt at the same idea (keeping the LAST one as the real source) and switches those entries off: `\"on\": false, \"why\": \"...\"` — by hand, or `uv run scripts/cut_entries.py <work> drop e007 e012 --why \"...\"`. `cut_entries.py <work> dupes` reports look-alike neighbours but never decides. Genuinely unsure about a passage -> ask the user, with the ids and both texts, don't guess. THEN `cut_entries.py <work> show`, show the numbered script, and cut any whole sentence the creator asks for. Recap what was auto-removed AFTER, not before. Nothing to cut -> continue, still a valid outcome. This can happen in any order relative to scene design: a cut shifts nothing. See SKILL.md step 6. Then: `uv run scripts/mark_checkpoint.py <work> cut-review`."
+    },
+    {
+      "id": "tighten",
+      "title": "Jump-cut + filler pass",
+      "needs": [
+        "timeline.json"
+      ],
+      "makes": [
+        "timeline.json#checkpoints.tighten"
+      ],
+      "block": true,
+      "note": "`uv run scripts/tighten.py <work>` proposes word-level cuts (silences over `tighten.pauseMs`, fillers from scripts/fillers.json); show the summary and the filler list, then `tighten.py <work> apply`. Safe to re-run — it measures the current timeline, so a second apply finds nothing left over the threshold. Nothing over the threshold -> that's a valid outcome too. See SKILL.md step 7. Then: `uv run scripts/mark_checkpoint.py <work> tighten`."
+    },
+    {
+      "id": "chapters",
+      "title": "Chapter markers",
+      "needs": [
+        "timeline.json"
+      ],
+      "makes": [
+        "timeline.json#checkpoints.chapters"
+      ],
+      "block": true,
+      "note": "Only worth proposing on a long recording. Propose 3-8, and after the user confirms add them to timeline.json's `chapters`: [{\"at\": \"e014\", \"title\": \"...\"}] — anchored on an entry id, so cutting a sentence can never move or drop one. Too short for chapters -> that's a valid outcome too. See SKILL.md step 8. Then: `uv run scripts/mark_checkpoint.py <work> chapters`."
+    },
+    {
+      "id": "reframe",
+      "title": "Cut and assemble the pieces",
+      "run": [
+        "uv",
+        "run",
+        "scripts/reframe.py",
+        "{work}"
+      ],
+      "needs": [
+        "build/source-joined.mp4",
+        "timeline.json"
+      ],
+      "makes": [
+        "build/video-reframed.mp4"
+      ]
+    },
+    {
+      "id": "scenes",
+      "title": "Design the scenes",
+      "needs": [
+        "timeline.json"
+      ],
+      "makes": [
+        "timeline.json#checkpoints.scenes"
+      ],
+      "block": true,
+      "note": "The core creative step. Give an entry a `scene` ({motif, params, at, dur} — motif names from scripts/motifs/index.json, `at`/`dur` relative to that entry) and a `video.layout`, or an `overlay` for a logo/badge on the video itself. A scenes-less project renders with captions only — that is a valid choice, not a skip. See SKILL.md step 10. Then: `uv run scripts/mark_checkpoint.py <work> scenes`."
+    },
+    {
+      "id": "sound-cues",
+      "title": "Place the sound cues",
+      "needs": [
+        "timeline.json"
+      ],
+      "makes": [
+        "timeline.json#checkpoints.sound-cues"
+      ],
+      "block": true,
+      "note": "Give the entries that want one an `sfx` list: [{\"cue\": \"whoosh_up\", \"at\": 0.0}] — `at` relative to the entry, so the cue stays glued to its sentence. Cues: whoosh_up, whoosh_down, thud, tap. Set `outro.seconds` for the end card. Keep it under ~15 events/min (rule #1). No cues wanted -> that's a valid outcome too. See SKILL.md step 11. Then: `uv run scripts/mark_checkpoint.py <work> sound-cues`."
+    },
+    {
+      "id": "sound",
+      "title": "Synthesize the sound bed",
+      "run": [
+        "uv",
+        "run",
+        "scripts/sound_fx.py",
+        "{work}"
+      ],
+      "needs": [
+        "timeline.json"
+      ],
+      "makes": [
+        "build/sound-effects.wav"
+      ]
+    },
+    {
+      "id": "render",
+      "title": "Render the video",
+      "run": [
+        "bash",
+        "scripts/remotion/remotion.sh",
+        "{work}",
+        "render",
+        "{work}/build/video-raw.mp4"
+      ],
+      "needs": [
+        "timeline.json",
+        "build/video-reframed.mp4",
+        "build/sound-effects.wav"
+      ],
+      "makes": [
+        "build/video-raw.mp4"
+      ]
+    },
+    {
+      "id": "master",
+      "title": "Audio mastering (-14 LUFS)",
+      "run": [
+        "bash",
+        "scripts/master_audio.sh",
+        "{work}",
+        "{work}/build/video-raw.mp4",
+        "{work}/video-final.mp4"
+      ],
+      "needs": [
+        "build/video-raw.mp4"
+      ],
+      "makes": [
+        "video-final.mp4"
+      ]
+    },
+    {
+      "id": "subs",
+      "title": "Subtitle file + post caption",
+      "run": [
+        "uv",
+        "run",
+        "scripts/subtitles.py",
+        "{work}"
+      ],
+      "needs": [
+        "timeline.json"
+      ],
+      "makes": [
+        "video-final.srt",
+        "post-caption.txt"
+      ]
+    }
+  ]
+}

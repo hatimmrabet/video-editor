@@ -1,5 +1,8 @@
-/* card-stack — Remotion motif. Mirror of motifs/canvas/card-stack.js.
+/* card-stack — Remotion motif.
    Props: { prog, wordIndex, theme, params }. */
+import {W, H} from '../theme';
+const SX = W / 1080, SY = H / 1920;
+
 type Props = {prog: number; wordIndex: number;
   theme: {acc: string; ink: string; font: string};
   params: {items?: string[]; columns?: number; checkmark?: boolean; flipAt?: number}};
@@ -25,17 +28,17 @@ export default function CardStack({prog, wordIndex, theme, params}: Props) {
   if (!items.length) return null;
   const cols = params.columns != null ? params.columns : 2;
   const rows = Math.ceil(items.length / cols);
-  const cw = 418, ch = 124, gx = 40, gy = 30;
+  const cw = 418 * SX, ch = 124 * SY, gx = 40 * SX, gy = 30 * SY;
   const gridW = cols * cw + (cols - 1) * gx;
   const gridH = rows * ch + (rows - 1) * gy;
-  const cyMid = 384;
+  const cyMid = 384 * SY;
   const showCheck = params.checkmark !== false;
 
   return (
     <>
       {items.map((label, i) => {
         const c = i % cols, r = Math.floor(i / cols);
-        const cx = 540 - gridW / 2 + cw / 2 + c * (cw + gx);
+        const cx = W / 2 - gridW / 2 + cw / 2 + c * (cw + gx);
         const cy = cyMid - gridH / 2 + ch / 2 + r * (ch + gy);
         const t0 = 0.05 + (i / items.length) * 0.4;
         const k = cl((prog - t0) / 0.14);
@@ -49,10 +52,10 @@ export default function CardStack({prog, wordIndex, theme, params}: Props) {
             background: acc ? theme.acc : rgba(theme.ink, 0.03),
             border: `2.5px solid ${rgba(theme.ink, 0.09)}`, borderRadius: 34,
             boxShadow: `0 18px 44px ${rgba(theme.ink, acc ? 0.22 : 0.14)}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'absolute',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: theme.font, fontWeight: 800, fontSize: 46, color: acc ? onAccentInk(theme.acc) : theme.ink}}>
             {showCheck && fk > 0.15 && (
-              <span style={{position: 'absolute', left: 40, fontSize: 40, color: acc ? onAccentInk(theme.acc) : theme.acc}}>✓</span>
+              <span style={{position: 'absolute', left: 40 * SX, fontSize: 40, color: acc ? onAccentInk(theme.acc) : theme.acc}}>✓</span>
             )}
             {String(label)}
           </div>

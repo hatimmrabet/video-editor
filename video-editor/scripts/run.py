@@ -8,27 +8,29 @@ USAGE = __doc__ = """run.py - the config-driven pipeline conductor.
 
     uv run scripts/run.py <work> [options]
 
-Reads the stage list for the work-dir's world (inferred from rush/ - one file
-with speech = reel-speech, many clips = broll-montage), runs each mechanical
-stage whose outputs are stale, and halts at the genuine human decision points
-(transcript correction, sound cues). It spawns the same scripts documented in
-docs/pipeline.md - a conductor, not a reimplementation.
+Reads scripts/pipeline/talking-video.json - there is one pipeline and nothing to
+choose - runs each mechanical stage whose outputs are stale, and halts at the
+genuine human decision points (transcript correction, sound cues). It spawns the
+same scripts documented in SKILL.md - a conductor, not a reimplementation.
 
 A stage is skipped when every path it `makes` exists and is newer than every
 path it `needs`; otherwise it runs (`make`-style). A stage with no `run` is a
 checkpoint: `block:true` halts until its `makes` file exists (a real decision
 the agent/user must make); a checkpoint with no `makes` is advisory - printed,
-never blocking.
+never blocking. A `makes` entry can be a file path, or
+`timeline.json#checkpoints.<id>` - true only once that decision step was
+explicitly marked done (`mark_checkpoint.py`), since editing entries in place
+leaves no file of its own to check. A media file (`.mp4`/`.mov`/
+`.mkv`/`.wav`/`.m4a`) in `makes` is verified playable via ffprobe, not just
+present - a killed encoder can leave a file that exists but never finished.
 
 Options:
     --from ID      start at stage ID
     --to ID        stop after stage ID
     --only ID      run just stage ID
-    --world NAME   force the world instead of inferring it from rush/
-    --engine NAME  override config.engine for `when` gating (light | remotion)
     --dry          print the plan + per-stage verdict, run nothing
     --force        run every in-range stage regardless of timestamps
-    --list         print the world's stage ids and exit
+    --list         print the stage ids and exit
 
 Exit: 0 done / nothing to do . 1 a stage failed . 2 halted at a checkpoint
 . 3 bad usage.
@@ -41,9 +43,10 @@ SCRIPTS = os.path.dirname(os.path.abspath(__file__))   # .../video-editor/script
 SKILL = os.path.dirname(SCRIPTS)                        # .../video-editor  (cwd for every stage)
 if SCRIPTS not in _sys.path:
     _sys.path.insert(0, SCRIPTS)
-from lib import config as _config  # noqa: E402
-from lib import rush as _rush      # noqa: E402
-from lib import platform as _plat  # noqa: E402
+from lib import config as _config    # noqa: E402
+from lib import rush as _rush        # noqa: E402
+from lib import platform as _plat    # noqa: E402
+from lib import timeline as _tl      # noqa: E402
 
 
 def die(msg, code=3):
@@ -55,18 +58,10 @@ def flag(argv, name, default=None):
     return argv[argv.index(name) + 1] if name in argv and argv.index(name) + 1 < len(argv) else default
 
 
-def infer_world(work):
-    rush = os.path.join(work, "rush")
-    if not os.path.isdir(rush):
-        die("no rush/ in " + work + " - put the source file(s) there first")
-    files = [f for f in os.listdir(rush)
-             if os.path.isfile(os.path.join(rush, f)) and f != "bg-audio.mp3"]
-    if not files:
-        die("rush/ is empty")
-    return "reel-speech" if len(files) == 1 else "broll-montage"
+WORLD = "talking-video"
 
 
-def load_manifest(world):
+def load_manifest(world=WORLD):
     p = os.path.join(SCRIPTS, "pipeline", world + ".json")
     if not os.path.exists(p):
         die("no pipeline manifest: " + p)
@@ -74,11 +69,39 @@ def load_manifest(world):
         return json.load(f)
 
 
+MEDIA_EXT = (".mp4", ".mov", ".mkv", ".wav", ".m4a")
+
+
+def _media_ok(path):
+    """A killed ffmpeg/Remotion process can leave a file that exists (even nonzero size) but
+    is not a playable, complete media file — plain existence can't tell. ffprobe reading
+    back a real duration is the only reliable check, and a cheap one: it reads the
+    container header, never decodes a frame."""
+    r = subprocess.run([_plat.FFPROBE, "-v", "error", "-show_entries", "format=duration",
+                       "-of", "csv=p=0", path], capture_output=True, text=True)
+    try:
+        return r.returncode == 0 and float(r.stdout.strip()) > 0
+    except (ValueError, TypeError):
+        return False
+
+
 def _mtime(work, spec, source):
     """Newest mtime behind a needs/makes spec, or None if it doesn't exist yet.
-    A trailing '/' means 'the newest file anywhere under this directory'."""
+    A trailing '/' means 'the newest file anywhere under this directory'. A spec of
+    'timeline.json#checkpoints.<id>' checks CONTENT instead of a file: true only once that
+    step was explicitly marked done (mark_checkpoint.py) — a human/agent decision that edits
+    entries in place has no file of its own to prove it happened. It's a fixed marker, not a
+    timestamp: like `entry.on`, a mark isn't invalidated by a later unrelated edit to the
+    same file."""
     if spec == "{source}":
         return os.path.getmtime(source) if source and os.path.exists(source) else None
+    path_part, sep, frag = spec.partition("#")
+    if sep and frag.startswith("checkpoints."):
+        name = frag[len("checkpoints."):]
+        tl_path = os.path.join(work, path_part)
+        if not os.path.exists(tl_path):
+            return None
+        return 1.0 if _tl.checkpoint_done(_tl.load(work), name) else None
     p = os.path.join(work, spec)
     if spec.endswith("/"):
         d = p.rstrip("/\\")
@@ -87,7 +110,11 @@ def _mtime(work, spec, source):
         times = [os.path.getmtime(os.path.join(dp, f))
                  for dp, _, fs in os.walk(d) for f in fs]
         return max(times) if times else None
-    return os.path.getmtime(p) if os.path.exists(p) else None
+    if not os.path.exists(p):
+        return None
+    if p.lower().endswith(MEDIA_EXT) and not _media_ok(p):
+        return None
+    return os.path.getmtime(p)
 
 
 def _exists(work, spec, source):
@@ -102,7 +129,7 @@ def verdict(stage, work, source):
             return "HALT" if stage.get("block") else "CHECKPOINT"
         return "CHECKPOINT" if not makes else "SKIP"
     if not makes:
-        return "RUN"  # can't prove it's done (e.g. montage `plan`)
+        return "RUN"  # a stage that declares no `makes` can never prove it is done
     made = [_mtime(work, m, source) for m in makes]
     if any(t is None for t in made):
         return "RUN"
@@ -117,7 +144,7 @@ def subst(argv, ctx):
         for k, v in ctx.items():
             if "{" + k + "}" in a:
                 if v is None:
-                    die("stage needs {%s} but it is not set - run SKILL.md step 1 "
+                    die("stage needs {%s} but it is not set - run SKILL.md step 2 "
                         "(config/project.config.json)" % k)
                 a = a.replace("{" + k + "}", v)
         out.append(a)
@@ -138,31 +165,22 @@ def main():
         die("no rush/ in " + work + " - put the source file(s) there first")
     os.makedirs(os.path.join(work, "build"), exist_ok=True)
     cfg = _config.load(work)
-    # long-form can't be inferred from rush/ (a folder of takes looks like broll-montage) —
-    # it's the config.format switch, checked first. See docs/design/long-form.md.
-    world = flag(opt, "--world") or ("long-form" if cfg.get("format") == "long"
-                                     else infer_world(work))
-    engine = flag(opt, "--engine") or cfg.get("engine", "light")
     source = None
-    if world in ("reel-speech", "long-form"):
-        try:
-            source = _rush.find_source(work)   # long-form: build/source-joined.mp4 once `join` ran
-        except SystemExit:
-            source = None  # a later stage will report it precisely
+    try:
+        source = _rush.find_source(work)   # build/source-joined.mp4 once `join` ran
+    except SystemExit:
+        source = None  # a later stage will report it precisely
 
     def when_ok(s):
-        for k, v in s.get("when", {}).items():
-            eff = engine if k == "engine" else cfg.get(k)
-            if eff != v:
-                return False
-        return True
+        # `when` gates a stage on a project.config.json value (see the manifest _doc).
+        return all(cfg.get(k) == v for k, v in s.get("when", {}).items())
 
-    manifest = load_manifest(world)
+    manifest = load_manifest()
     stages = [s for s in manifest["stages"] if when_ok(s)]
     ids = [s["id"] for s in stages]
 
     if "--list" in opt:
-        print(world + ": " + " -> ".join(ids))
+        print(WORLD + ": " + " -> ".join(ids))
         raise SystemExit(0)
 
     only = flag(opt, "--only")
@@ -170,7 +188,7 @@ def main():
     to = flag(opt, "--to")
     for name, val in (("--only", only), ("--from", frm), ("--to", to)):
         if val and val not in ids:
-            die("%s %s: not a stage of %s (%s)" % (name, val, world, ", ".join(ids)))
+            die("%s %s: not a stage (%s)" % (name, val, ", ".join(ids)))
     lo = ids.index(frm) if frm else 0
     hi = ids.index(to) if to else len(ids) - 1
     sel = [only] if only else ids[lo:hi + 1]
@@ -198,11 +216,10 @@ def main():
             out.append(e)
             if nxt is None and v != "SKIP":
                 nxt = s["id"]   # the first stage not up to date — the screen the UI shows
-        print(json.dumps({"world": world, "engine": engine, "stages": out, "next": nxt}))
+        print(json.dumps({"world": WORLD, "stages": out, "next": nxt}))
         raise SystemExit(0)
 
-    print("world: %s | engine: %s | %d stage(s)%s"
-          % (world, engine, len(sel), "  [dry run]" if dry else ""))
+    print("%d stage(s)%s" % (len(sel), "  [dry run]" if dry else ""))
     print("-" * 60)
     for s in stages:
         if s["id"] not in sel:
@@ -226,8 +243,12 @@ def main():
             if dry:
                 continue
             print("-" * 60)
-            print("halted: create %s, then re-run `run.py %s`"
-                  % (", ".join(s["makes"]), argv[0]))
+            if any("#checkpoints." in m for m in s["makes"]):
+                print("halted: address '%s', then `uv run scripts/mark_checkpoint.py %s %s`"
+                      % (s["id"], argv[0], s["id"]))
+            else:
+                print("halted: create %s, then re-run `run.py %s`"
+                      % (", ".join(s["makes"]), argv[0]))
             raise SystemExit(2)
         cmd = subst(s["run"], ctx)
         print(line)
@@ -236,9 +257,6 @@ def main():
             continue
         r = subprocess.run(cmd, cwd=SKILL)
         if r.returncode != 0:
-            if s["id"] == "safe" and r.returncode == 3:
-                die("safe-zone / hook violation - see %s/build/safe-zone-check.jpg"
-                    % argv[0], 1)
             die("stage '%s' failed (exit %d)" % (s["id"], r.returncode), 1)
     print("-" * 60)
     print("done" if not dry else "dry run complete")

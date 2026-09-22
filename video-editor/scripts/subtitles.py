@@ -4,77 +4,114 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""SRT subtitle file + full caption text.  python3 subtitles.py <workdir>
-Produces: video-final.srt (YouTube reads it, Instagram accepts it on upload) and
-post-caption.txt (text ready for the post caption). If config/chapters.json exists
-(long-form world), also video-final.chapters.txt — the `MM:SS Title` list for the
-YouTube description.
-Reads build/captions.json — the same timings that were rendered onto the video, so sync is guaranteed."""
-import json, sys, os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from lib import scenes as _scn   # _resolve_ref / _read_json, shared with the scene + B-roll code
+"""SRT subtitle file + full caption text + chapter list.
 
-W = os.path.abspath(sys.argv[1])
-caps = json.load(open(os.path.join(W, "build", "captions.json"), encoding="utf-8-sig"))
-cards = caps["cards"]
+    uv run scripts/subtitles.py <work>
+
+Reads : <work>/timeline.json — the same entries that were rendered onto the video, so sync
+        is guaranteed by construction rather than by keeping two files in step
+Writes: <work>/video-final.srt        YouTube reads it, Instagram accepts it on upload
+        <work>/post-caption.txt       the spoken text, ready to paste as the post caption
+        <work>/video-final.chapters.txt   when the timeline carries `chapters`
+
+Chapters are `[{"at": "e014", "title": "..."}]` — anchored on an ENTRY ID, not a second and
+not a sentence index, so cutting a sentence elsewhere can never move or drop one.
+"""
+import os
+import sys
+
+from lib import timeline as tl
+
+MAXCH = 42          # a line longer than this gets cut off on mobile
+
 
 def ts(t):
     t = max(0.0, float(t))
-    h = int(t // 3600); m = int(t % 3600 // 60); s = int(t % 60); ms = int(round((t - int(t)) * 1000))
-    if ms == 1000: s += 1; ms = 0
-    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+    h, m, s = int(t // 3600), int(t % 3600 // 60), int(t % 60)
+    ms = int(round((t - int(t)) * 1000))
+    if ms == 1000:
+        s += 1
+        ms = 0
+    return "%02d:%02d:%02d,%03d" % (h, m, s, ms)
 
-MAXCH = 42          # a line longer than this gets cut off on mobile
+
+def mmss(t):
+    t = int(max(0.0, round(t)))
+    h, m, s = t // 3600, t % 3600 // 60, t % 60
+    return "%d:%02d:%02d" % (h, m, s) if h else "%02d:%02d" % (m, s)
+
+
 def wrap(words):
+    """At most two lines, the break chosen so neither overruns a phone's width."""
     lines, cur = [], ""
     for w in words:
         cand = (cur + " " + w).strip()
         if len(cand) > MAXCH and cur:
-            lines.append(cur); cur = w
+            lines.append(cur)
+            cur = w
         else:
             cur = cand
-    if cur: lines.append(cur)
+    if cur:
+        lines.append(cur)
     return lines[:2] if len(lines) <= 2 else [" ".join(lines[:-1]), lines[-1]]
 
-srt, txt = [], []
-for i, c in enumerate(cards, 1):
-    words = [w["t"] for w in c["w"]]
-    end = c["e"]
-    if i < len(cards):                       # don't overlap the next card
-        end = min(end, cards[i]["s"] - 0.02)
-    if end <= c["s"]: end = c["s"] + 0.4
-    srt.append(f"{i}\n{ts(c['s'])} --> {ts(end)}\n" + "\n".join(wrap(words)) + "\n")
-    txt.append(" ".join(words))
 
-sp = os.path.join(W, "video-final.srt"); tp = os.path.join(W, "post-caption.txt")
-open(sp, "w", encoding="utf-8").write("\n".join(srt))
-open(tp, "w", encoding="utf-8").write("\n".join(txt) + "\n")
-print(f"✅ {sp}  ({len(cards)} subtitle lines)")
-print(f"✅ {tp}  ({sum(len(t.split()) for t in txt)} words — ready for the post caption)")
+def main(argv):
+    work = os.path.abspath(argv[1])
+    t = tl.load(work)
 
-# ── chapters (long-form) — config/chapters.json → video-final.chapters.txt ──
-_chraw = _scn._read_json(os.path.join(W, "config", "chapters.json"))
-if isinstance(_chraw, list) and _chraw:
-    def _mmss(t):
-        t = int(max(0.0, round(t)))
-        h, m, s = t // 3600, t % 3600 // 60, t % 60
-        return f"{h}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
-    chaps = []
-    for e in _chraw:
-        if not isinstance(e, dict) or not e.get("title"):
+    cards = []
+    for e in tl.entries(t):
+        ws = tl.words(t, e)
+        if not ws:
             continue
-        span = _scn._resolve_ref(e.get("ref", {}), cards)
-        if span is not None:
-            chaps.append((span[0], str(e["title"])))
+        cards.append({"s": ws[0]["s"], "e": ws[-1]["e"], "w": [w["t"] for w in ws]})
+
+    if not cards:
+        sys.exit("[X] the timeline has no captioned sentences - nothing to write")
+
+    srt, txt = [], []
+    for i, c in enumerate(cards, 1):
+        end = c["e"]
+        if i < len(cards):                      # never overlap the next subtitle
+            end = min(end, cards[i]["s"] - 0.02)
+        if end <= c["s"]:
+            end = c["s"] + 0.4
+        srt.append("%d\n%s --> %s\n%s\n" % (i, ts(c["s"]), ts(end), "\n".join(wrap(c["w"]))))
+        txt.append(" ".join(c["w"]))
+
+    sp = os.path.join(work, "video-final.srt")
+    tp = os.path.join(work, "post-caption.txt")
+    with open(sp, "w", encoding="utf-8") as f:
+        f.write("\n".join(srt))
+    with open(tp, "w", encoding="utf-8") as f:
+        f.write("\n".join(txt) + "\n")
+    print("[ok] %s  (%d subtitle lines)" % (sp, len(cards)))
+    print("[ok] %s  (%d words - ready for the post caption)"
+          % (tp, sum(len(x.split()) for x in txt)))
+
+    chaps = []
+    for c in t.get("chapters") or []:
+        title = str(c.get("title") or "").strip()
+        at = tl.out_start(t, c.get("at"))
+        if title and at is not None:
+            chaps.append((at, title))
+    if not chaps:
+        return 0
+
     chaps.sort()
-    if chaps:
-        chaps[0] = (0.0, chaps[0][1])                  # YouTube: the first chapter must start at 00:00
-        lines = [f"{_mmss(t)} {title}" for t, title in chaps]
-        cp = os.path.join(W, "video-final.chapters.txt")
-        open(cp, "w", encoding="utf-8").write("\n".join(lines) + "\n")
-        print(f"✅ {cp}  ({len(lines)} chapters — paste into the YouTube description)")
-        if len(lines) < 3:
-            print("   ⚠️ YouTube needs at least 3 chapters for the progress-bar markers to show")
-        tight = [chaps[i][1] for i in range(1, len(chaps)) if chaps[i][0] - chaps[i - 1][0] < 10]
-        if tight:
-            print(f"   ⚠️ chapters under 10s apart (YouTube ignores those): {', '.join(tight)}")
+    chaps[0] = (0.0, chaps[0][1])               # YouTube: the first chapter must start at 00:00
+    cp = os.path.join(work, "video-final.chapters.txt")
+    with open(cp, "w", encoding="utf-8") as f:
+        f.write("\n".join("%s %s" % (mmss(x), title) for x, title in chaps) + "\n")
+    print("[ok] %s  (%d chapters - paste into the YouTube description)" % (cp, len(chaps)))
+    if len(chaps) < 3:
+        print("   ! YouTube needs at least 3 chapters for the progress-bar markers to show")
+    tight = [chaps[i][1] for i in range(1, len(chaps)) if chaps[i][0] - chaps[i - 1][0] < 10]
+    if tight:
+        print("   ! chapters under 10s apart (YouTube ignores those): %s" % ", ".join(tight))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

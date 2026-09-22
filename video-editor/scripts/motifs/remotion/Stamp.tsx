@@ -1,7 +1,8 @@
-/* stamp — Remotion motif. Mirror of motifs/canvas/stamp.js.
-   Props (from the #18 dispatcher): { enter, exit, hold, words, wordIndex, rect, theme, params }.
-   Self-contained for now — #18 decides how motifs share util.tsx / theme.ts.
+/* stamp — Remotion motif.
+   Props (from the dispatcher): { enter, exit, hold, words, wordIndex, rect, theme, params }.
+   Self-contained — small helpers are inlined per motif rather than shared, except `W`/`H`.
    params: { text, lead?, rotation? = -7, ring? = true, at? } · see scripts/motifs/README.md */
+import {W, H} from '../theme';
 
 type Params = {text?: string; lead?: string; rotation?: number; ring?: boolean; at?: {x: number; y: number}};
 type Props = {enter: number; theme: {acc: string; ink: string; font: string}; params: Params};
@@ -26,7 +27,9 @@ export default function Stamp({enter, theme, params}: Props) {
   if (!text && !lead) return null;
 
   const rot = params.rotation == null ? -7 : params.rotation;
-  const at = params.at || {x: 540, y: 320};
+  // params.at is author-placed (an entry's scene.params, tuned live in the studio at the real
+  // composition size) and used verbatim; only the codebase default scales with the frame.
+  const at = params.at || {x: W / 2, y: 320 * (H / 1920)};
   const pop = lerp(1.5, 1, back(enter));
   const ink = onAccentInk(theme.acc);
 
