@@ -4,7 +4,7 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""Takes sentences out of the video, and puts them back (issue #144).
+"""Takes sentences out of the video, and puts them back.
 
     uv run scripts/cut_entries.py <work> show [--all]      # numbered sentences, repeats flagged
     uv run scripts/cut_entries.py <work> dupes             # the repeated ones only
@@ -19,15 +19,12 @@ nothing else — the entry stays in the file with its text and its `why`, and ev
 entry is untouched. There is nothing to shift, so there is nothing to keep in sync and
 nothing to undo: `restore` flips the flag back.
 
-This replaces edit_script.py AND retakes.py, which were two scripts for the same operation.
-edit_script.py cut sentences the creator did not want; retakes.py cut the ones they said
-twice. Both did it by deleting spans from three files and shifting every timestamp after
-them — the fiddly, error-prone part that no longer exists. What is left is a flag, so one
-script covers both, and Claude can equally well set `"on": false` by hand while correcting
-the transcript (SKILL.md step 6).
+One script covers both "the creator doesn't want this sentence" and "they said it twice,
+keep the last take" — both are the same flag, and Claude can equally well set `"on": false`
+by hand while correcting the transcript (SKILL.md step 6).
 
 An id is `e014`. A bare number means the same thing: `drop 14` == `drop e014`. Ids never
-renumber when something is cut, which is the bug the old positional numbering had.
+renumber when something is cut.
 """
 import difflib
 import json
@@ -49,7 +46,7 @@ def words_of(entry):
 
 def similarity(a, b):
     """How alike two sentences are: shared words, or character-level ratio — whichever is
-    higher. Copied from edit_script.py; it is the one piece of it worth keeping."""
+    higher."""
     if not a or not b:
         return 0.0
     shared = len(set(a) & set(b)) / min(len(a), len(b))

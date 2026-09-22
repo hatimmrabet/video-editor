@@ -3,11 +3,9 @@
    like the card that carries them. Sourced from an entry's `overlay[]` in timeline.json,
    output-resolved by render_data.py into OVERLAYS (theme.ts).
 
-   Replaces Scenes.tsx's hand-written, always-empty `VideoOverlay` hook (issue #147 — "the
-   image overlay becomes a first-class renderer, not a motif in disguise"). `pos`/`scale`
-   are fractions of the card's own box, not the frame — an author-placed value used verbatim
-   (motifs/README.md's "Orientation" rule), so it stays put across FULL/DOWN/LOWER without
-   any W/H scaling here. */
+   `pos`/`scale` are fractions of the card's own box, not the frame — an author-placed
+   value used verbatim (motifs/README.md's "Orientation" rule), so it stays put across
+   FULL/DOWN/LOWER without any W/H scaling here. */
 import {Img, staticFile} from 'remotion';
 import {OVERLAYS} from './theme';
 import {p} from './util';

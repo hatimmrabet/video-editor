@@ -2,7 +2,7 @@
    Props: { enter, theme, params }.
    params: { src, caption?, fit? = "contain" } — `src` is a filename inside
    <remotion-dir>/public/images/, synced there by remotion.sh from <work>/config/images/
-   (the media-use skill resolves a logo/screenshot/diagram into that folder — issue #154). */
+   (the media-use skill resolves a logo/screenshot/diagram into that folder). */
 import {Img, staticFile} from 'remotion';
 import {W, H} from '../theme';
 

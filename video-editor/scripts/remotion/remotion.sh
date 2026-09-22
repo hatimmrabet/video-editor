@@ -21,7 +21,7 @@ sync_all(){
     [ -f "$TPL/$f" ] && cp "$TPL/$f" "$R/$f"; done
   for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts capPages.ts util.tsx Chrome.tsx Captions.tsx Background.tsx VideoOverlays.tsx Outro.tsx Guides.tsx Grid.tsx SceneList.tsx; do
     cp "$TPL/src/$f" "$R/src/$f"; done
-  # Motifs: the shared per-engine components — always refreshed (issue #18)
+  # Motifs: the shared per-engine components — always refreshed
   mkdir -p "$R/src/motifs"
   for f in "$(cd "$(dirname "$0")/../motifs/remotion" && pwd)"/*.tsx; do
     [ -f "$f" ] && cp "$f" "$R/src/motifs/"; done
@@ -32,8 +32,8 @@ from lib import config as cfg
 print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
   [ -f "$W/$LOGO" ] && cp "$W/$LOGO" "$R/public/logo.png"
   # config/images/*: whatever the image-card motif (scene.params.src) or an entry's
-  # `overlay[]` (VideoOverlays.tsx, issue #147) references — resolved into that folder by
-  # the media-use skill, one file per image (issue #154).
+  # `overlay[]` (VideoOverlays.tsx) references — resolved into that folder by the
+  # media-use skill, one file per image.
   if [ -d "$W/config/images" ]; then
     mkdir -p "$R/public/images"
     cp "$W/config/images/"* "$R/public/images/" 2>/dev/null || true
@@ -45,8 +45,8 @@ print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
   echo "✅ data and assets updated at $R"
 }
 
-# Every command that runs the toolchain needs node_modules. `setup` is no longer a step the
-# caller can forget: render / studio / still / check install on demand the first time.
+# Every command that runs the toolchain needs node_modules. render / studio / still / check
+# all install it on demand the first time — nothing depends on `setup` having run first.
 ensure_deps(){
   [ -d "$R/node_modules" ] && return 0
   echo "⏬ Downloading Remotion libraries (~500 MB, once)…"
@@ -73,7 +73,7 @@ case "$CMD" in
     echo "✅ $OUT"
     "$VEVO_FFPROBE" -v error -show_entries format=duration,size -show_entries stream=width,height -of default=nw=1 "$OUT" ;;
   still)
-    # review stills at arbitrary times — the replacement for render_frames.js preview.
+    # review stills at arbitrary times, without rendering the whole video.
     sync_all; ensure_deps
     shift 2 || true
     [ $# -gt 0 ] || { echo "usage: remotion.sh <work> still <seconds> [<seconds>...]"; exit 2; }
@@ -85,8 +85,8 @@ case "$CMD" in
     done
     echo "✅ $# still(s) → $W/build/prev/" ;;
   check)
-    # the type-checker IS the scene linter: it catches undefined helpers, bad props and
-    # out-of-range refs that the old lint_compose.js approximated with regexes.
+    # the type-checker IS the scene linter: it catches an undefined helper, a bad prop, or
+    # a duplicate style key before a render.
     sync_all; ensure_deps
     ( cd "$R" && npm run --silent check ) && echo "✅ scenes type-check clean" ;;
   *) echo "Commands: setup | sync | studio | render | still | check"; exit 2 ;;

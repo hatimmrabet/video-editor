@@ -15,8 +15,7 @@ step Claude does by editing <work>/timeline.json directly rather than by running
 Call this once that step is genuinely done for the project — including when the honest
 answer was "nothing to change" (a scenes-less video, no filler words to cut): the mark
 records that the step was CONSIDERED, not that it changed something. Without it, run.py
-cannot tell "reviewed, nothing needed changing" from "never looked at", and the equivalent
-half of these checkpoints used to slip straight past into render (issue #148).
+cannot tell "reviewed, nothing needed changing" from "never looked at".
 
 Idempotent — writes <work>/timeline.json's `checkpoints.<id> = true` and nothing else.
 """

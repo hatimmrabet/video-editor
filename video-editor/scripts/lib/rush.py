@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """rush/ helpers — resolve the input file(s) without assuming a fixed name. `rush/` keeps
-whatever name the creator's file already had (file-layout.md, 2026-09-05); scripts that
-used to hardcode "src.mov" call find_source() instead."""
+whatever name the creator's file already had; every script that needs the source calls
+find_source() rather than hardcoding a filename."""
 import os
 
 

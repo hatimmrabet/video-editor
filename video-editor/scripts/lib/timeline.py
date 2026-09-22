@@ -4,7 +4,7 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""<work>/timeline.json — the montage, and the only state the pipeline keeps (issue #144).
+"""<work>/timeline.json — the montage, and the only state the pipeline keeps.
 
 An ORDERED LIST OF SELF-CONTAINED ENTRIES. One entry = one spoken sentence (~180 for a
 10-minute recording). Open an entry and you know everything on screen and everything
@@ -22,8 +22,7 @@ THE RULE ABOUT TIME — the whole design rests on it:
 So NOTHING EVER SHIFTS ANYTHING. Cutting is one of exactly two edits:
   - drop time from an entry: edit its `src` list (tighten.py, settle_cuts.py)
   - drop the whole entry:    set `on: false` (cut_entries.py) — reversible, never destructive
-Everything else in the file is untouched, forever. That is what replaced the old
-merge/make_shift/remap_keep surgery this module used to hold.
+Everything else in the file is untouched, forever.
 
 SHAPE
 
@@ -54,7 +53,7 @@ chapters, scenes, sound-cues) has been addressed for this project — set by
 `mark_checkpoint.py`, never inferred. It exists because those steps edit entries in place
 (a reworded `caption.text`, a `scene` added, or deliberately nothing) with no file of their
 own for `run.py` to check the existence of; without an explicit marker "nothing needed
-changing" and "not looked at yet" are indistinguishable from the file alone (issue #148).
+changing" and "not looked at yet" are indistinguishable from the file alone.
 
 WHAT LIVES ELSEWHERE, AND WHY THAT IS STILL ONE SOURCE OF TRUTH
 
@@ -86,10 +85,10 @@ _DOC = ("The montage, and the only state this pipeline keeps. An ordered list of
         "is the authority; times inside an entry (scene.at, sfx.at) are relative to the "
         "entry; output time is NEVER stored - it is the running sum of the active entries. "
         "Cutting is either editing an entry's `src` or setting `on:false`. Nothing else ever "
-        "moves. See scripts/lib/timeline.py and issue #144.")
+        "moves. See scripts/lib/timeline.py.")
 
 LAYOUTS = ("FULL", "DOWN", "LOWER", "HIDDEN")   # HIDDEN: no face — a full-screen motion
-                                                 # graphic (Background.tsx) carries the entry instead (issue #154)
+                                                 # graphic (Background.tsx) carries the entry instead
 
 
 def path(work):

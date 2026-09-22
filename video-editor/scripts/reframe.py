@@ -16,7 +16,7 @@ source (rounded to even numbers, which h264 requires); the per-segment zoom crop
 that frame, anchored by crop.xAnchor / crop.yAnchor.
 
 The source resolves through lib/rush — build/source-joined.mp4, written by join_takes.py.
-The pieces to keep come from <work>/timeline.json via lib/timeline.program() (issue #144).
+The pieces to keep come from <work>/timeline.json via lib/timeline.program().
 
 ZOOM IS PER ENTRY, not per cut. An entry may state its own `video.zoom` and `video.anchor`;
 whatever it does not state falls back to the Z cycle below, indexed by the entry's position
@@ -26,14 +26,11 @@ did, and one that has authored a zoom gets exactly that.
 project.config.json (optional): crop.xAnchor (0-1, horizontal · default 0.5) ·
 crop.yAnchor (0-1, vertical · default 0.30) · grade (bool · default false)
 
-DELIBERATELY KEPT (issue #146, phase 2 of #144 — deferred, not started). This script still
-produces a full intermediate re-encode (crf 16) that Remotion then re-encodes again (crf
-21) — two generations of loss, one file more than a single-pass render needs. #146 designs
-the single-pass version, but gates it on measuring a real 10-minute render's performance
-first (Remotion would seek into the source at every segment instead of reading one
-continuous file) — not something to decide from this repo alone. Worth doing, not a
-blocker for a first release: leaving it aside until there's a real project to measure
-against, not attempting it speculatively.
+KNOWN LIMITATION (issue #146): this script still produces a full intermediate re-encode
+(crf 16) that Remotion then re-encodes again (crf 21) — two generations of loss, one file
+more than a single-pass render needs. A single-pass version requires Remotion to seek into
+the source at every segment instead of reading one continuous file, and that performance
+tradeoff needs measuring against a real project before it's worth building.
 """
 import json, subprocess, sys, os
 from lib import config as _cfg, rush as _rush, platform as _plat, timeline as _tl

@@ -6,17 +6,11 @@ resolver and the motif registry. There is **no test for the pipeline output itse
 `CLAUDE.md`).
 
 The scene and motif *code* is type-checked instead of tested here: it is TypeScript, so
-`tsc --noEmit` (CI, and `remotion.sh <work> check` locally) does exactly what the old
-`lint_compose.js` approximated with regexes.
+`tsc --noEmit` (CI, and `remotion.sh <work> check` locally) catches what static analysis
+can catch.
 
-There used to be a local web UI (`scripts/web.py` + `scripts/web/`, five of the seven test
-files here) — a full second front end over `run.py`, built before the retakes rework
-(#131) and never touched since. It duplicated decisions SKILL.md already makes through
-Claude, had drifted from the pipeline it fronted (its transcript screen still enforced a
-word-count match that `captions.py` stopped requiring, and its duplicate-sentence detector
-was the pattern-matching approach #131 tried and abandoned), and nobody used it. Removed
-along with it: Puppeteer, `.puppeteerrc.cjs`, and the top-level `package.json` — nothing
-left at the skill root pulls in an npm dependency.
+Nothing at the skill root pulls in an npm dependency — no top-level `package.json`, no
+Puppeteer, no browser.
 
 ## Run
 
@@ -41,7 +35,7 @@ else the `.venv`, else `python3`), so **no `uv sync` is required** for the suite
 
 | file | covers |
 |---|---|
-| `ffmpeg-resolver.test.js` | `$VEVO_FFMPEG` / `$VEVO_FFPROBE` through `lib/platform.{py,js,sh}` + `run.py` (#44) |
+| `ffmpeg-resolver.test.js` | `$VEVO_FFMPEG` / `$VEVO_FFPROBE` through `lib/platform.{py,js,sh}` + `run.py` |
 | `motifs.test.js` | the motif registry — every implemented motif in `motifs/index.json` is imported, dispatched by `SceneList.tsx`, backed by a component, and its declared params match that component's type |
 
 ## Notes

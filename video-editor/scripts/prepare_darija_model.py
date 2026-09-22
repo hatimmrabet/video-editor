@@ -4,7 +4,7 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""One-time setup for the darija Whisper fine-tune (issue #126).
+"""One-time setup for the darija Whisper fine-tune.
 
 `setup.sh --install` calls this automatically — it is not a step to remember by hand. It
 checks `scripts/defaults.config.json`'s `language`: nothing happens unless that language is

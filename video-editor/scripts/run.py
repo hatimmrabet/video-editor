@@ -20,7 +20,7 @@ the agent/user must make); a checkpoint with no `makes` is advisory - printed,
 never blocking. A `makes` entry can be a file path, or
 `timeline.json#checkpoints.<id>` - true only once that decision step was
 explicitly marked done (`mark_checkpoint.py`), since editing entries in place
-leaves no file of its own to check (issue #148). A media file (`.mp4`/`.mov`/
+leaves no file of its own to check. A media file (`.mp4`/`.mov`/
 `.mkv`/`.wav`/`.m4a`) in `makes` is verified playable via ffprobe, not just
 present - a killed encoder can leave a file that exists but never finished.
 
@@ -74,9 +74,9 @@ MEDIA_EXT = (".mp4", ".mov", ".mkv", ".wav", ".m4a")
 
 def _media_ok(path):
     """A killed ffmpeg/Remotion process can leave a file that exists (even nonzero size) but
-    is not a playable, complete media file — plain existence can't tell (issue #148).
-    ffprobe reading back a real duration is the only reliable check, and a cheap one: it
-    reads the container header, never decodes a frame."""
+    is not a playable, complete media file — plain existence can't tell. ffprobe reading
+    back a real duration is the only reliable check, and a cheap one: it reads the
+    container header, never decodes a frame."""
     r = subprocess.run([_plat.FFPROBE, "-v", "error", "-show_entries", "format=duration",
                        "-of", "csv=p=0", path], capture_output=True, text=True)
     try:
@@ -90,8 +90,7 @@ def _mtime(work, spec, source):
     A trailing '/' means 'the newest file anywhere under this directory'. A spec of
     'timeline.json#checkpoints.<id>' checks CONTENT instead of a file: true only once that
     step was explicitly marked done (mark_checkpoint.py) — a human/agent decision that edits
-    entries in place has no file of its own to prove it happened, so a checkpoint stage that
-    declared no `makes` could never block (issue #148). It's a fixed marker, not a
+    entries in place has no file of its own to prove it happened. It's a fixed marker, not a
     timestamp: like `entry.on`, a mark isn't invalidated by a later unrelated edit to the
     same file."""
     if spec == "{source}":

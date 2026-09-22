@@ -4,7 +4,7 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""Measures where the speaker is silent. A MEASUREMENT, not a decision (issue #144).
+"""Measures where the speaker is silent. A MEASUREMENT, not a decision.
 
     uv run scripts/find_silences.py <workdir>
 
@@ -67,7 +67,7 @@ if s is not None:
 
 doc = ("Where the speaker is silent, in absolute source seconds. A raw measurement: nothing "
        "ever edits this file, so it cannot disagree with the montage. Padding and merging are "
-       "applied by build_timeline.py, not here. See scripts/find_silences.py and issue #144.")
+       "applied by build_timeline.py, not here.")
 payload = {"_doc": doc, "source": os.path.basename(SRC), "duration": round(dur, 3),
            "detect": {"noiseDb": NOISE_DB, "minSilence": MIND},
            "silences": [[round(a, 3), round(b, 3)] for a, b in sil]}

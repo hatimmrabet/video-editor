@@ -4,7 +4,7 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""Re-spaces the words of every sentence whose text was reworded (issue #144).
+"""Re-spaces the words of every sentence whose text was reworded.
 
     uv run scripts/sync_captions.py <work> [--dry]
 

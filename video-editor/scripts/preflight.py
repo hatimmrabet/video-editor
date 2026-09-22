@@ -62,8 +62,8 @@ def check_tools():
 
 
 def check_skill_link():
-    """Guard against issue #125: on Windows Git-Bash, a bare `ln -s` (without
-    winsymlinks:nativestrict / Developer Mode) silently *copies* the skill folder instead
+    """On Windows Git-Bash, a bare `ln -s` (without winsymlinks:nativestrict / Developer
+    Mode) silently *copies* the skill folder instead
     of linking it, and exits 0 - nothing about that failure is visible at the time. The
     installed skill then freezes at whatever commit it was copied from, drifts from the
     repo with every edit that follows, and nothing points at why a run behaves like an old
@@ -84,7 +84,7 @@ def check_skill_link():
         pass
     return {"ok": False, "installed": installed, "problem": (
         "%s is a plain directory, not a link/junction - it is a FROZEN COPY of the repo "
-        "and will not see any edit made after it was created (issue #125). Re-link it "
+        "and will not see any edit made after it was created. Re-link it "
         "per CLAUDE.md's 'Installing the skill for development' (Windows: a directory "
         "junction; Linux: ln -s) before trusting anything this run produces." % installed)}
 
@@ -358,7 +358,7 @@ def main():
         return _out(res, as_json)
 
     if not res["skill_link"]["ok"]:
-        res["verdict"] = "frozen skill install (issue #125) - a human has to re-link it"
+        res["verdict"] = "frozen skill install - a human has to re-link it"
         res["exit"] = DECIDE
         return _out(res, as_json)
 

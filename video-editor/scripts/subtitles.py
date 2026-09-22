@@ -15,8 +15,7 @@ Writes: <work>/video-final.srt        YouTube reads it, Instagram accepts it on 
         <work>/video-final.chapters.txt   when the timeline carries `chapters`
 
 Chapters are `[{"at": "e014", "title": "..."}]` — anchored on an ENTRY ID, not a second and
-not a sentence index (issue #144). Cutting a sentence used to renumber every positional
-reference and silently move or drop a chapter; an id never renumbers.
+not a sentence index, so cutting a sentence elsewhere can never move or drop one.
 """
 import os
 import sys

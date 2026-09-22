@@ -4,7 +4,7 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""The jump-cut + filler pass, on <work>/timeline.json (issue #144).
+"""The jump-cut + filler pass, on <work>/timeline.json.
 
     uv run scripts/tighten.py <work>          # propose - prints what it would cut
     uv run scripts/tighten.py <work> apply    # commit
@@ -17,11 +17,9 @@ Two kinds of word-level cut, both read off each entry's own word timings:
   2. filler words and short filler runs matching scripts/fillers.json for the project
      language are dropped, word and audio together.
 
-WHAT CHANGED, AND WHY RE-RUNNING IS NOW SAFE. This used to cache build/tighten-plan.json
-and re-apply it later against a timeline that had moved underneath it, double-cutting
-(issue #144). There is no plan file any more: `apply` measures and cuts in one pass, and it
-measures the CURRENT timeline. Running it twice finds no gap over the threshold the second
-time, so it is a no-op rather than a second cut.
+SAFE TO RE-RUN. `apply` measures and cuts in one pass, always against the CURRENT
+timeline — there is no cached plan that could go stale. Running it twice finds no gap over
+the threshold the second time, so it is a no-op rather than a second cut.
 
 Each cut edits one entry's `src` and, for a filler, drops that word from its caption.
 Nothing outside the entry is touched, because nothing outside it stores an output time.

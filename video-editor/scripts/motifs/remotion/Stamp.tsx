@@ -1,6 +1,6 @@
 /* stamp — Remotion motif.
-   Props (from the #18 dispatcher): { enter, exit, hold, words, wordIndex, rect, theme, params }.
-   Self-contained for now — #18 decides how motifs share util.tsx / theme.ts.
+   Props (from the dispatcher): { enter, exit, hold, words, wordIndex, rect, theme, params }.
+   Self-contained — small helpers are inlined per motif rather than shared, except `W`/`H`.
    params: { text, lead?, rotation? = -7, ring? = true, at? } · see scripts/motifs/README.md */
 import {W, H} from '../theme';
 

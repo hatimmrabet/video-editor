@@ -4,16 +4,16 @@
    for the cut INTO that entry. On the reel video only rect-morph / cut / dissolve are
    meaningful — see scripts/transitions.json.
 
-   R_DOWN flexes per scene, mirroring compose.reference.html's rDown(gb, caption-lines):
-   the card shrinks proportionally (9:16) from the graphic bottom + the caption's line count. */
+   R_DOWN flexes per scene via rDown(gb, caption-lines): the card shrinks proportionally
+   (9:16) from the graphic bottom + the caption's line count. */
 import {lerp, ez} from './util';
 import {STAGE, TX, W, H} from './theme';
 import {capPages, CAP_LH, CAP_PADY} from './capPages';
 import caps from './timeline.json';
 
 /* Every rect below was designed against a 1080x1920 canvas. SX/SY carry that design to
-   whatever size the composition actually is (#136) — a horizontal recording gets the same
-   relative layout instead of a canvas that no longer matches its own frame. Border radii
+   whatever size the composition actually is — a horizontal recording gets the same
+   relative layout instead of a canvas that doesn't match its own frame. Border radii
    and the caption/UI chrome's own literal sizing (Captions.tsx, Chrome.tsx) are NOT scaled
    here — this is about where things sit, not how big the type reads. */
 const SX = W / 1080, SY = H / 1920;
@@ -27,9 +27,9 @@ export const R_DOWN:  Rect = {x:0, y:770*SY, w:W, h:1150*SY, r:0};   // full-wid
 // callers that don't check the mode first.
 const M: Record<string,Rect> = {FULL:R_FULL, LOWER:R_LOWER, DOWN:R_DOWN, HIDDEN:R_FULL};
 
-/* caption wrap — capPages.ts owns the wrap (kept in lockstep with what Captions.tsx renders,
-   issue #147); here we only need the tallest page overlapping this DOWN span, which is
-   always <= CAP_MAX_LINES since a card is now shown one page at a time. */
+/* caption wrap — capPages.ts owns the wrap (kept in lockstep with what Captions.tsx
+   renders); here we only need the tallest page overlapping this DOWN span, which is
+   always <= CAP_MAX_LINES since a card shows one page at a time. */
 type CW = {t:string; s:number; e:number};
 const CARDS = ((caps as any).cards || []) as {s:number; e:number; w:CW[]}[];
 function pageLines(s: number, e: number): number {

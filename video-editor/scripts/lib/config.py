@@ -11,9 +11,8 @@ load() always returns a usable `theme` and `language` even with no project file 
 SKILL.md step 2 reads them and asks nothing. A `<work>/config/project.config.json`, when
 one exists, still wins field by field.
 
-No bridge to the old theme.json/stage.json/outro.json/safe.json: one user, no existing
-project to preserve — the scripts that consume those fields migrate straight to
-config.load()."""
+One file, one loader — every script that needs a config value reads it through
+config.load(); nothing reads a legacy or per-purpose config file of its own."""
 import json
 import os
 
