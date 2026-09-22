@@ -63,6 +63,12 @@ reproduce it, and the file involved. Never record it in a Markdown file, a TODO 
 or only in the conversation — those get lost. If you fix it in the same change, say so in
 the issue and close it.
 
+**An issue closes when its fix lands on `develop` — never wait for a `main`/release PR.**
+`develop` is where day-to-day work is considered done; `main` only tracks *when* that work
+ships. Closing on `develop` and re-tracking "still needs releasing" separately would be a
+second, redundant source of truth for the same fact `git log origin/main..origin/develop`
+already answers directly.
+
 The operational spec (`video-editor/SKILL.md`) is in English, **and so are its trigger
 phrases** — the description lists English and French phrasings, no Arabic. What stays in
 the speaker's language is output content only: the on-screen caption text, the end-card
