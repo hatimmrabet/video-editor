@@ -27,10 +27,13 @@ export const DUR_F = Math.round((VEND + OUTRO) * FPS);
 export const HAS_SFX = !!P.sfx;
 export const OUTRO_COPY = P.outro_copy || {recap:[]};
 export const STAGE = P.stage || [{s:0,e:1e9,m:'FULL'}];
-/* The scenes the timeline's entries authored, resolved by render_data.py (#144). null when
-   no entry has a `scene` — Ad.tsx then renders the hand-written Scenes.tsx instead. The key
-   is OMITTED rather than empty on purpose: [] is truthy, and would disable that fallback. */
-export const SCENES = ((P as any).scenes as any[] | undefined) || null;
+/* The scenes the timeline's entries authored, resolved by render_data.py (#144) — always an
+   array, possibly empty; SceneList.tsx is the only renderer (the hand-written Scenes.tsx
+   fallback was retired, issue #147). */
+export const SCENES = ((P as any).scenes as any[] | undefined) || [];
+/* Per-entry image/logo overlays (`entry.overlay[]`), output-resolved by render_data.py —
+   drawn on the video card itself by VideoOverlays.tsx, not over the whole frame. */
+export const OVERLAYS = ((P as any).overlays as any[] | undefined) || [];
 /* Transition defaults from scripts/transitions.json (remotion.sh copies them into
    timeline.json). Fallback = today's exact values, so nothing changes without a project
    setting a non-default. Full vocabulary: docs/design/transitions.md */

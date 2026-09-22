@@ -169,7 +169,7 @@
       "needs": [
         "timeline.json"
       ],
-      "note": "The core creative step. Either give an entry a `scene` ({motif, params, at, dur} — motif names from scripts/motifs/index.json, `at`/`dur` relative to that entry) and a `video.layout`, or rewrite the scene components in <work>/remotion/src/Scenes.tsx. A scenes-less project renders with captions only — that is a valid choice, not a skip. See SKILL.md step 10."
+      "note": "The core creative step. Give an entry a `scene` ({motif, params, at, dur} — motif names from scripts/motifs/index.json, `at`/`dur` relative to that entry) and a `video.layout`, or an `overlay` for a logo/badge on the video itself. A scenes-less project renders with captions only — that is a valid choice, not a skip. See SKILL.md step 10."
     },
     {
       "id": "sound-cues",

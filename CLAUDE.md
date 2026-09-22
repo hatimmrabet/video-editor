@@ -160,10 +160,12 @@ rather than reading it whole.
   `build/silences.json` and `build/transcript-raw.json` sit beside it as **measurements**:
   nothing ever edits them, so they cannot disagree with the montage, and it can always be
   rebuilt from them.
-- **Scenes are still per-video code where it counts:** a scene is either a `scene` block on
-  an entry (motif + params, dispatched by `SceneList.tsx`) or a component in
-  `<work>/remotion/src/Scenes.tsx` (never wiped by a re-sync). Retiring the hand-written
-  file is phase 3 — issue #147.
+- **Scenes are data, not per-video code.** A `scene` block on an entry (motif + params) is
+  dispatched by `SceneList.tsx`; an `overlay` block (a logo/badge riding the video itself)
+  is drawn by `VideoOverlays.tsx`. There is no hand-written scene file any more — the old
+  `<work>/remotion/src/Scenes.tsx` escape hatch was retired (phase 3, issue #147): a one-off
+  visual now means writing a reusable motif in `scripts/motifs/`, never a throwaway
+  per-video component.
 - **A motif lives in two places and both must agree:** its entry in
   `scripts/motifs/index.json` and its component in `scripts/motifs/remotion/`.
   `test/motifs.test.js` enforces that; `tsc` checks the component itself.

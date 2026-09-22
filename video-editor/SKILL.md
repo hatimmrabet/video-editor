@@ -453,10 +453,8 @@ speaker sits off-centre, set `crop.xAnchor` / `crop.yAnchor` in `project.config.
 (0 = left/top · 0.5 = centre · 1 = right/bottom). Preview one frame before continuing.
 
 ### 10) Design the scenes and the on-screen captions ← the most important step
-The scene code lives at `<work>/remotion/src/Scenes.tsx` — `remotion/remotion.sh <work>
-sync` creates it on first use and **never overwrites it afterwards**. Rewrite its scene
-components — or give an entry a `scene` in `timeline.json` instead (the data-driven path,
-dispatched by `SceneList.tsx`):
+Scenes are data, authored directly on the entry in `timeline.json` — there is no scene
+code to write or file to open. Give an entry a `scene` (dispatched by `SceneList.tsx`):
 
 ```jsonc
 { "id": "e014", "...": "...",
@@ -464,6 +462,19 @@ dispatched by `SceneList.tsx`):
   "scene": { "motif": "stamp", "params": { "text": "3 etapes" }, "at": 0.3, "dur": 2.4 } }
 ```
 `at`/`dur` are relative to the entry, and motif names come from `scripts/motifs/index.json`.
+
+For a logo/badge riding the video itself rather than a graphic above it, give the entry an
+`overlay` instead (drawn by `VideoOverlays.tsx`, clipped to the video's own rect so it
+follows `R_FULL`/`R_DOWN`/`R_LOWER` automatically):
+
+```jsonc
+{ "overlay": [{ "kind": "image", "src": "logo-brand.png", "pos": [0.85, 0.12],
+                "scale": 0.14, "at": 0.0, "dur": 3.0 }] }
+```
+`src` is a filename resolved the same way `image-card`'s `params.src` is (further down in
+this step) — a file you place in `<work>/config/images/`. `pos` is a fraction of the video
+card's own box (`[0,0]` top-left, `[1,1]` bottom-right), `scale` a fraction of its width.
+
 Type-check before rendering: `remotion/remotion.sh <work> check`.
 
 **The structure is ready, don't touch it:** shrinking the video into a card (`R_FULL` /
@@ -657,8 +668,8 @@ Produces `<work>/video-final.srt` (YouTube and LinkedIn read it) and
 8. **Call it a "background audio file"** — not "music". The user decides its content (a
    human voice, ambience, or anything), and you name it by its neutral form and put it in
    `rush/bg-audio.mp3`.
-9. **Invent new scenes every time.** `Scenes.tsx` ships a pattern library, not a template
-   to copy.
+9. **Invent new scenes every time.** The brainstorm table in step 10 is a starting point,
+   not a template to copy verbatim onto every video.
 
 ---
 

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """render_data.py — flattening timeline.json into what the Remotion template reads.
 
-Two things worth pinning: the scenes-key omission is deliberate (theme.ts falls back to
-the hand-written Scenes.tsx on `null`, but an empty array is truthy in JS and would
-silently disable it), and the `bottom` passthrough is the fix for issue #147 — the old
-resolver dropped a motif's own declared height and every DOWN rect defaulted to 500px.
+Worth pinning: `scenes` and `overlays` are always present, even empty — there is no more
+hand-written fallback for either to accidentally disable (`Scenes.tsx` was retired, issue
+#147) — and the `bottom` passthrough, also #147 — the old resolver dropped a motif's own
+declared height and every DOWN rect defaulted to 500px.
 
 Run: uv run python -m unittest discover test
 """
@@ -60,17 +60,17 @@ def render(work, registry=None):
 
 
 class NoScenes(unittest.TestCase):
-    def test_no_scenes_key_at_all(self):
-        """theme.ts does `P.scenes || null`; an empty list is truthy in JS, so emitting one
-        would silently disable the hand-written Scenes.tsx fallback."""
+    def test_scenes_key_is_an_empty_list_not_omitted(self):
+        """Scenes.tsx (the hand-written fallback) is retired (#147) — there is nothing left
+        for an omitted/empty `scenes` key to accidentally disable, so it is always present."""
         work = work_with([entry("e001", [[0.0, 2.0]], [("hi", 0.0, 1.0)])])
         rc, payload = render(work)
         self.assertEqual(rc, 0)
-        self.assertNotIn("scenes", payload)
+        self.assertEqual(payload["scenes"], [])
 
     def test_the_summary_line_does_not_crash_without_scenes(self):
-        """render_data.py:194-196 used to do len(payload["scenes"]) unconditionally, which
-        KeyErrors on every video without a data-driven scene — i.e. most of them."""
+        """render_data.py's summary print used to do len(payload["scenes"]) unconditionally,
+        which KeyErrors on every video without a data-driven scene — i.e. most of them."""
         work = work_with([entry("e001", [[0.0, 2.0]])])
         rc, _ = render(work)
         self.assertEqual(rc, 0)
@@ -109,7 +109,7 @@ class Scenes(unittest.TestCase):
                                 scene={"motif": "does-not-exist"})])
         rc, payload = render(work, registry={})
         self.assertEqual(rc, 0)
-        self.assertNotIn("scenes", payload)
+        self.assertEqual(payload["scenes"], [])
 
     def test_an_unknown_layout_falls_back_to_full(self):
         work = work_with([entry("e001", [[0.0, 2.0]], video={"layout": "SIDEWAYS"})])

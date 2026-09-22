@@ -2,8 +2,9 @@
 
 A **motif** is a parameterized scene type, selected by name from an entry's `scene.motif`
 in `<work>/timeline.json`
-(`"motif": "stamp"`) and dispatched by `SceneList.tsx`. This replaces hand-writing every
-scene as its own component in `Scenes.tsx`.
+(`"motif": "stamp"`) and dispatched by `SceneList.tsx`. It is the *only* way to draw a
+scene — the old hand-written per-video `Scenes.tsx` was retired (issue #147); a one-off
+visual now means writing a reusable motif here, never a throwaway component.
 
 ```
 motifs/

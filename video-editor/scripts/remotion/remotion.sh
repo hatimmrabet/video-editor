@@ -6,7 +6,8 @@
 #   remotion/remotion.sh <work> render [out.mp4] → produces an MP4 directly (no frames)
 #   remotion/remotion.sh <work> still 4.6 12.3   → review stills → <work>/build/prev/t<sec>.jpg
 #   remotion/remotion.sh <work> check            → type-checks the project (tsc --noEmit)
-# Scenes are written in <work>/remotion/src/Scenes.tsx — never wiped by a re-run.
+# Scenes are authored as data — an entry's `scene`/`overlay` in <work>/timeline.json,
+# dispatched by SceneList.tsx/VideoOverlays.tsx. No per-project TSX to preserve across a sync.
 set -e
 . "$(cd "$(dirname "$0")/.." && pwd)/lib/platform.sh"
 W="$(vevo_abspath "$1")"; CMD="${2:-setup}"; ARG="$3"
@@ -18,11 +19,8 @@ sync_all(){
   # Structural files: always updated, except what the user edits
   for f in package.json package-lock.json tsconfig.json remotion.config.ts .gitignore README.md; do
     [ -f "$TPL/$f" ] && cp "$TPL/$f" "$R/$f"; done
-  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts capPages.ts util.tsx Chrome.tsx Captions.tsx Background.tsx Outro.tsx Guides.tsx Grid.tsx SceneList.tsx; do
+  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts capPages.ts util.tsx Chrome.tsx Captions.tsx Background.tsx VideoOverlays.tsx Outro.tsx Guides.tsx Grid.tsx SceneList.tsx; do
     cp "$TPL/src/$f" "$R/src/$f"; done
-  # Scenes.tsx: copied once only — a project's hand-written scene components are never wiped
-  # (an entry with a `scene` makes the scenes data, and SceneList.tsx dispatches them instead)
-  [ -f "$R/src/Scenes.tsx" ] || cp "$TPL/src/Scenes.tsx" "$R/src/Scenes.tsx"
   # Motifs: the shared per-engine components — always refreshed (issue #18)
   mkdir -p "$R/src/motifs"
   for f in "$(cd "$(dirname "$0")/../motifs/remotion" && pwd)"/*.tsx; do
@@ -33,8 +31,9 @@ sys.path.insert(0, os.path.join(os.environ['VEVO_SKILL_DIR'],'scripts'))
 from lib import config as cfg
 print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
   [ -f "$W/$LOGO" ] && cp "$W/$LOGO" "$R/public/logo.png"
-  # config/images/*: whatever the image-card motif references (scene.params.src) — resolved
-  # into that folder by the media-use skill, one file per image (issue #154).
+  # config/images/*: whatever the image-card motif (scene.params.src) or an entry's
+  # `overlay[]` (VideoOverlays.tsx, issue #147) references — resolved into that folder by
+  # the media-use skill, one file per image (issue #154).
   if [ -d "$W/config/images" ]; then
     mkdir -p "$R/public/images"
     cp "$W/config/images/"* "$R/public/images/" 2>/dev/null || true
