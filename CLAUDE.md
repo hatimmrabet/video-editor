@@ -111,9 +111,12 @@ uv run scripts/build_timeline.py <work>            # the two measurements -> <wo
 uv run scripts/settle_cuts.py <work>               # nudge each cut-in onto a clean frame
 # Claude then corrects caption.text entry by entry in timeline.json (SKILL.md step 5)
 uv run scripts/sync_captions.py <work>             # re-space only the sentences that were reworded
+uv run scripts/mark_checkpoint.py <work> transcript-fix   # so run.py knows this was reviewed
 # Claude finds the repeats itself (SKILL.md step 6) — no detection script
 uv run scripts/cut_entries.py <work> drop e007     # `on: false`; `restore` puts it back
+uv run scripts/mark_checkpoint.py <work> cut-review
 uv run scripts/tighten.py <work>                   # propose word-level cuts; `apply` commits them
+uv run scripts/mark_checkpoint.py <work> tighten
 uv run scripts/reframe.py <work>                   # applies the montage -> build/video-reframed.mp4
 bash  scripts/master_audio.sh <work> <work>/build/video-raw.mp4 <work>/video-final.mp4
 
@@ -169,6 +172,14 @@ rather than reading it whole.
 - **A motif lives in two places and both must agree:** its entry in
   `scripts/motifs/index.json` and its component in `scripts/motifs/remotion/`.
   `test/motifs.test.js` enforces that; `tsc` checks the component itself.
+- **`run.py` gates on `timeline.json`'s own content, not just file mtimes** (phase 4, issue
+  #148). A human/agent decision step that edits entries in place (transcript-fix, cut-review,
+  tighten, chapters, scenes, sound-cues) has no output file of its own to prove it ran, so it
+  blocks on `timeline.json#checkpoints.<id>` instead — set once by
+  `mark_checkpoint.py <work> <id>`, an explicit "considered" mark, same spirit as `on:false`,
+  never inferred from what changed. A media file in a stage's `makes` (`.mp4`/`.wav`/…) is
+  also verified playable via `ffprobe`, not just present — a killed encoder can leave one
+  that exists but never finished.
 - **Cross-platform layer:** `scripts/lib/platform.sh` (sourced by every `.sh`; provides
   `VEVO_SKILL_DIR` + the `VEVO_PY` array) and `scripts/lib/platform.js` (required by the
   Node scripts) absorb Windows/Linux differences. Nothing else may hard-code a path.

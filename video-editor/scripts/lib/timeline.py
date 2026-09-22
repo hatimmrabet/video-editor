@@ -28,12 +28,13 @@ merge/make_shift/remap_keep surgery this module used to hold.
 SHAPE
 
   {"version": 1,
-   "source":   {"file","width","height","duration"},
-   "defaults": {"video": {...}},            # what an entry does not state
-   "timeline": [ENTRY, ...],                # in order
-   "spans":    [{"kind","from","to",...}],  # what outlives one entry, anchored on entry ids
-   "chapters": [{"at": "e001", "title"}],
-   "outro":    {"seconds","line","recap","cta_top","tail"}}
+   "source":     {"file","width","height","duration"},
+   "defaults":   {"video": {...}},            # what an entry does not state
+   "timeline":   [ENTRY, ...],                # in order
+   "spans":      [{"kind","from","to",...}],  # what outlives one entry, anchored on entry ids
+   "chapters":   [{"at": "e001", "title"}],
+   "outro":      {"seconds","line","recap","cta_top","tail"},
+   "checkpoints":{"transcript-fix": true, "cut-review": true, ...}}  # see mark_checkpoint.py
 
   ENTRY = {"id":  "e014",
            "src": [[112.30, 113.94], [114.21, 115.82]],   # AUTHORITY. Hole = silence removed
@@ -47,6 +48,13 @@ SHAPE
            "overlay": [{"kind","src","pos","scale","at","dur"}]}
 
 Everything but `id` and `src` is optional; `on` defaults to true.
+
+`checkpoints` records that a human/agent decision step (transcript-fix, cut-review, tighten,
+chapters, scenes, sound-cues) has been addressed for this project — set by
+`mark_checkpoint.py`, never inferred. It exists because those steps edit entries in place
+(a reworded `caption.text`, a `scene` added, or deliberately nothing) with no file of their
+own for `run.py` to check the existence of; without an explicit marker "nothing needed
+changing" and "not looked at yet" are indistinguishable from the file alone (issue #148).
 
 WHAT LIVES ELSEWHERE, AND WHY THAT IS STILL ONE SOURCE OF TRUTH
 
@@ -92,7 +100,7 @@ def blank(source=None):
     """An empty timeline — what build_timeline.py starts from."""
     return {"_doc": _DOC, "version": VERSION, "source": source or {},
             "defaults": {"video": {"zoom": 1.0, "anchor": [0.5, 0.30], "layout": "FULL"}},
-            "timeline": [], "spans": [], "chapters": [], "outro": {}}
+            "timeline": [], "spans": [], "chapters": [], "outro": {}, "checkpoints": {}}
 
 
 def load(work):
@@ -106,7 +114,8 @@ def save(work, tl):
     tl = dict(tl)
     tl["_doc"] = _DOC
     tl["version"] = VERSION
-    keys = ("_doc", "version", "source", "defaults", "timeline", "spans", "chapters", "outro")
+    keys = ("_doc", "version", "source", "defaults", "timeline", "spans", "chapters", "outro",
+            "checkpoints")
     ordered = {k: tl[k] for k in keys if k in tl}
     ordered.update({k: v for k, v in tl.items() if k not in ordered})
     with open(path(work), "w", encoding="utf-8") as f:
@@ -132,6 +141,22 @@ def by_id(tl, eid):
         if e.get("id") == eid:
             return e
     return None
+
+
+# --- checkpoints -------------------------------------------------------------------
+
+def checkpoint_done(tl, name):
+    """Whether `name` (a pipeline stage id) was explicitly marked addressed."""
+    return bool((tl.get("checkpoints") or {}).get(name))
+
+
+def mark_checkpoint(work, name):
+    """Record that stage `name` was addressed. Idempotent; used by mark_checkpoint.py."""
+    t = load(work)
+    cps = dict(t.get("checkpoints") or {})
+    cps[name] = True
+    t["checkpoints"] = cps
+    save(work, t)
 
 
 def span_list(entry):

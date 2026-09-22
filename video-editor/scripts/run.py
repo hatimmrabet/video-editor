@@ -17,7 +17,12 @@ A stage is skipped when every path it `makes` exists and is newer than every
 path it `needs`; otherwise it runs (`make`-style). A stage with no `run` is a
 checkpoint: `block:true` halts until its `makes` file exists (a real decision
 the agent/user must make); a checkpoint with no `makes` is advisory - printed,
-never blocking.
+never blocking. A `makes` entry can be a file path, or
+`timeline.json#checkpoints.<id>` - true only once that decision step was
+explicitly marked done (`mark_checkpoint.py`), since editing entries in place
+leaves no file of its own to check (issue #148). A media file (`.mp4`/`.mov`/
+`.mkv`/`.wav`/`.m4a`) in `makes` is verified playable via ffprobe, not just
+present - a killed encoder can leave a file that exists but never finished.
 
 Options:
     --from ID      start at stage ID
@@ -38,9 +43,10 @@ SCRIPTS = os.path.dirname(os.path.abspath(__file__))   # .../video-editor/script
 SKILL = os.path.dirname(SCRIPTS)                        # .../video-editor  (cwd for every stage)
 if SCRIPTS not in _sys.path:
     _sys.path.insert(0, SCRIPTS)
-from lib import config as _config  # noqa: E402
-from lib import rush as _rush      # noqa: E402
-from lib import platform as _plat  # noqa: E402
+from lib import config as _config    # noqa: E402
+from lib import rush as _rush        # noqa: E402
+from lib import platform as _plat    # noqa: E402
+from lib import timeline as _tl      # noqa: E402
 
 
 def die(msg, code=3):
@@ -63,11 +69,40 @@ def load_manifest(world=WORLD):
         return json.load(f)
 
 
+MEDIA_EXT = (".mp4", ".mov", ".mkv", ".wav", ".m4a")
+
+
+def _media_ok(path):
+    """A killed ffmpeg/Remotion process can leave a file that exists (even nonzero size) but
+    is not a playable, complete media file — plain existence can't tell (issue #148).
+    ffprobe reading back a real duration is the only reliable check, and a cheap one: it
+    reads the container header, never decodes a frame."""
+    r = subprocess.run([_plat.FFPROBE, "-v", "error", "-show_entries", "format=duration",
+                       "-of", "csv=p=0", path], capture_output=True, text=True)
+    try:
+        return r.returncode == 0 and float(r.stdout.strip()) > 0
+    except (ValueError, TypeError):
+        return False
+
+
 def _mtime(work, spec, source):
     """Newest mtime behind a needs/makes spec, or None if it doesn't exist yet.
-    A trailing '/' means 'the newest file anywhere under this directory'."""
+    A trailing '/' means 'the newest file anywhere under this directory'. A spec of
+    'timeline.json#checkpoints.<id>' checks CONTENT instead of a file: true only once that
+    step was explicitly marked done (mark_checkpoint.py) — a human/agent decision that edits
+    entries in place has no file of its own to prove it happened, so a checkpoint stage that
+    declared no `makes` could never block (issue #148). It's a fixed marker, not a
+    timestamp: like `entry.on`, a mark isn't invalidated by a later unrelated edit to the
+    same file."""
     if spec == "{source}":
         return os.path.getmtime(source) if source and os.path.exists(source) else None
+    path_part, sep, frag = spec.partition("#")
+    if sep and frag.startswith("checkpoints."):
+        name = frag[len("checkpoints."):]
+        tl_path = os.path.join(work, path_part)
+        if not os.path.exists(tl_path):
+            return None
+        return 1.0 if _tl.checkpoint_done(_tl.load(work), name) else None
     p = os.path.join(work, spec)
     if spec.endswith("/"):
         d = p.rstrip("/\\")
@@ -76,7 +111,11 @@ def _mtime(work, spec, source):
         times = [os.path.getmtime(os.path.join(dp, f))
                  for dp, _, fs in os.walk(d) for f in fs]
         return max(times) if times else None
-    return os.path.getmtime(p) if os.path.exists(p) else None
+    if not os.path.exists(p):
+        return None
+    if p.lower().endswith(MEDIA_EXT) and not _media_ok(p):
+        return None
+    return os.path.getmtime(p)
 
 
 def _exists(work, spec, source):
@@ -205,8 +244,12 @@ def main():
             if dry:
                 continue
             print("-" * 60)
-            print("halted: create %s, then re-run `run.py %s`"
-                  % (", ".join(s["makes"]), argv[0]))
+            if any("#checkpoints." in m for m in s["makes"]):
+                print("halted: address '%s', then `uv run scripts/mark_checkpoint.py %s %s`"
+                      % (s["id"], argv[0], s["id"]))
+            else:
+                print("halted: create %s, then re-run `run.py %s`"
+                      % (", ".join(s["makes"]), argv[0]))
             raise SystemExit(2)
         cmd = subst(s["run"], ctx)
         print(line)
@@ -215,9 +258,6 @@ def main():
             continue
         r = subprocess.run(cmd, cwd=SKILL)
         if r.returncode != 0:
-            if s["id"] == "safe" and r.returncode == 3:
-                die("safe-zone / hook violation - see %s/build/safe-zone-check.jpg"
-                    % argv[0], 1)
             die("stage '%s' failed (exit %d)" % (s["id"], r.returncode), 1)
     print("-" * 60)
     print("done" if not dry else "dry run complete")
