@@ -21,8 +21,13 @@ TSX never has to know that source time exists:
 
   cards    one per active entry, with per-word output timings  (Captions.tsx, stage.ts)
   scenes   one per entry that authored a `scene`               (SceneList.tsx)
+  overlays one per entry's `overlay[]` item, output-resolved   (VideoOverlays.tsx)
   stage    the video-rect schedule, derived from each entry's `video.layout`
   total    the speech duration; `outro` is added on top by theme.ts
+
+`scenes` and `overlays` are always present, even empty — there is no more hand-written
+fallback for either (`Scenes.tsx` was retired, issue #147), so there is nothing left for an
+empty list to silently disable.
 
 WHY THE SCHEDULE CARRIES `gb`. stage.ts sizes a DOWN rect from `gb` — how tall the graphic
 sitting above the captions is. The old resolver (lib/scenes.py) copied only an explicit
@@ -83,7 +88,7 @@ def build(work, remotion_dir, skill_dir):
     defaults = (t.get("defaults") or {}).get("video") or {}
     width, height = video_size(work)
 
-    cards, scenes, stage = [], [], []
+    cards, scenes, overlays, stage = [], [], [], []
     for e in tl.entries(t):
         words = tl.words(t, e)
         start = tl.out_start(t, e)
@@ -132,6 +137,15 @@ def build(work, remotion_dir, skill_dir):
                                       "e": round(w["e"], 3), "hot": w["hot"]} for w in words],
                            "bottom": meta.get("bottom")})
 
+        for ov in (e.get("overlay") or []):
+            ov_at = float(ov.get("at", 0.0))
+            ov_dur = ov.get("dur")
+            o0 = tl.project_rel(t, e, ov_at)
+            o1 = tl.project_rel(t, e, ov_at + float(ov_dur)) if ov_dur is not None else end
+            overlays.append({"s": round(o0, 3), "e": round(o1, 3),
+                              "kind": ov.get("kind", "image"), "src": ov.get("src"),
+                              "pos": ov.get("pos") or [0.5, 0.5], "scale": ov.get("scale", 0.2)})
+
     stage = merge_stage(stage, round(tl.duration(t), 3))
     theme = conf.get("theme", {})
 
@@ -148,18 +162,14 @@ def build(work, remotion_dir, skill_dir):
         "sfx": os.path.exists(os.path.join(work, "build", "sound-effects.wav")),
         "fps": 30,
         "cards": cards,
+        "scenes": scenes,
+        "overlays": overlays,
         "stage": stage,
         "outro_copy": {k: (t.get("outro") or {}).get(k, v) for k, v in
                        (("line", ""), ("recap", []), ("cta_top", ""), ("cta_word", ""), ("tail", ""))},
         "guides": bool(conf.get("guides", False)),
         "transitions": trans.load()["defaults"],
     }
-    # ONLY when there is something to draw. theme.ts does `P.scenes || null` and Ad.tsx
-    # renders <SceneList> whenever that is non-null - an empty array is truthy in JS, so
-    # emitting `"scenes": []` would silently disable the hand-written Scenes.tsx instead of
-    # falling back to it.
-    if scenes:
-        payload["scenes"] = scenes
     return payload
 
 
@@ -191,9 +201,9 @@ def main(argv):
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=1)
-    print("timeline.json -> %.3fs + %.1fs outro  ·  %d card(s), %d scene(s), %d stage span(s)  ·  sfx: %s"
-          % (payload["total"], payload["outro"], len(payload["cards"]),
-             len(payload.get("scenes", [])), len(payload["stage"]), "yes" if payload["sfx"] else "no"))
+    print("timeline.json -> %.3fs + %.1fs outro  ·  %d card(s), %d scene(s), %d overlay(s), %d stage span(s)  ·  sfx: %s"
+          % (payload["total"], payload["outro"], len(payload["cards"]), len(payload["scenes"]),
+             len(payload["overlays"]), len(payload["stage"]), "yes" if payload["sfx"] else "no"))
     return 0
 
 
