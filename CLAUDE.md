@@ -203,6 +203,23 @@ rather than reading it whole.
   and cuts a GitHub Release named from `/VERSION`. To release, bump `VERSION` in the
   `develop → main` PR (idempotent — no bump, no release).
 
+**A branch is one unit of work, and it dies with its PR.** The squash merge that lands a
+branch on `develop` writes a brand-new commit — `develop` never gains the branch's own
+commits, only a flattened copy of their diff. So a branch's history and "the same change,
+already on `develop`" are never the same commit, even seconds after the merge. Keep
+committing to that branch for a second, unrelated piece of work and the next PR's merge-base
+is still the point *before* the first PR, not after it — git replays the first PR's entire
+diff a second time and collides with itself on every file the second piece of work also
+touched. This is exactly what happened on 2026-09-19: PR #152 (from `feat/timeline-state`)
+squash-merged into `develop`, the branch was never deleted, a second round of work landed
+more commits on that same branch, and PR #155 (same branch) hit conflicts on files nobody
+had touched twice — SKILL.md, `lib/timeline.py`, `stage.ts` — purely from replaying #152's
+diff against a `develop` that already had it. **So: once a PR merges, delete its branch
+before starting anything else.** Before adding a commit to a branch that already exists,
+check `gh pr list --state merged --head <branch>` (or that the branch's name matches a
+closed PR) — if it has an already-merged PR, cut a fresh branch from `develop` instead of
+reusing it, even for a closely related follow-up.
+
 `.github/workflows/ci.yml` gates every PR (one job, < 2 min): the static checks
 (`node --check` / `compileall` / `bash -n` / JSON parse / the Remotion lockfile) then the
 existing suite in `video-editor/test/` (the ffmpeg resolver and the motifs in JS; the
