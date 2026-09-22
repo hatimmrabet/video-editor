@@ -16,7 +16,6 @@ material. Its folder becomes the project and gets a `work/` next to the footage:
     <folder>/work/config/logo.*                         <- MOVED if found beside the footage
     <folder>/work/config/project.config.json            <- MOVED if found beside the footage,
                                                            else WRITTEN from the skill defaults
-    <folder>/work/build/{compose,studio}.html           <- copied from the skill
 
 One folder = one project. Without `--apply` nothing is created and nothing moves - it
 only looks and reports.
