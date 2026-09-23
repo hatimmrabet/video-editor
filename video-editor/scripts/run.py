@@ -167,7 +167,7 @@ def main():
     cfg = _config.load(work)
     source = None
     try:
-        source = _rush.find_source(work)   # build/source-joined.mp4 once `join` ran
+        source = _rush.find_source(work)   # build/source-joined.mp4 once `source` ran
     except SystemExit:
         source = None  # a later stage will report it precisely
 

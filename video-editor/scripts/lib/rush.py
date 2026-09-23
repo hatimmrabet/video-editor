@@ -20,8 +20,8 @@ def _root_files(rush):
 def find_source(work):
     """The primary video file.
 
-    - build/source-joined.mp4 (join_takes.py's output) when it exists, so
-      find_silences.py / reframe.py / the audio extract all use the joined recording.
+    - build/source-joined.mp4 (prepare_source.py's output) when it exists, so
+      find_silences.py / the audio extract / the render all use the prepared recording.
     - otherwise: the one file at rush/'s root.
     """
     joined = os.path.join(work, "build", "source-joined.mp4")
@@ -36,7 +36,7 @@ def find_source(work):
 
 
 def find_clips(work):
-    """Every video at rush/'s root, sorted (bg-audio.mp3 excluded) — what join_takes.py
+    """Every video at rush/'s root, sorted (bg-audio.mp3 excluded) — what prepare_source.py
     concatenates into build/source-joined.mp4 when a talk arrives as several takes."""
     rush = _rush_dir(work)
     return [os.path.join(rush, f) for f in _root_files(rush)]
