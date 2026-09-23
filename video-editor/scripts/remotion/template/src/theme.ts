@@ -15,7 +15,7 @@ export const T = {
 /* where the speaker's face sits inside the video card (project.config.json ← crop.faceAnchor,
    default 0.30). remotion.sh writes it into timeline.json. */
 export const FACE_ANCHOR = typeof (P as any).faceAnchor === 'number' ? (P as any).faceAnchor : 0.30;
-/* The composition's own size — remotion.sh reads it off build/video-reframed.mp4, so the
+/* The composition's own size — render_data.py reads it off build/source-joined.mp4, so the
    scene layer follows whatever orientation the source was shot in. 1080x1920 is only a
    fallback for a timeline.json missing width/height (e.g. the CI type-check sample). */
 export const W = typeof (P as any).width  === 'number' ? (P as any).width  : 1080;
@@ -27,6 +27,11 @@ export const DUR_F = Math.round((VEND + OUTRO) * FPS);
 export const HAS_SFX = !!P.sfx;
 export const OUTRO_COPY = P.outro_copy || {recap:[]};
 export const STAGE = P.stage || [{s:0,e:1e9,m:'FULL'}];
+/* The render program: the source spans kept, in output order, each with its own framing —
+   {s, e} source seconds, o its output start, z zoom, a [x,y] anchor, f a CSS filter or null.
+   Resolved by render_data.py; Footage.tsx is the only reader. */
+export type Piece = {s:number; e:number; o:number; z:number; a:[number, number]; f:string|null};
+export const PIECES = (((P as any).pieces as Piece[] | undefined) || []);
 /* The scenes the timeline's entries authored, resolved by render_data.py — always an
    array, possibly empty; SceneList.tsx is the only renderer. */
 export const SCENES = ((P as any).scenes as any[] | undefined) || [];

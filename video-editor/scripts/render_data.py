@@ -9,7 +9,7 @@ except Exception:
     uv run scripts/render_data.py <work> <remotion-dir>
 
 Reads : <work>/timeline.json · config/project.config.json · scripts/motifs/index.json
-        scripts/transitions.json · the rendered video's dimensions
+        scripts/transitions.json · build/source-joined.mp4's dimensions
 Writes: <remotion-dir>/src/timeline.json
 
 This is a BUILD ARTIFACT, not state: remotion.sh regenerates it on every sync and nothing
@@ -19,6 +19,7 @@ overlays + end-card copy that the Remotion project renders from.
 Everything in it is derived from the timeline, with output times already resolved, so the
 TSX never has to know that source time exists:
 
+  pieces   the render program: one per kept source span        (Footage.tsx)
   cards    one per active entry, with per-word output timings  (Captions.tsx, stage.ts)
   scenes   one per entry that authored a `scene`               (SceneList.tsx)
   overlays one per entry's `overlay[]` item, output-resolved   (VideoOverlays.tsx)
@@ -27,6 +28,21 @@ TSX never has to know that source time exists:
 
 `scenes` and `overlays` are always present, even empty: `SceneList.tsx`/`VideoOverlays.tsx`
 are the only renderers for either, so there is no fallback for an empty list to disable.
+
+THE PIECES ARE THE CUT. Remotion reads build/source-joined.mp4 directly and plays each
+piece's source span in its own <Sequence> — one encode, no intermediate video. A piece is
+{s, e} (source seconds), o (its output start), z (zoom), a ([x, y] anchor, 0-1) and f (a CSS
+`filter`, or null):
+
+  z / a  an entry's `video.zoom` / `video.anchor`, else the timeline's `defaults.video`;
+         a zoom stated nowhere falls back to the Z cycle below, indexed by the entry's
+         position, and an anchor to project.config.json's crop.xAnchor / crop.yAnchor.
+         The zoom crops INSIDE the source frame, anchored there — never a different aspect.
+  f      an entry's `video.filter` (a CSS filter), else the opt-in `grade` from
+         project.config.json, else null — the person's image is left alone by default.
+
+Neighbouring pieces that continue the same take with the same treatment are merged: there
+is no cut between them, so there is nothing to seek to and no seam to fade.
 
 WHY THE SCHEDULE CARRIES `gb`. stage.ts sizes a DOWN rect from `gb` — how tall the graphic
 sitting above the captions is. A motif's own declared `bottom` (from the registry) is the
@@ -41,6 +57,10 @@ import sys
 from lib import config as cfg, platform as plat, timeline as tl, transitions as trans
 
 LAYOUT_DEFAULT = "FULL"
+SOURCE = os.path.join("build", "source-joined.mp4")
+# the restless framing a project gets when no zoom is authored anywhere
+Z = [1.00, 1.08, 1.00, 1.06, 1.00, 1.12, 1.04, 1.14, 1.00, 1.08, 1.00, 1.05, 1.10, 1.00]
+GRADE = "brightness(1.015) contrast(1.05) saturate(0.96)"
 
 
 def _read(path, default):
@@ -65,9 +85,10 @@ def motif_registry(skill_dir):
 
 
 def video_size(work, fallback=(1080, 1920)):
-    """The composition's own size, read off the cut video rather than assumed, so a
-    horizontal recording gets a horizontal canvas."""
-    path = os.path.join(work, "build", "video-reframed.mp4")
+    """The composition's own size, read off the source rather than assumed, so a
+    horizontal recording gets a horizontal canvas. Rounded down to even numbers, which
+    h264 requires."""
+    path = os.path.join(work, SOURCE)
     if not os.path.exists(path):
         return fallback
     dims = subprocess.run([plat.ffprobe(), "-v", "error", "-select_streams", "v:0",
@@ -75,9 +96,33 @@ def video_size(work, fallback=(1080, 1920)):
                           capture_output=True, text=True).stdout.strip()
     try:
         w, h = (int(x) for x in dims.split("x")[:2])
-        return w, h
+        return w // 2 * 2, h // 2 * 2
     except Exception:
         return fallback
+
+
+def pieces(t, conf):
+    """The render program with each piece's framing resolved — see the module docstring."""
+    defaults = (t.get("defaults") or {}).get("video") or {}
+    crop = conf.get("crop", {})
+    anchor = [float(crop.get("xAnchor", 0.5)), float(crop.get("yAnchor", 0.30))]
+    grade = GRADE if conf.get("grade", False) else None
+    order = {e["id"]: i for i, e in enumerate(tl.entries(t))}
+    out = []
+    for piece in tl.program(t):
+        e = tl.by_id(t, piece["entry"]) or {}
+        vid = {**defaults, **(e.get("video") or {})}
+        z = float(vid.get("zoom") or Z[order.get(piece["entry"], 0) % len(Z)])
+        a = [float(x) for x in (vid.get("anchor") or anchor)[:2]]
+        f = vid.get("filter") or grade
+        s, en = piece["src"]
+        prev = out[-1] if out else None
+        if prev and abs(prev["e"] - s) < 0.001 and (prev["z"], prev["a"], prev["f"]) == (z, a, f):
+            prev["e"] = round(en, 3)
+            continue
+        out.append({"s": round(s, 3), "e": round(en, 3), "o": round(piece["out"][0], 3),
+                    "z": z, "a": a, "f": f})
+    return out
 
 
 def build(work, remotion_dir, skill_dir):
@@ -160,6 +205,7 @@ def build(work, remotion_dir, skill_dir):
         "outro": float((t.get("outro") or {}).get("seconds", 5.0)),
         "sfx": os.path.exists(os.path.join(work, "build", "sound-effects.wav")),
         "fps": 30,
+        "pieces": pieces(t, conf),
         "cards": cards,
         "scenes": scenes,
         "overlays": overlays,
@@ -200,8 +246,8 @@ def main(argv):
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     with open(dest, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=1)
-    print("timeline.json -> %.3fs + %.1fs outro  ·  %d card(s), %d scene(s), %d overlay(s), %d stage span(s)  ·  sfx: %s"
-          % (payload["total"], payload["outro"], len(payload["cards"]), len(payload["scenes"]),
+    print("timeline.json -> %.3fs + %.1fs outro  ·  %d piece(s), %d card(s), %d scene(s), %d overlay(s), %d stage span(s)  ·  sfx: %s"
+          % (payload["total"], payload["outro"], len(payload["pieces"]), len(payload["cards"]), len(payload["scenes"]),
              len(payload["overlays"]), len(payload["stage"]), "yes" if payload["sfx"] else "no"))
     return 0
 
