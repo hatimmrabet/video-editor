@@ -19,7 +19,7 @@ sync_all(){
   # Structural files: always updated, except what the user edits
   for f in package.json package-lock.json tsconfig.json remotion.config.ts .gitignore README.md; do
     [ -f "$TPL/$f" ] && cp "$TPL/$f" "$R/$f"; done
-  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts capPages.ts util.tsx Chrome.tsx Captions.tsx Background.tsx VideoOverlays.tsx Outro.tsx Guides.tsx Grid.tsx SceneList.tsx; do
+  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts capPages.ts util.tsx Chrome.tsx Captions.tsx Background.tsx VideoOverlays.tsx Outro.tsx Guides.tsx Grid.tsx SceneList.tsx Footage.tsx; do
     cp "$TPL/src/$f" "$R/src/$f"; done
   # Motifs: the shared per-engine components — always refreshed
   mkdir -p "$R/src/motifs"
@@ -39,7 +39,14 @@ print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
     cp "$W/config/images/"* "$R/public/images/" 2>/dev/null || true
   fi
   "${VEVO_PY[@]}" "$VEVO_SKILL_DIR/scripts/render_data.py" "$W" "$R" || return 1
-  [ -f "$W/build/video-reframed.mp4" ] && cp "$W/build/video-reframed.mp4" "$R/public/video.mp4"
+  # The source itself, uncut — Footage.tsx plays each kept span straight out of it. A hard
+  # link, not a copy: a long recording is gigabytes, and every sync would duplicate it.
+  SRC="$W/build/source-joined.mp4"
+  [ -f "$SRC" ] || { echo "❌ no $SRC — run prepare_source.py first"; return 1; }
+  if ! [ "$SRC" -ef "$R/public/video.mp4" ]; then
+    rm -f "$R/public/video.mp4"
+    ln "$SRC" "$R/public/video.mp4" 2>/dev/null || cp "$SRC" "$R/public/video.mp4"
+  fi
   [ -f "$W/build/sound-effects.wav" ]  && cp "$W/build/sound-effects.wav"  "$R/public/sfx.wav"
   [ -f "$R/public/logo.png" ] || echo "⚠️  no logo found at $W — put config/logo.png (the video still renders, without the mark)"
   echo "✅ data and assets updated at $R"

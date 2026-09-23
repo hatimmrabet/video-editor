@@ -49,7 +49,7 @@ place something relative to the frame — see "Orientation" below.
 
 ## Orientation
 
-The composition is not always 1080×1920 — `reframe.py` keeps the source's own orientation,
+The composition is not always 1080×1920 — it takes the source's own size (`render_data.py`),
 so a horizontal recording renders at whatever width/height it was shot in. Every motif is
 designed against the 1080×1920 canvas, so one with absolute pixel positions imports `W`/`H`
 from `../theme` and scales:

@@ -44,7 +44,7 @@ BG_AUDIO = "bg-audio.mp3"
 OK, TOOLS, DECIDE, EMPTY = 0, 10, 20, 30
 
 LONG_SECONDS = 180.0        # beyond this, note that the recording is a long one
-MIN_WIDTH = 1080            # below this the reframe zoom has almost no room
+MIN_WIDTH = 1080            # below this the per-entry zoom has almost no room
 
 
 # --------------------------------- toolchain ------------------------------

@@ -118,6 +118,7 @@ bash scripts/setup.sh              # report only
 bash scripts/setup.sh --install    # install + sync
 
 # reel pipeline (SKILL.md has the full order + the manual steps)
+uv run scripts/prepare_source.py <work>            # rush/ take(s) -> build/source-joined.mp4 (stream copy, bt709)
 uv run scripts/find_silences.py <work>             # measures silence -> build/silences.json
 uv run scripts/transcribe.py <work> --language ar-MA   # -> build/transcript-raw.json (model auto-picks)
 uv run scripts/build_timeline.py <work>            # the two measurements -> <work>/timeline.json
@@ -130,7 +131,6 @@ uv run scripts/cut_entries.py <work> drop e007     # `on: false`; `restore` puts
 uv run scripts/mark_checkpoint.py <work> cut-review
 uv run scripts/tighten.py <work>                   # propose word-level cuts; `apply` commits them
 uv run scripts/mark_checkpoint.py <work> tighten
-uv run scripts/reframe.py <work>                   # applies the montage -> build/video-reframed.mp4
 bash  scripts/master_audio.sh <work> <work>/build/video-raw.mp4 <work>/video-final.mp4
 
 # rendering — Remotion, the only engine. Every command installs the toolchain on first use
@@ -149,16 +149,18 @@ rather than reading it whole.
 ## Architecture essentials
 
 - **One pipeline, nothing to choose.** The input is a recording of someone talking — one
-  file, or several takes of the same talk, which `join_takes.py` concatenates. There is no
-  format key, no aspect-ratio question and no second mode: `reframe.py` reads the source's
+  file, or several takes of the same talk, which `prepare_source.py` concatenates. There is no
+  format key, no aspect-ratio question and no second mode: `render_data.py` reads the source's
   own dimensions, so the output keeps the orientation it was shot in. Assembling unrelated
   clips into a montage is explicitly out of scope; the speech drives every decision here,
   so footage without it has nothing to edit.
 - **One rendering engine: Remotion.** `remotion.sh` builds `<work>/remotion/` from
   `scripts/remotion/template/` plus one generated data file — `render_data.py` flattens
   `timeline.json` + `project.config.json` into `<work>/remotion/src/timeline.json`, with
-  output times already resolved — alongside `video-reframed.mp4` and `sound-effects.wav`,
-  then renders with `npx remotion render`.
+  output times already resolved — alongside `build/source-joined.mp4` (hard-linked, uncut)
+  and `sound-effects.wav`, then renders with `npx remotion render`. **The render is the only
+  encode**: `Footage.tsx` plays each kept `src` span straight out of the source in its own
+  `<Sequence>`, with the entry's zoom/anchor as CSS — there is no intermediate cut video.
   There is no second engine and no `engine` config key — each motif has exactly one
   implementation to keep correct, not several hand-written mirrors that can quietly
   disagree.
@@ -207,8 +209,8 @@ rather than reading it whole.
   before a render, so never merge scene or motif changes past a red type-check.
 - **No hardcoded colors in scene code** — everything derives from `project.config.json`'s
   `theme` block through `theme.ts` (`T`) and the `util.tsx` helpers (`rgba`, `onACC`).
-- **No color grade / filter over the person's video** by default (`reframe.py` only
-  re-tags to bt709). `grade` is opt-in.
+- **No color grade / filter over the person's video** by default (`prepare_source.py` only
+  re-tags to bt709, stream copy). `grade` is opt-in.
 - **Never add ffmpeg `drawtext`** to any script — it is missing from many ffmpeg builds
   and fails silently. Burn text labels with Python/PIL (`contact_sheet.sh`,
   `contact_sheet.sh` does this).

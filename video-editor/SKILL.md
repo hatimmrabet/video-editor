@@ -223,7 +223,7 @@ on if they explicitly ask, or complain the image looks cold / washed out, and sa
 you do.
 
 `crop`'s defaults (0.5 / 0.30 / 0.30) suit almost every video — only revisit `xAnchor` /
-`faceAnchor` after previewing a frame, if the speaker turns out off-centre (step 7).
+`faceAnchor` after previewing a frame, if the speaker turns out off-centre (step 9).
 **Don't ask about the account badge** — `theme.badgeUntil` is 0, and it only ever changes
 if the creator asks for it on one video (step 8).
 
@@ -414,7 +414,8 @@ uv run scripts/cut_entries.py <work> restore e006      # put one back
 
 **This can happen in any order relative to scene design.** A scene belongs to its own
 entry and is timed relative to it, so cutting a sentence elsewhere cannot move it. After
-any cut, re-run `reframe.py` and re-render — that is all.
+any cut, re-render — that is all: the render cuts the source itself, straight from
+`timeline.json`.
 
 Then, whether or not anything was cut:
 ```bash
@@ -462,15 +463,19 @@ Whether or not you proposed any:
 uv run scripts/mark_checkpoint.py <work> chapters
 ```
 
-### 9) Cut and assemble
+### 9) Check the framing
+There is no assembly step: the render reads `build/source-joined.mp4` directly and plays
+each entry's `src` spans in order — one encode, no intermediate video. **The output keeps
+the source's orientation and size** — nothing is cropped to a different aspect. An entry's
+`video.zoom` crops *inside* the frame, anchored at `video.anchor` ([x, y], 0 = left/top ·
+0.5 = centre · 1 = right/bottom); what an entry does not state falls back to the timeline's
+`defaults.video`, then to `crop.xAnchor` / `crop.yAnchor` in `project.config.json`. Preview
+a few frames before continuing, as one sheet:
 ```bash
-uv run scripts/reframe.py <work>
+bash scripts/remotion/remotion.sh <work> still 4.6 20.1
+bash scripts/contact_sheet.sh <work> <work>/build/contact-sheet.jpg 4.6 20.1
 ```
-Applies the cut plan: the kept segments are trimmed, concatenated, and given a different
-gentle zoom each. **The output keeps the source's orientation and size** — nothing is
-cropped to a different aspect. The per-segment zoom crops *inside* the frame; if the
-speaker sits off-centre, set `crop.xAnchor` / `crop.yAnchor` in `project.config.json`
-(0 = left/top · 0.5 = centre · 1 = right/bottom). Preview one frame before continuing.
+If the speaker sits off-centre, set the anchor and look again.
 
 ### 10) Design the scenes and the on-screen captions ← the most important step
 Scenes are data, authored directly on the entry in `timeline.json` — there is no scene
@@ -783,9 +788,8 @@ for the post caption). And mention that you didn't publish anything.
 | `sync_captions.py` | re-spaces the words of the sentences you reworded, and only those | shared |
 | `cut_entries.py` | switch a sentence off (`on: false`) or back on — repeats, tangents, whole drops | shared |
 | `tighten.py` | jump-cut + filler pass (word-level cuts) | talking video |
-| `reframe.py` | applies the montage: trim + concat + per-sentence zoom + bt709 tag, in the source's own size | talking video |
-| `join_takes.py` | joins the `rush/` recording take(s) → `build/source-joined.mp4` | talking video |
-| `render_data.py` | flattens `timeline.json` into the single file Remotion renders from | shared |
+| `prepare_source.py` | joins the `rush/` recording take(s) and tags them bt709, stream copy → `build/source-joined.mp4` | talking video |
+| `render_data.py` | flattens `timeline.json` into the single file Remotion renders from — including the pieces of source to play, with their zoom | shared |
 | `remotion/remotion.sh` | the renderer — `sync` · `studio` · `render` · `still` · `check` | shared |
 | `sound_fx.py` | the sound bed, from each entry's `sfx` cues | shared |
 | `master_audio.sh` | −14 LUFS + ducked background audio | shared |
