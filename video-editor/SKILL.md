@@ -323,7 +323,7 @@ uv run scripts/build_timeline.py <work>
 uv run scripts/settle_cuts.py <work>
 ```
 `build_timeline.py` crosses the silences with the transcript into **`<work>/timeline.json`** —
-one entry per spoken sentence, each carrying the source spans kept for it and its words.
+one segment per spoken sentence, read top to bottom like the script of the finished video.
 **From here on, that one file is the montage**: the cuts, the captions, the scenes, the
 sound cues, the chapters. Nothing else holds editing state. Then `settle_cuts.py` nudges
 every cut-in onto the first sharp, still frame, so a line never starts blurred or
@@ -331,36 +331,27 @@ mid-reposition; it only ever eats into the lead-in pad, never a spoken word.
 
 Tell them how much was removed: "Removed 52 seconds of dead air — the video is 46 now, not 98."
 
-An entry looks like this, and everything about it is local to it:
+A segment looks like this, and everything about it is local to it:
 ```jsonc
-{ "id": "e014",
-  "src": [[112.30, 113.94], [114.21, 115.82]],   // what is kept, in SOURCE seconds
-  "on": true,                                     // false = cut, still readable, reversible
-  "caption": { "text": "...", "words": [{"t": "...", "src": [112.30, 112.52]}] } }
+{ "source": "1:52.3-1:55.82",     // what is kept, a readable range in SOURCE time
+  "text": "..." }                 // edit this to reword it — nothing else to touch
 ```
-Anything you author later on an entry — a scene, a sound cue — is timed **relative to that
-entry**. Output times are never written down: they are the running sum of the active
-entries. That is why nothing in the next steps can knock anything else out of sync.
+**There are no ids.** A tool that needs to name one segment addresses it by its LINE
+NUMBER — its position in the file, exactly as `cut_entries.py show` prints it (see step 6).
+**Word timings are never stored.** They are computed fresh, every time, by matching `text`'s
+own words against the real transcript — so a rewording can never leave a stale timing behind,
+and there is nothing to re-space by hand.
 
-**5b — correct the whole transcript.** Read the entries end to end. For
+**5b — correct the whole transcript.** Read the segments end to end. For
 every sentence: if it is garbled, first try to recover what was actually said; if you
 cannot, **reword it so it reads correctly and means what they were saying**, in the
 video's own language and register — darija stays darija, same level of speech. Do **not**
 switch to Modern Standard Arabic or another language unless the user explicitly asked for
-the captions in that language. Edit that entry's `caption.text` **in `timeline.json`
-itself** — there is no separate fixes file, and no "one entry per Whisper segment" contract
-to satisfy.
+the captions in that language. Edit that segment's `text` **in `timeline.json` itself** —
+there is nothing else to touch, and no separate fixes file to satisfy.
 
-Then re-space the words of whatever you reworded:
-```bash
-uv run scripts/sync_captions.py <work>
-```
-It only touches sentences whose `text` no longer matches their `words`, so Whisper's real
-per-word timings survive everywhere you did not rewrite. A re-spaced sentence has invented
-word timings — only its start and end are real — so prefer recovering what was said over
-rewriting it.
-
-- `"hot": true` on a word = held in the accent pill when spoken.
+- `*word*` (or `*several words*`) in `text` = held in the accent pill when spoken. Keep the
+  markers when you reword a sentence that had one, unless the word itself is gone.
 - **This is not a line-by-line session with the user.** Do it yourself, then show a short
   summary: "23 sentences · 6 reworded (Whisper had them garbled) · the rest as spoken".
 
@@ -374,18 +365,19 @@ uv run scripts/mark_checkpoint.py <work> transcript-fix
 
 **One step, you do both parts before showing anything.**
 
-**6a — cut the repeats and false starts yourself, first.** Read the entries end to end.
+**6a — cut the repeats and false starts yourself, first.** Read the segments end to end.
 The creator often restarts an idea — stops after 3 words, tries again at 5, gets it right
 at 9 — no two attempts the same length. Find every one of these, and **treat the LAST
 attempt as the real source** of what gets shown. There is no detection script for this: you
 decide, from the text and its timing, exactly like you're doing when you read a transcript
 in conversation.
 
-Switch those entries off — set `"on": false` and a `"why"` directly in `timeline.json`, or:
+Switch those segments off — set `"on": false` and a `"why"` directly in `timeline.json`, or:
 ```bash
-uv run scripts/cut_entries.py <work> drop e007 e012 --why "restarted 3x, kept the last"
+uv run scripts/cut_entries.py <work> drop 7 12 --why "restarted 3x, kept the last"
 ```
-Nothing is deleted: the entry stays in the file with its text, and `restore` puts it back.
+Nothing is deleted: the segment stays in the file with its text, and `restore` puts it back.
+There are no ids — `7`/`12` are LINE NUMBERS, the segment's position as `show` prints it.
 
 **Don't show this list before cutting.** Apply it, then fold it into the recap at the end
 of this step (before/after text, how much shorter). Most passages are clear-cut — decide
@@ -393,29 +385,30 @@ and move on.
 
 **Genuinely unsure whether a passage is a repeat or real content?** That's the one time to
 stop and ask — and when you do, hand over everything needed to check it in seconds: the
-exact ids of both passages, their exact text, and why you're unsure. Never guess on a real
-doubt, and never make the user go hunting for what you're asking about.
+exact line numbers of both passages, their exact text, and why you're unsure. Never guess
+on a real doubt, and never make the user go hunting for what you're asking about.
 
 **6b — then, and only then, the creator's own edits.**
 ```bash
 uv run scripts/cut_entries.py <work> show
 ```
-Prints the now-clean speech, one id per line, and writes `build/transcript-editable.txt`.
-**Show them the list in the chat and say: "What do you want me to remove?"** — this part
-*is* shown before cutting, because dropping a whole sentence (a tangent, a point that
-didn't land) is the creator's call, not yours. `dupes` still flags any two whole sentences
-that rephrase each other, in case one slipped through 6a:
+Prints the now-clean speech, one numbered line per sentence, and writes
+`build/transcript-editable.txt`. **Show them the list in the chat and say: "What do you want
+me to remove?"** — this part *is* shown before cutting, because dropping a whole sentence (a
+tangent, a point that didn't land) is the creator's call, not yours. `dupes` still flags any
+two whole sentences that rephrase each other, in case one slipped through 6a:
 ```bash
 uv run scripts/cut_entries.py <work> dupes
-uv run scripts/cut_entries.py <work> drop e006 e008    # out of the video and the audio
-uv run scripts/cut_entries.py <work> keep e001 e002    # keep only these (a shortened cut)
-uv run scripts/cut_entries.py <work> restore e006      # put one back
+uv run scripts/cut_entries.py <work> drop 6 8     # out of the video and the audio
+uv run scripts/cut_entries.py <work> keep 1 2     # keep only these (a shortened cut)
+uv run scripts/cut_entries.py <work> restore 6    # put one back
 ```
 
-**This can happen in any order relative to scene design.** A scene belongs to its own
-entry and is timed relative to it, so cutting a sentence elsewhere cannot move it. After
-any cut, re-render — that is all: the render cuts the source itself, straight from
-`timeline.json`.
+**This can happen in any order relative to scene design.** A scene lives as long as its own
+segment, so cutting a sentence elsewhere cannot move it. After any cut, re-render — that is
+all: the render cuts the source itself, straight from `timeline.json`. **Cutting and
+restoring never change anyone's line number** (only `on` flips); the one thing that does is
+`split` (step 10) — re-run `show` before targeting a line past a split you just made.
 
 Then, whether or not anything was cut:
 ```bash
@@ -447,14 +440,13 @@ uv run scripts/mark_checkpoint.py <work> tighten
 
 ### 8) Chapters — only worth proposing on a long recording
 Read the corrected transcript and **propose 3–8 chapter breaks** — the topic shifts, keyed
-to a sentence. After they confirm, add them to `timeline.json`'s `chapters`:
-```json
-[ { "at": "e001", "title": "Intro" },
-  { "at": "e034", "title": "The three mistakes" } ]
+to a sentence. After they confirm, give the segment where each one starts a `chapter` field:
+```jsonc
+{ "source": "0:00.6-0:04.1", "text": "...", "chapter": "Intro" }
 ```
-`at` is an **entry id**, not a number — so cutting a sentence can never silently move a
-chapter or drop it. Optional, and pointless under a few minutes: no chapters means no
-markers. With them,
+The segment itself is the anchor — no id, no separate list — so cutting a sentence
+elsewhere can never silently move a chapter or drop it. Optional, and pointless under a few
+minutes: no chapters means no markers. With them,
 `subtitles.py` also writes `video-final.chapters.txt` (the first is forced to `00:00`) —
 the list to paste into a YouTube description.
 
@@ -463,137 +455,113 @@ Whether or not you proposed any:
 uv run scripts/mark_checkpoint.py <work> chapters
 ```
 
-### 9) Check the framing
-There is no assembly step: the render reads `build/source-joined.mp4` directly and plays
-each entry's `src` spans in order — one encode, no intermediate video. **The output keeps
-the source's orientation and size** — nothing is cropped to a different aspect. An entry's
-`video.zoom` crops *inside* the frame, anchored at `video.anchor` ([x, y], 0 = left/top ·
-0.5 = centre · 1 = right/bottom); what an entry does not state falls back to the timeline's
-`defaults.video`, then to `crop.xAnchor` / `crop.yAnchor` in `project.config.json`. Preview
-a few frames before continuing, as one sheet:
+### 9) Measure the framing, check it
+```bash
+uv run scripts/find_face.py <work>
+```
+Measures where the speaker's face is across the whole recording (a face detector, sampled
+twice a second, smoothed) into `build/framing.json` — a measurement, like the silences and
+the transcript: nothing ever edits it. At render time, each layout aims for its own face
+target (how big, how centred) and the render derives the zoom/anchor that gets the MEASURED
+face there — there is nothing to configure. **The output keeps the source's orientation and
+size** — nothing is cropped to a different aspect; the zoom crops *inside* the frame.
+
+A segment's own hand-set `zoom`/`anchor` ([x, y] fraction of the source frame) overrides the
+measurement outright — reach for it only when a shot needs something the automatic framing
+gets wrong (two people in frame, a deliberate off-centre composition). Preview a few frames
+before continuing, as one sheet:
 ```bash
 bash scripts/remotion/remotion.sh <work> still 4.6 20.1
 bash scripts/contact_sheet.sh <work> <work>/build/contact-sheet.jpg 4.6 20.1
 ```
-If the speaker sits off-centre, set the anchor and look again.
+If a shot is framed wrong and it is not a detection fluke (check the sheet, and
+`build/framing.json`'s numbers around that timestamp), set that segment's `zoom`/`anchor` by
+hand and look again.
 
 ### 10) Design the scenes and the on-screen captions ← the most important step
-Scenes are data, authored directly on the entry in `timeline.json` — there is no scene
-code to write or file to open. Give an entry a `scene` (dispatched by `SceneList.tsx`):
+Scenes are data, authored directly on the segment in `timeline.json` — there is no scene code
+to write or file to open. A segment can carry a layout, a filter, a transition into it and a
+scene:
 
 ```jsonc
-{ "id": "e014", "...": "...",
-  "video": { "layout": "DOWN" },
-  "scene": { "motif": "stamp", "params": { "text": "3 etapes" }, "at": 0.3, "dur": 2.4 } }
+{ "source": "...", "text": "...",
+  "layout": "SPLIT", "transition": "WIPE", "filter": "BLACK_AND_WHITE",
+  "scene": { "type": "STAMP", "params": { "text": "3 etapes" } } }
 ```
-`at`/`dur` are relative to the entry, and motif names come from `scripts/motifs/index.json`.
+**The layout alone decides where the face, the caption and the scene sit** — not something to
+reason about by hand. `SPLIT`/`LOWER` move the caption onto the seam between the graphic and
+the face instead of leaving it at the bottom, and aim the crop at a smaller, lower face so it
+never lands under the graphic; `FULL` keeps the face large and the caption at the bottom. Read
+the layout's own file for the picture it aims for — never author an x/y yourself.
 
-For a logo/badge riding the video itself rather than a graphic above it, give the entry an
+**A scene lives as long as its own segment** — there is no `at`/`dur` to place it inside the
+sentence any more. To put a scene (or a layout, or a filter) on only PART of a sentence,
+split the sentence there first, so each half is its own segment with its own look:
+```bash
+uv run scripts/cut_entries.py <work> split 4 "word"   # line 4 splits just before "word"
+```
+It prints the two new lines and their text; nothing else carries over to either half — author
+the layout/scene/filter/sfx/overlay/chapter fresh on whichever half needs them. Every line
+after the one you split shifted by one: re-run `show` before targeting them.
+
+Each of `layout`/`transition`/`scene.type`/`filter` takes an UPPERCASE keyword, written bare
+(every default) or as `{ "type": KEYWORD, ...parameters }`.
+
+**Never write a keyword or a parameter from memory, and never from this file.** What each key
+accepts is defined in code, one folder per key. Every option is a file named after its keyword;
+the file says what it does, when to choose it and which parameters it takes, with their defaults
+and ranges. List the folder, read the files that fit what is being said, then choose:
+
+| You are writing | The valid values are the files in |
+|---|---|
+| `layout` | `scripts/remotion/template/src/layouts/` |
+| `transition` — the change INTO this segment — and its `easing` | `scripts/remotion/template/src/transitions/` |
+| `scene.type` and `scene.params` | `scripts/remotion/template/src/scenes/` |
+| `filter` | `scripts/remotion/template/src/filters/` |
+| `sfx[]` (step 11) | `scripts/sounds/` |
+
+A keyword or a parameter that does not exist, or a value out of range, stops `remotion.sh` as
+soon as it has built the render data, saying where (a line number) and which choices are
+accepted. Read the message and correct the timeline — do not guess again.
+
+For a logo/badge riding the video itself rather than a graphic above it, give the segment an
 `overlay` instead (drawn by `VideoOverlays.tsx`, clipped to the video's own rect so it
-follows `R_FULL`/`R_DOWN`/`R_LOWER` automatically):
+follows the layout automatically, for as long as the segment lasts):
 
 ```jsonc
-{ "overlay": [{ "kind": "image", "src": "logo-brand.png", "pos": [0.85, 0.12],
-                "scale": 0.14, "at": 0.0, "dur": 3.0 }] }
+{ "overlay": [{ "src": "logo-brand.png", "pos": [0.85, 0.12], "scale": 0.14 }] }
 ```
-`src` is a filename resolved the same way `image-card`'s `params.src` is (further down in
+`src` is a filename resolved the same way an `IMAGE_CARD`'s `params.src` is (further down in
 this step) — a file you place in `<work>/config/images/`. `pos` is a fraction of the video
 card's own box (`[0,0]` top-left, `[1,1]` bottom-right), `scale` a fraction of its width.
 
 Type-check before rendering: `remotion/remotion.sh <work> check`.
 
-**The structure is ready, don't touch it:** shrinking the video into a card (`R_FULL` /
-`R_DOWN` / `R_LOWER` with a smooth transition), the account badge, the caption cards with
-the spoken word highlighted (shown a page — at most 2 lines — at a time, never the whole
-sentence), the end card, and deriving the colors from the theme. There is no progress bar.
+**The structure is ready, don't touch it:** the layouts and the transitions between them, the
+account badge, the caption cards with the spoken word highlighted (shown a page — at most 2
+lines — at a time, never the whole sentence), the end card, and deriving the colors from the
+theme. There is no progress bar.
 
-**What you invent:** the scenes. Brainstorm 3–4 ideas per sentence; the idea must be a
-**visual metaphor for what's being said**, not decoration:
+**What you invent:** the scenes. The idea must be a **visual metaphor for what is being said**,
+not decoration. Each scene's file says what it is for: read them, pick per sentence, and don't
+paste the same scene onto every video. A scene that fits nothing being said is worse than none —
+**the panel comes for the idea, not to fill.** Each layout's file also says how often and how long
+it may be used: respect it.
 
-| Says | Scene |
-|---|---|
-| counts things off | cards enter one per word, then flip with a checkmark |
-| a number or a price | a counter rolls and lands on the number with a beat |
-| "transcribe my words" | a transcript panel, each word dropping in on its line and timing |
-| "broke / an error" | a glitch that displaces the image slices + cracks |
-| a technical problem | the video card goes black with a warning mark over it |
-| a fix | a progress bar + a list checking itself off |
-| "one file" | a file card, and chips flying in and merging into it |
-| a call to comment | a comment box, and the word typing itself letter by letter |
-| names a real tool / brand / app / place / person | `image-card` — their actual logo or a real screenshot |
-
-Each scene function takes `t` and draws based on the word timing the renderer resolved from
-`timeline.json` — the scene sticks to the word, not to an approximate time.
-
-**`image-card` is on you to fill, not the user.** When a sentence names something that has
+**`IMAGE_CARD` is on you to fill, not the user.** When a sentence names something that has
 a real visual (a product, a brand, a website, a public figure), go get the real thing the
 same way you'd invent any other scene — don't ask the user for a file and don't wait for one:
 search the web for it (`WebSearch`/`WebFetch`, or the `media-use` skill, which already
 resolves logos/icons/screenshots to a frozen local file), download it into
-`<work>/config/images/<file>.png`, then reference it as that entry's
+`<work>/config/images/<file>.png`, then reference it as that segment's
 `scene.params.src: "<file>.png"`. If nothing suitable turns up, fall back to a different
-scene idea from the table above instead of leaving a broken reference.
+scene idea instead of leaving a broken reference.
 
 **No account badge over the video** (`theme.badgeUntil: 0` — the default): the name is on
 the platform itself and on the end card, and the top of the screen is space for the
 graphics. If someone asks for it, set `theme.badgeUntil: 3` in that project's
 `config/project.config.json` — it puts the badge in the first 3 seconds only. A rare,
 per-project exception, not something to ask about (see step 2).
-
-**Layout rule (user-approved — do not break it):**
-
-| Moment | Rectangle | Shape |
-|---|---|---|
-| speech, no graphic | `R_FULL` | face fills the screen, caption below at 1560 |
-| any graphic or motion | `R_DOWN` (default) | **graphic on top (y 280–520) ← caption riding the video's edge ← face below, full screen width** |
-| B-roll or a big panel | `R_LOWER` | the big card on top ← caption ← small face below |
-| pure motion graphic, no face needed | `video.layout: "HIDDEN"` | full-screen ambient background (`Background.tsx`, theme-driven, not a scene you author) ← the `scene` motif draws on top ← caption still at 1560. Voice keeps playing — only the face is gone |
-
-**Why:** a middle-of-screen layout (video in the middle, graphic above the head, caption
-below) creates three separated focus points and the viewer gets lost.
-
-**Three details that matter:**
-1. **The video is the full screen width, no margins, no rounded corners** — the face comes
-   out one and a half times bigger than in the narrow card. The cost: the top and bottom
-   edges of the frame get cropped, and that's acceptable because the face is what matters.
-2. **The caption rides the video's edge** (42% of its height above the edge, 58% below) —
-   it ties the two halves of the screen together so they don't look like two stuck-on pieces.
-3. **A faint background grid** every 60px at 7.5% opacity — gives depth without pulling the
-   eye (`theme.grid:false` in `project.config.json` turns it off).
-
-**Don't overuse `R_DOWN`.** It's the default for graphic moments, not for the whole video:
-- **The hook (first 3–4 seconds) is always full-screen** — their whole face, no panel
-  pulling the eye.
-- Any sentence with a **peak, an emotion, or a question to the viewer** → full-screen, let
-  them see their eyes.
-- **Never exceed half the video's duration** in `R_DOWN`, and never leave it continuous
-  for more than **8 seconds** without a full-screen shot in between — otherwise the video
-  becomes a static panel with a small face under it.
-- No graphic at this moment? Then full-screen. **The panel comes for the idea, not to fill.**
-
-**`HIDDEN` is rarer still than `R_DOWN`.** It drops the face entirely, so the same
-"never more than 8 seconds without a full-screen shot" rule applies at least as hard — use
-it for one dense, data-heavy beat (a stat, a list, a price) that a motion graphic explains
-better than a talking head, not as a default look for the whole video. It always needs a
-`scene` motif on top (a bare `HIDDEN` span with nothing drawn over the ambient background is
-a video with no video and no point).
-
-**"Full screen" is defined by area, not by corners** (`isFull()`): `R_DOWN` now has no
-rounded corners, like `R_FULL`, so any old check that relies on `r` is fooled and triggers
-"speech behind the person" at a moment that isn't full-screen. With `R_DOWN` the eye
-travels in one line top to bottom. **And the card is flexible:** it shrinks in proportion
-(9:16) based on the graphic's bottom (`gb` per scene, e.g. `{s,e,m:R_DOWN,gb:480}`) and
-the number of caption lines at that moment, so the graphic and the caption never crowd
-each other. Panels are drawn at coordinates `130..950 × 278..458` inside `panelIn()` and
-they scale to 1.2 on their own.
-
-**"Explanation on top, video below" mode (`R_LOWER`)** — for B-roll and big panels: the
-video moves to the bottom and fills the lower screen (the speaker's head gets cropped a
-little from the top, which is intentional and visually acceptable), and the panels and
-caption all sit above it. **This mode deliberately enters the Instagram belt** — and it's
-allowed, because what's covered is image, not text. Use it when the panel is large
-(lists, comparisons, tables) and the top half isn't enough. The caption moves above the
-video card automatically in this mode.
 
 **Safe zone — Instagram covers the screen edges with its buttons:**
 
@@ -615,7 +583,7 @@ bash scripts/contact_sheet.sh <work> <work>/build/contact-sheet.jpg 4.6 12.3 27.
 ```
 
 **Asked to edit it themselves?** Open the live timeline — it reads the same `timeline.json`,
-so nothing needs regenerating first:
+compiled into what Remotion actually renders on the way in, so there is no separate step:
 ```bash
 bash scripts/remotion/remotion.sh <work> studio           # a live timeline in the browser
 ```
@@ -629,14 +597,17 @@ uv run scripts/mark_checkpoint.py <work> scenes
 ```
 
 ### 11) Sound effects
-Give the entries that want one an `sfx` list, in `timeline.json`:
+Give the segments that want one an `sfx` list, in `timeline.json` — always plays at that
+segment's own start:
 ```jsonc
-{ "id": "e014", "...": "...",
-  "sfx": [ { "cue": "whoosh_up", "at": 0.0 } ] }   // `at` is relative to this entry
+{ "source": "...", "text": "...", "sfx": ["WHOOSH_UP"] }
 ```
-Cues: `whoosh_up` · `whoosh_down` · `thud` · `tap`. The end card's length is
-`outro.seconds` at the top level. Because a cue belongs to its sentence, it stays glued to
-it whatever gets cut elsewhere.
+A cue is an UPPERCASE keyword and, like every choice in step 10, is never written from memory:
+the cues are the files in `scripts/sounds/`, each saying what it is for. `sound_fx.py` stops on
+one that does not exist and lists the accepted ones. The end card's length is `outro.seconds`
+at the top level. Because a cue belongs to its sentence, it stays glued to it whatever gets cut
+elsewhere — a cue mid-sentence means splitting the sentence there first (step 10), not an
+offset inside this list.
 ```bash
 uv run scripts/sound_fx.py <work>
 ```
@@ -699,8 +670,8 @@ Produces `<work>/video-final.srt` (YouTube and LinkedIn read it) and
 8. **Call it a "background audio file"** — not "music". The user decides its content (a
    human voice, ambience, or anything), and you name it by its neutral form and put it in
    `rush/bg-audio.mp3`.
-9. **Invent new scenes every time.** The brainstorm table in step 10 is a starting point,
-   not a template to copy verbatim onto every video.
+9. **Choose scenes afresh every time.** The scenes in `scenes/` are a palette, not a template
+   to copy verbatim onto every video.
 
 ---
 
@@ -721,8 +692,8 @@ Produces `<work>/video-final.srt` (YouTube and LinkedIn read it) and
 ffmpeg -v error -i <work>/video-final.mp4 -vn -ac 1 -ar 16000 -y <work>/build/fa.wav
 uv run scripts/transcribe.py <work> --language <LANG> --model medium --wav <work>/build/fa.wav --out <work>/build/fa.json
 ```
-Compare the sentence starts of `build/fa.json` to the entry starts in `timeline.json`
-(`video-final.srt`, written by `subtitles.py` from the same entries, is the easiest side to
+Compare the sentence starts of `build/fa.json` to the segment starts in `timeline.json`
+(`video-final.srt`, written by `subtitles.py` from the same segments, is the easiest side to
 read).
 2. **Audio** — after `master_audio.sh` it prints the final loudness: it must be ≈ −14 LUFS
    with a peak of −1.5 dBTP or lower.
@@ -774,27 +745,28 @@ for the post caption). And mention that you didn't publish anything.
 | | Does what | Engine |
 |---|---|---|
 | `setup.sh` | installs ffmpeg/Node/uv (system), then `uv sync` + `npm ci` (isolated) | shared |
-| `lib/platform.sh` · `lib/platform.js` | cross-platform helpers (paths · `VEVO_PY` · browser · OS) | shared |
-| `lib/config.py` · `lib/config.js` | reads/merges `project.config.json` | shared |
+| `lib/platform.sh` · `lib/platform.py` | cross-platform helpers (paths · `VEVO_PY` · ffmpeg · OS) | shared |
+| `lib/config.py` | reads/merges `project.config.json` | shared |
 | `preflight.py` | **step 1** — inventory the input, check the tools, build `work/{rush,config,build}` | shared |
 | `lib/rush.py` | finds the input file(s) in `rush/` without assuming a fixed name | shared |
-| `lib/timeline.py` | **`timeline.json` itself** — the schema, and the projection from source time onto output time | shared |
+| `lib/timeline.py` | **`timeline.json` itself** — the schema, the projection from source time onto output time, and `words()` (per-word timings, computed fresh from `text`, never stored) | shared |
 | `run.py` | the config-driven conductor — runs the stages, stops at the decisions | shared |
 | `mark_checkpoint.py` | marks a human/agent decision step addressed, so `run.py` genuinely blocks until it is | shared |
 | `transcribe.py` | transcription → `build/transcript-raw.json` (faster-whisper GPU/CPU ← whisper) | shared |
 | `find_silences.py` | measures where the speaker is quiet → `build/silences.json` | shared |
-| `build_timeline.py` | crosses the two measurements into `timeline.json` — one entry per sentence | shared |
-| `settle_cuts.py` | nudges each entry's cut-in onto a sharp, settled frame | talking video |
-| `sync_captions.py` | re-spaces the words of the sentences you reworded, and only those | shared |
-| `cut_entries.py` | switch a sentence off (`on: false`) or back on — repeats, tangents, whole drops | shared |
+| `build_timeline.py` | crosses the two measurements into `timeline.json` — one segment per sentence, split at punctuation then at silences past `cut.maxSegment` | shared |
+| `settle_cuts.py` | nudges each segment's cut-in onto a sharp, settled frame | talking video |
+| `cut_entries.py` | switch a sentence off (`on: false`) or back on, split one in two — repeats, tangents, whole drops, mid-sentence scenes — all by LINE NUMBER, there are no ids | shared |
 | `tighten.py` | jump-cut + filler pass (word-level cuts) | talking video |
 | `prepare_source.py` | joins the `rush/` recording take(s) and tags them bt709, stream copy → `build/source-joined.mp4` | talking video |
-| `render_data.py` | flattens `timeline.json` into the single file Remotion renders from — including the pieces of source to play, with their zoom | shared |
+| `render_data.py` | compiles `timeline.json` into `<remotion-dir>/src/plan.json`, the single file Remotion renders from — including the pieces of source to play, with their zoom, and every word timing resolved | shared |
+| `find_face.py` | measures where the speaker's face is, sampled twice a second → `build/framing.json` — `render_data.py` turns it into each piece's zoom/anchor, aimed at the active layout's own face target | talking video |
 | `remotion/remotion.sh` | the renderer — `sync` · `studio` · `render` · `still` · `check` | shared |
-| `sound_fx.py` | the sound bed, from each entry's `sfx` cues | shared |
+| `remotion/template/src/{layouts,transitions,scenes,filters}/` | the options a segment can choose — one file per option, named after its keyword, holding everything about it; `options/check.ts` audits the plan against them | shared |
+| `sound_fx.py` · `sounds/` | the sound bed, from each segment's `sfx` cues — one file per cue in `sounds/` | shared |
 | `master_audio.sh` | −14 LUFS + ducked background audio | shared |
 | `contact_sheet.sh` | one contact sheet (token economy) | shared |
-| `subtitles.py` | subtitle file + caption text (+ `video-final.chapters.txt` from the timeline's `chapters`) | shared |
+| `subtitles.py` | subtitle file + caption text (+ `video-final.chapters.txt` from every segment's own `chapter`) | shared |
 
 **This file is the source of truth for the pipeline.** Beyond it: each script's own
 docstring, and the stage lists in `scripts/pipeline/<world>.json`. Nothing else.

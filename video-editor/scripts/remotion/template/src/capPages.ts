@@ -1,11 +1,11 @@
 /* How a caption card's words are split into what actually shows on screen at once.
-   A card is one whole spoken sentence (render_data.py, one per timeline.json entry) — that
+   A card is one whole spoken sentence (render_data.py, one per timeline.json segment) — that
    can be a dozen words, which is the montage's edit unit, not a readable caption. This
    wraps the card's words exactly like the caption box does (same font/size/width, so the
    wrap here matches the wrap the box will actually render) and groups the wrapped lines
    into pages of at most CAP_MAX_LINES lines. Captions.tsx shows one page at a time,
    switching as `t` reaches the next page's first word — never the whole sentence at once.
-   stage.ts reuses the same pages to size the DOWN rect, so the two stay in lockstep — one
+   stage.ts reuses the same pages to size the SPLIT layout's seam, so the two stay in lockstep — one
    wrap computation, not two hand-mirrored copies that could quietly disagree. */
 import {T} from './theme';
 
@@ -17,10 +17,20 @@ export type Page<W extends CW = CW> = {s: number; e: number; w: W[]; lines: numb
 
 const _mc: CanvasRenderingContext2D | null =
   typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null;
+const FONT = () => `800 ${CAP_FS}px ${T.font}`;
+
+/** Whether a wrap computed right now used the real theme font, not a fallback the browser
+    substitutes silently while it is still fetching the weight captions render in
+    (font.ts loads it, but a caller measuring before that resolves cannot tell from the
+    canvas alone). No canvas at all (type-check/SSR) counts as ready — there the width
+    estimate below is already the only answer there is, with nothing better to wait for. */
+export function fontReady(): boolean {
+  return !_mc || document.fonts.check(FONT());
+}
 
 function widths(ws: CW[]): number[] {
   if (!_mc) return ws.map(w => w.t.length * CAP_FS * 0.55);   // no canvas at type-check/SSR time
-  _mc.font = `800 ${CAP_FS}px ${T.font}`;
+  _mc.font = FONT();
   return ws.map(w => _mc!.measureText(w.t).width);
 }
 

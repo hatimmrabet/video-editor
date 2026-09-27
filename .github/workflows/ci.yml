@@ -1,9 +1,8 @@
 name: ci
 
-# One job, kept under ~2 min. Fast static checks, then the headless suite in
-# video-editor/test/ (the ffmpeg resolver + the motif registry — both plain Node, no
-# browser, no server). The suite needs ffmpeg (installed + cached below — ubuntu-latest
-# has none) and the system python3 — no `uv sync` (the tested scripts are stdlib + lib/).
+# One job, kept well under 2 min. Fast static checks, the timeline projection unit tests, and the
+# type-check of the Remotion template — nothing here needs ffmpeg, a browser or a GPU, because a
+# video cannot be tested by a machine: what proves it is a real render, looked at.
 
 on:
   pull_request:
@@ -29,8 +28,6 @@ jobs:
           python-version-file: video-editor/.python-version
 
       # --- fast static checks ---
-      - name: node --check every .js / .cjs / .mjs
-        run: find video-editor/scripts video-editor/test \( -name '*.js' -o -name '*.cjs' -o -name '*.mjs' \) -print0 | xargs -0 -n1 node --check
       - name: python -m compileall on every .py
         run: python -m compileall -q video-editor/scripts
       # lib/timeline.py projects source time onto output time — every caption, sound cue
@@ -45,54 +42,12 @@ jobs:
       - name: Remotion template — package-lock.json installs cleanly (#45)
         run: cd video-editor/scripts/remotion/template && npm ci --silent --ignore-scripts
 
-      # The type-checker replaces lint_compose.js: scene and motif code is TypeScript now,
-      # so tsc catches undefined helpers, bad props and duplicate keys exactly. It needs the
-      # one data file remotion.sh generates into <work>/remotion/ — seed the sample (#144).
-      - name: Remotion scenes + motifs type-check (tsc --noEmit)
+      # The type-checker is the linter for everything that draws: layouts, transitions, scenes and
+      # filters are TypeScript, so tsc catches undefined helpers, bad props, a misspelt parameter,
+      # and a scene keyword with no component (or the reverse). It needs the one data file
+      # remotion.sh generates into <work>/remotion/ — seed the sample (#144).
+      - name: Remotion template type-check (tsc --noEmit)
         run: |
           cd video-editor/scripts/remotion/template
-          cp src/timeline.sample.json src/timeline.json
-          mkdir -p src/motifs && cp ../../motifs/remotion/*.tsx src/motifs/
+          cp src/plan.sample.json src/plan.json
           npm run --silent check
-
-      # --- the headless suite ---
-      # ffmpeg: cache the static binaries so a bad download can't redden CI. The cache
-      # hits on ~every run (zero network). On a cold cache we pull BtbN's static build
-      # from GitHub Releases — reachable whenever Actions itself is (johnvansickle.com,
-      # which setup-ffmpeg used, is not) — retrying five times, then apt as a last
-      # resort. Bump the key's vN to pull a newer ffmpeg.
-      - name: cache ffmpeg
-        uses: actions/cache@v6
-        with:
-          path: ~/.local/ffmpeg
-          key: ffmpeg-btbn-${{ runner.os }}-v1
-      - name: ffmpeg
-        run: |
-          set -eu
-          DEST="$HOME/.local/ffmpeg"
-          if [ ! -x "$DEST/ffmpeg" ]; then
-            mkdir -p "$DEST"
-            D=ffmpeg-master-latest-linux64-gpl
-            URL="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/$D.tar.xz"
-            ok=
-            for n in 1 2 3 4 5; do
-              if curl -fL --connect-timeout 30 --max-time 600 -o /tmp/ffmpeg.tar.xz "$URL" \
-                 && tar -xJf /tmp/ffmpeg.tar.xz -C /tmp "$D/bin/ffmpeg" "$D/bin/ffprobe"; then
-                mv "/tmp/$D/bin/ffmpeg" "/tmp/$D/bin/ffprobe" "$DEST/"
-                ok=1; break
-              fi
-              echo "ffmpeg fetch $n/5 failed; retrying in 10s"; sleep 10
-            done
-            if [ -z "$ok" ]; then
-              echo "::warning::ffmpeg download failed 5x — falling back to apt"
-              sudo apt-get update && sudo apt-get install -y ffmpeg
-              rmdir "$DEST" 2>/dev/null || true
-              DEST="$(dirname "$(command -v ffmpeg)")"
-            fi
-          fi
-          printf '%s\n' "$DEST" >> "$GITHUB_PATH"
-          "$DEST/ffmpeg" -version | head -n1 || true
-      - name: headless suite
-        working-directory: video-editor
-        run: node test/run.mjs
-

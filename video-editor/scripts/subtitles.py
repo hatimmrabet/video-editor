@@ -12,10 +12,10 @@ Reads : <work>/timeline.json — the same entries that were rendered onto the vi
         is guaranteed by construction rather than by keeping two files in step
 Writes: <work>/video-final.srt        YouTube reads it, Instagram accepts it on upload
         <work>/post-caption.txt       the spoken text, ready to paste as the post caption
-        <work>/video-final.chapters.txt   when the timeline carries `chapters`
+        <work>/video-final.chapters.txt   when a segment carries a `chapter`
 
-Chapters are `[{"at": "e014", "title": "..."}]` — anchored on an ENTRY ID, not a second and
-not a sentence index, so cutting a sentence elsewhere can never move or drop one.
+A chapter is a segment's own `"chapter": "title"` — the segment it sits on IS the anchor, so
+cutting a sentence elsewhere can never move or drop one.
 """
 import os
 import sys
@@ -61,8 +61,8 @@ def main(argv):
     t = tl.load(work)
 
     cards = []
-    for e in tl.entries(t):
-        ws = tl.words(t, e)
+    for seg in tl.segments(t):
+        ws = tl.words(t, seg)
         if not ws:
             continue
         cards.append({"s": ws[0]["s"], "e": ws[-1]["e"], "w": [w["t"] for w in ws]})
@@ -91,9 +91,9 @@ def main(argv):
           % (tp, sum(len(x.split()) for x in txt)))
 
     chaps = []
-    for c in t.get("chapters") or []:
-        title = str(c.get("title") or "").strip()
-        at = tl.out_start(t, c.get("at"))
+    for seg in tl.segments(t):
+        title = str(seg.get("chapter") or "").strip()
+        at = tl.out_start(t, seg)
         if title and at is not None:
             chaps.append((at, title))
     if not chaps:

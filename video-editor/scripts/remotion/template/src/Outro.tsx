@@ -1,14 +1,16 @@
 import {Img, staticFile} from 'remotion';
 import {T, VEND, OUTRO_COPY, HAS_LOGO, H} from './theme';
-import {p, ease, eio, back, rgba, onACC} from './util';
+import {p, ease, back, rgba, onACC} from './util';
+import {OUTRO, ease as easing} from './transitions/index.ts';
 
-/* The copy comes from timeline.json ← outro_copy — don't hardcode any text here */
+/* The copy comes from plan.json's outro_copy (authored in timeline.json's `outro` block) —
+   don't hardcode any text here */
 export const Outro: React.FC<{t:number}> = ({t}) => {
   if (t < VEND) return null;
   const s = VEND;
   const C: any = OUTRO_COPY || {};
   const RECAP: string[] = C.recap || [];
-  const wipe = eio(p(t, s, s+0.45));
+  const wipe = easing(OUTRO.easing)(p(t, s, s + OUTRO.duration));
   const ap = (d:number) => p(t, s+d, s+d+0.42);
   const Chk = ({c}:{c:string}) => (
     <svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2.6}
