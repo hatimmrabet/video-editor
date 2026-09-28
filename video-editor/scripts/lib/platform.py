@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Cross-platform helpers shared by the Python scripts — the mirror of
-`lib/platform.sh` (`VEVO_*`) and `lib/platform.js` for the Python side.
+"""Cross-platform helpers shared by the Python scripts — the Python side of
+`lib/platform.sh` (`VEVO_*`).
 
 - `FFMPEG` / `FFPROBE`: honour `$VEVO_FFMPEG` / `$VEVO_FFPROBE` (same names `platform.sh`
   exports), then fall back to the name on PATH. Every Python call site uses these, never
   the bare string `"ffmpeg"` / `"ffprobe"`.
 - `python_argv()`: how to spawn one of the skill's own Python scripts — `uv run` if `uv`
-  is on PATH, else the skill's `.venv`, else `python3`. Mirror of `platform.js`'s
-  `pythonCmd()` and `platform.sh`'s `VEVO_PY`.
+  is on PATH, else the skill's `.venv`, else `python3`. Mirror of `platform.sh`'s `VEVO_PY`.
 
     from lib import platform as _plat
     subprocess.run([_plat.FFMPEG, "-v", "error", "-i", src, ...])

@@ -1,19 +1,33 @@
-import {interpolate, Easing} from 'remotion';
+import {interpolate} from 'remotion';
 import {FPS} from './theme';
+import {ease as easing} from './transitions/index.ts';
+import type {Rect} from './geometry.ts';
+
+export {lerp} from './geometry.ts';
 
 /** progress from 0 to 1 between two seconds */
 export const p = (t: number, a: number, b: number) =>
   interpolate(t, [a, b], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
 
-export const linear = (k: number) => k;
-export const ease = (k: number) => Easing.out(Easing.cubic)(k);
-export const eio  = (k: number) => Easing.inOut(Easing.cubic)(k);
-export const back = (k: number) => Easing.out(Easing.back(1.9))(k);
-/* The four named easings from scripts/transitions.json, by name. */
-export const ez = (name?: string): ((k: number) => number) =>
-  (({linear, ease, eio, back} as Record<string, (k: number) => number>)[name || 'eio']) || eio;
+/* A scene draws inside the `area` a layout hands it (scenes/index.ts's contract), never in
+   absolute frame pixels: these convert a fraction of the area (0-1, same convention as the
+   0-1080/0-1920 design canvas a motif used to be tuned against, just relative now) into a
+   real frame position or size. `ax`/`ay` are a POINT inside the area; `aw`/`ah` a WIDTH or
+   HEIGHT proportional to it — use the height helper for anything that should shrink with a
+   short area (a row's own height, say), and a literal pixel count for anything that should
+   not (font size, stroke width, radius — those are about how big things read, not where
+   they sit). */
+export const ax = (area: Rect, kx: number) => area.x + kx * area.w;
+export const ay = (area: Rect, ky: number) => area.y + ky * area.h;
+export const aw = (area: Rect, kx: number) => kx * area.w;
+export const ah = (area: Rect, ky: number) => ky * area.h;
+
+/* The named curves of transitions/easings.ts — one definition, read here by name. */
+export const linear = easing('LINEAR');
+export const ease = easing('EASE_OUT');
+export const eio  = easing('EASE_IN_OUT');
+export const back = easing('BACK');
 export const sec  = (f: number) => f / FPS;
-export const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
 
 export const hx = (h: string) => {
   const s = h.replace('#','');

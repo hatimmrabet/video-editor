@@ -9,10 +9,10 @@ except Exception:
     uv run scripts/settle_cuts.py <work> [--dry]
 
 Reads : the rush source (via lib/rush) · <work>/timeline.json · config `cut` block
-Writes: <work>/timeline.json — the first `src` span of each entry starts a little later
+Writes: <work>/timeline.json — the first `source` span of each segment starts a little later
 
 Edits the cut-in points directly, in `timeline.json`, and is safe to re-run: it only ever
-touches the in-point of each entry, so nothing it does can clobber another edit. After a
+touches the in-point of each segment, so nothing it does can clobber another edit. After a
 tighten pass there are new cut-in points, and this finds clean frames for them too. A
 cut-in that already lands on a good frame is left alone, so a second pass over settled
 material is a no-op.
@@ -106,9 +106,9 @@ def main():
     if not os.path.exists(tl.path(W)):
         sys.exit("no timeline.json - run build_timeline.py first")
     t = tl.load(W)
-    entries = [e for e in tl.entries(t) if tl.span_list(e)]
-    if not entries:
-        sys.exit("the timeline has no entries to settle")
+    to_settle = [s for s in tl.segments(t) if tl.span_list(s)]
+    if not to_settle:
+        sys.exit("the timeline has no segments to settle")
 
     c = (_cfg.load(W).get("cut", {}) or {})
     if not c.get("settle", True):
@@ -118,12 +118,12 @@ def main():
     src = rush.find_source(W)
 
     moved, failed = 0, 0
-    for e in entries:
-        spans = tl.span_list(e)
+    for seg in to_settle:
+        spans = tl.span_list(seg)
         a, b = spans[0]
         # never eat into speech: stop short of the first word if there is one
-        words = (e.get("caption") or {}).get("words") or []
-        ceiling = min(a + limit, (words[0].get("src") or [b])[0] if words else b)
+        words = tl.words(t, seg)
+        ceiling = min(a + limit, words[0]["src"][0] if words else b)
         span = min(limit, max(0.0, min(b, ceiling) - a - 0.06))
         if span < 0.06:
             continue
@@ -135,13 +135,14 @@ def main():
         if clean is None or clean <= a + 1e-3:
             continue
         spans[0][0] = round(min(clean, ceiling), 4)
-        e["src"] = spans
+        seg["source"] = spans
         moved += 1
-        print("  %s: %7.2f -> %7.2f  (+%.2fs to a clean frame)" % (e["id"], a, spans[0][0], spans[0][0] - a))
+        print("  line %d: %7.2f -> %7.2f  (+%.2fs to a clean frame)"
+              % (tl.line_of(t, seg), a, spans[0][0], spans[0][0] - a))
 
     note = "  -  %d measurement failure(s), see above" % failed if failed else ""
     print("settle: %d/%d cut-in point(s) nudged  -  %.2fs kept%s"
-          % (moved, len(entries), tl.duration(t), note))
+          % (moved, len(to_settle), tl.duration(t), note))
 
     mf = os.path.join(W, "build", ".settle-meta.txt")
     if os.path.exists(mf):

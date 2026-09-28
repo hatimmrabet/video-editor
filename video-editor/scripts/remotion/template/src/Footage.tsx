@@ -11,43 +11,132 @@
    Video and sound are separate on purpose: <Footage> is drawn once per video layer — two
    of them mid-dissolve, none on a HIDDEN entry — and is always muted; <FootageAudio> plays
    the voice exactly once, whatever the layers are doing. */
-import {Audio, OffthreadVideo, Sequence, staticFile} from 'remotion';
-import {PIECES, FPS, W, H, FACE_ANCHOR, VEND} from './theme';
-import type {Rect} from './stage';
+import {Audio, OffthreadVideo, Sequence, staticFile, useCurrentFrame} from 'remotion';
+import {PIECES, FPS, W, H, VEND, GRADE} from './theme';
+import type {Piece} from './theme';
+import type {Rect} from './geometry.ts';
+import {css} from './filters/index.ts';
+import {arrangementAt} from './stage';
+import type {FaceTarget} from './layouts/index.ts';
 
 const SRC = staticFile('video.mp4');
 const SEAM = 0.001;    // seconds: closer than this, two pieces continue the same take
 
-const SPANS = PIECES.map((p, i) => {
-  const from = Math.round(p.o * FPS);
-  const to = Math.round((i + 1 < PIECES.length ? PIECES[i + 1].o : VEND) * FPS);
+const CENTRE: [number, number] = [0.5, 0.4];   // no measurement at all: a generic, safe crop
+
+/* A piece's effective (anchor, zoom). A hand-authored zoom/anchor is used exactly as
+   written. Otherwise, the piece's own MEASURED face (build/framing.json, find_face.py) is
+   scaled so its real height lands on `face.h` — a fraction of the FULL FRAME regardless of
+   which layout is active (layouts/types.ts explains why it must be), so this division is
+   always two frame-relative fractions against each other, never a frame one against a
+   rect one — and anchored at the measured centre; the clamp keeps a bad or noisy measurement
+   from ever producing an absurd crop. No measurement at all: a generic, centred crop. */
+function resolveCrop(p: Piece, face: FaceTarget): {anchor: [number, number]; zoom: number} {
+  if (p.z != null && p.a) return {anchor: p.a, zoom: p.z};
+  const m = p.measured;
+  if (!m || m.h <= 0) return {anchor: CENTRE, zoom: 1.0};
+  return {anchor: [m.cx, m.cy], zoom: Math.max(0.6, Math.min(3.0, face.h / m.h))};
+}
+
+// A filter change at a seam eases across this many seconds instead of jump-cutting: the
+// outgoing piece keeps playing — fading out — a little past its own montage boundary while
+// the incoming piece, stacked on top of it, fades in over it. The same overlap a spliced
+// dissolve uses, so it works for any pair of filters without either one knowing the other
+// exists. A seam with no filter change (most of them) gets 0 frames of it: free.
+const FILTER_FADE_S = 0.2;
+const FILTER_FADE_FRAMES = Math.round(FILTER_FADE_S * FPS);
+
+// Dropped here, before SEAM_FADE is computed, not just at SPANS below: a piece shorter than
+// a frame would otherwise still count as the "neighbour" two real, adjacent pieces compare
+// their filters against, hiding a genuine filter change at the seam that actually survives.
+const RAW = PIECES.map((p, i) => ({
+  p, from: Math.round(p.o * FPS),
+  to: Math.round((i + 1 < PIECES.length ? PIECES[i + 1].o : VEND) * FPS),
+  filter: css(p.filter, GRADE),
+})).filter(r => r.to > r.from);
+
+// One shared fade per seam, not one per piece either side of it, so the outgoing piece's
+// fade-out and the incoming piece's fade-in always cover exactly the same frames — clamped
+// to at most half of whichever neighbour is shorter, so a fade can never outlive a piece.
+const SEAM_FADE = RAW.map((r, i) => {
+  if (i + 1 >= RAW.length || RAW[i + 1].filter === r.filter) return 0;
+  const durHere = r.to - r.from, durNext = RAW[i + 1].to - RAW[i + 1].from;
+  return Math.max(0, Math.min(FILTER_FADE_FRAMES, Math.floor(durHere / 2), Math.floor(durNext / 2)));
+});
+
+/* Each piece's filter, crop and face target are read once, on load: a bad choice fails
+   immediately, worded for the author. The layout is resolved from the piece's own output
+   start (p.o) — a piece belongs to one segment, so its layout never changes mid-piece, even
+   while its on-screen RECT is still animating through a transition. */
+const SPANS = RAW.map(({p, from, to, filter}, i) => {
   const trim = Math.round(p.s * FPS);
-  return {p, from, dur: to - from, trim, trimEnd: trim + (to - from),
-    seamIn:  i === 0 || Math.abs(PIECES[i - 1].e - p.s) > SEAM,
-    seamOut: i + 1 === PIECES.length || Math.abs(PIECES[i + 1].s - p.e) > SEAM};
+  const target: FaceTarget = arrangementAt(p.o).face;
+  const {anchor, zoom} = resolveCrop(p, target);
+  return {p, from, dur: to - from, trim, trimEnd: trim + (to - from), filter,
+    anchor, zoom, target, fadeIn: i > 0 ? SEAM_FADE[i - 1] : 0, fadeOut: SEAM_FADE[i],
+    // Against RAW's own neighbours (a sub-frame piece already dropped above), never PIECES —
+    // once RAW is filtered the two indices no longer line up.
+    seamIn:  i === 0 || Math.abs(RAW[i - 1].p.e - p.s) > SEAM,
+    seamOut: i + 1 === RAW.length || Math.abs(RAW[i + 1].p.s - p.e) > SEAM};
 }).filter(x => x.dur > 0);
 
-/* The footage inside one video rect. The source frame is fitted `cover` into the rect with
-   the face held at FACE_ANCHOR vertically; the piece's zoom then crops INSIDE that frame,
-   anchored at `a` — the same crop an ffmpeg `crop` + `scale` would make, never a different
-   aspect. `f` is a CSS filter, null unless the entry or the opt-in `grade` asked for one. */
-export const Footage: React.FC<{rect: Rect}> = ({rect}) => {
-  const k = Math.max(rect.w / W, rect.h / H);
+// max(rect.w/W, rect.h/H) alone only covers `rect` if the source is left centred. Placing
+// `anchor` at an off-centre `target` shifts the scaled source, which can pull its far edge
+// back past the rect on the OTHER side unless the scale already accounts for that shift.
+// Per axis, covering both edges needs at least rectDim/srcDim scaled by whichever offset
+// (target/anchor, or their mirror on the far edge) is larger. Clamped so a pathological
+// anchor/target pair (near 0 or 1, on opposite edges) can't demand an absurd zoom — the
+// same spirit as resolveCrop's own zoom clamp.
+const MAX_COVER_ZOOM = 4;
+function axisCover(rectDim: number, srcDim: number, tgt: number, anc: number): number {
+  const a = Math.min(0.98, Math.max(0.02, anc));
+  return (rectDim / srcDim) * Math.max(tgt / a, (1 - tgt) / (1 - a));
+}
+
+/* One piece of footage inside one video rect — the crop Footage's own header explains, plus
+   the cross-fade SEAM_FADE gave it at either edge (0 frames, most of the time). `frame` is
+   relative to this piece's own <Sequence>, so 0 is always its montage start; a fade-out
+   plays past `dur` into the borrowed tail `trimAfter` already accounts for. */
+const FootagePiece: React.FC<{rect: Rect; span: (typeof SPANS)[number]}> = ({rect, span}) => {
+  const {trim, trimEnd, filter, anchor, zoom, target, fadeIn, fadeOut, dur} = span;
+  const frame = useCurrentFrame();
+  const opacity = Math.max(0, Math.min(1,
+    fadeIn > 0 ? (frame + 1) / fadeIn : 1,
+    fadeOut > 0 ? (dur + fadeOut - frame) / fadeOut : 1));
+  // coverK is the SMALLEST zoom that still covers `rect` at this anchor/target — the floor.
+  // `zoom` (resolveCrop's face-size ratio) is free to push the crop in tighter than that floor
+  // when a measured face is smaller than the target size, but can never pull it below the
+  // floor: a face measured bigger than the target asks to zoom OUT past what the rect can show
+  // without exposing the frame behind it, which the crop cannot do — it keeps more headroom
+  // than asked for instead, rather than ever padding the rect with the theme background.
+  const coverK = Math.max(
+    axisCover(rect.w, W, target.x, anchor[0]),
+    axisCover(rect.h, H, target.y, anchor[1]));
+  const k = Math.min(MAX_COVER_ZOOM, Math.max(coverK, coverK * zoom));
   const bw = W * k, bh = H * k;
-  const left = (rect.w - bw) * 0.5, top = (rect.h - bh) * FACE_ANCHOR;
+  const left = rect.w * target.x - anchor[0] * bw;
+  const top = rect.h * target.y - anchor[1] * bh;
   return (
-    <>{SPANS.map(({p, from, dur, trim, trimEnd}, i) => (
-      <Sequence key={i} from={from} durationInFrames={dur} layout="none">
-        <div style={{position:'absolute', left, top, width:bw, height:bh,
-          transform:`scale(${p.z})`, transformOrigin:`${p.a[0] * 100}% ${p.a[1] * 100}%`,
-          filter:p.f ?? undefined}}>
-          <OffthreadVideo src={SRC} muted trimBefore={trim} trimAfter={trimEnd}
-            style={{width:'100%', height:'100%', objectFit:'cover'}} />
-        </div>
-      </Sequence>
-    ))}</>
+    <div style={{position:'absolute', left, top, width:bw, height:bh, filter, opacity}}>
+      <OffthreadVideo src={SRC} muted trimBefore={trim} trimAfter={trimEnd + fadeOut}
+        style={{width:'100%', height:'100%', objectFit:'cover'}} />
+    </div>
   );
 };
+
+/* The footage inside one video rect. A single crop: `anchor` (a point on the SOURCE frame,
+   0-1) is placed exactly at `target` (a point WITHIN the rect, 0-1), scaled so the source
+   still covers the rect at that alignment (axisCover, above — more than max(rect.w/W,
+   rect.h/H) once the anchor is off-centre) and scaled further by `zoom` — never a different
+   aspect, the same crop an ffmpeg `crop` + `scale` would make. `filter` is a CSS filter
+   (filters/), none unless the entry or the opt-in `grade` asked for one. */
+export const Footage: React.FC<{rect: Rect}> = ({rect}) => (
+  <>{SPANS.map((span, i) => (
+    <Sequence key={i} from={span.from} durationInFrames={span.dur + span.fadeOut} layout="none">
+      <FootagePiece rect={rect} span={span} />
+    </Sequence>
+  ))}</>
+);
 
 /* A short fade at every seam — where two pieces do not continue the same take — so a jump
    cut never clicks. Remotion samples `volume` once per video frame, so at 30 fps the fade

@@ -1,11 +1,10 @@
 /* Per-entry image/logo overlays, drawn on the video card itself — clipped to its rect by
-   the parent's overflow:hidden, so they ride the footage through FULL/DOWN/LOWER exactly
-   like the card that carries them. Sourced from an entry's `overlay[]` in timeline.json,
+   the parent's overflow:hidden, so they ride the footage through FULL/SPLIT/LOWER exactly
+   like the card that carries them. Sourced from a segment's `overlay[]` in timeline.json,
    output-resolved by render_data.py into OVERLAYS (theme.ts).
 
    `pos`/`scale` are fractions of the card's own box, not the frame — an author-placed
-   value used verbatim (motifs/README.md's "Orientation" rule), so it stays put across
-   FULL/DOWN/LOWER without any W/H scaling here. */
+   value used verbatim, so it stays put across every layout without any W/H scaling here. */
 import {Img, staticFile} from 'remotion';
 import {OVERLAYS} from './theme';
 import {p} from './util';

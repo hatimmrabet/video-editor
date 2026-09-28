@@ -1,6 +1,6 @@
-/* Every value comes from timeline.json — remotion.sh builds it via render_data.py from <work>/timeline.json and project.config.json. 
+/* Every value comes from plan.json — remotion.sh builds it via render_data.py from <work>/timeline.json and project.config.json.
    Do not hardcode a colour here. */
-import P from './timeline.json';
+import P from './plan.json';
 
 export const T = {
   bg:  P.theme.bg  || '#101828',
@@ -12,12 +12,9 @@ export const T = {
   handle: P.theme.handle || '',
   badgeUntil: typeof P.theme.badgeUntil === 'number' ? P.theme.badgeUntil : 0,
 };
-/* where the speaker's face sits inside the video card (project.config.json ← crop.faceAnchor,
-   default 0.30). remotion.sh writes it into timeline.json. */
-export const FACE_ANCHOR = typeof (P as any).faceAnchor === 'number' ? (P as any).faceAnchor : 0.30;
 /* The composition's own size — render_data.py reads it off build/source-joined.mp4, so the
    scene layer follows whatever orientation the source was shot in. 1080x1920 is only a
-   fallback for a timeline.json missing width/height (e.g. the CI type-check sample). */
+   fallback for a plan.json missing width/height (e.g. the CI type-check sample). */
 export const W = typeof (P as any).width  === 'number' ? (P as any).width  : 1080;
 export const H = typeof (P as any).height === 'number' ? (P as any).height : 1920;
 export const FPS   = 30;
@@ -26,31 +23,32 @@ export const OUTRO = P.outro;              // the end card's duration
 export const DUR_F = Math.round((VEND + OUTRO) * FPS);
 export const HAS_SFX = !!P.sfx;
 export const OUTRO_COPY = P.outro_copy || {recap:[]};
-export const STAGE = P.stage || [{s:0,e:1e9,m:'FULL'}];
+/* The layout schedule: [{s, e, layout, scene, transition}] — layout and transition are the
+   author's choices as written (or null), `scene` the scene the span carries (or null). Read
+   through the layouts and transitions domains by stage.ts, the only reader. */
+export const STAGE = ((P as any).stage as any[] | undefined) || [{s:0, e:1e9, layout:null, scene:null}];
 /* The render program: the source spans kept, in output order, each with its own framing —
-   {s, e} source seconds, o its output start, z zoom, a [x,y] anchor, f a CSS filter or null.
-   Resolved by render_data.py; Footage.tsx is the only reader. */
-export type Piece = {s:number; e:number; o:number; z:number; a:[number, number]; f:string|null};
+   {s, e} source seconds, o its output start, filter the author's filter choice or null. `z`/`a`
+   are present only when the segment hand-authored them (used verbatim); `measured` is the
+   face measurement for this span (build/framing.json via find_face.py), or null. Resolved by
+   render_data.py; Footage.tsx is the only reader — it turns `measured` + the active layout's
+   own face target into the zoom/anchor actually used, when there is no hand-authored one. */
+export type Measured = {cx:number; cy:number; h:number} | null;
+export type Piece = {s:number; e:number; o:number; z?:number; a?:[number, number]; measured:Measured; filter:any};
 export const PIECES = (((P as any).pieces as Piece[] | undefined) || []);
+/* Whether the project asks for the light colour grade on every piece with no filter of its
+   own (config/project.config.json <- grade). */
+export const GRADE = !!(P as any).grade;
 /* The scenes the timeline's entries authored, resolved by render_data.py — always an
-   array, possibly empty; SceneList.tsx is the only renderer. */
-export const SCENES = ((P as any).scenes as any[] | undefined) || [];
+   array, possibly empty; scenes/SceneList.tsx is the only renderer. */
+export const PLAN_SCENES = ((P as any).scenes as any[] | undefined) || [];
 /* Per-entry image/logo overlays (`entry.overlay[]`), output-resolved by render_data.py —
    drawn on the video card itself by VideoOverlays.tsx, not over the whole frame. */
 export const OVERLAYS = ((P as any).overlays as any[] | undefined) || [];
-/* Transition defaults from scripts/transitions.json (remotion.sh copies them into
-   timeline.json). Fallback = today's exact values, so nothing changes without a project
-   setting a non-default. */
-const _TXD = {
-  sceneToScene: {type:'rect-morph', duration:0.42, easing:'eio'},
-  sceneEnter:   {type:'rise', duration:0.20, easing:'ease',   params:{y:28,  scale:true}},
-  sceneExit:    {type:'rise', duration:0.13, easing:'linear', params:{y:-10, scale:false}},
-};
-export const TX = {..._TXD, ...((P as any).transitions || {})} as typeof _TXD;
 /* whether <work>/config/logo.png exists — remotion.sh writes it. A project without a logo
    must still render: every <Img> of it is guarded on this. */
 export const HAS_LOGO = !!(P as any).logo;
 /* the faint background grid — theme.grid:false turns it off (default on) */
 export const GRID = (P as any).theme.grid !== false;
-/* "guides": true in timeline.json → the red Instagram areas show in the studio (turn them off before rendering) */
+/* "guides": true in plan.json → the red Instagram areas show in the studio (turn them off before rendering) */
 export const GUIDES = !!(P as any).guides;

@@ -1,106 +1,70 @@
-/* The video display rects and the transition between them.
-   The schedule comes from timeline.json ← stage: [{s,e,m:"FULL"|"DOWN"|"LOWER", transition?, gb?}].
-   An entry's optional `transition` (shorthand string or object) overrides type/duration/easing
-   for the cut INTO that entry. On the reel video only rect-morph / cut / dissolve are
-   meaningful — see scripts/transitions.json.
+/* The compositor's clock: which layout is on screen at t, and how the video card moves from one
+   layout to the next. This file holds no layout and no transition of its own — those live in
+   layouts/ and transitions/; here they are only looked up.
 
-   R_DOWN flexes per scene via rDown(gb, caption-lines): the card shrinks proportionally
-   (9:16) from the graphic bottom + the caption's line count. */
-import {lerp, ez} from './util';
-import {STAGE, TX, W, H} from './theme';
-import {capPages, CAP_LH, CAP_PADY} from './capPages';
-import caps from './timeline.json';
+   The schedule comes from plan.json <- stage: [{s, e, layout, scene, transition}] (compiled from
+   timeline.json by render_data.py). A segment's own `transition` chooses the change INTO its
+   span; without one a change of layout is a RECT_MORPH. */
+import {STAGE, W, H, FPS} from './theme';
+import type {Rect} from './geometry.ts';
+import {LAYOUTS} from './layouts/index.ts';
+import type {Arrangement} from './layouts/index.ts';
+import {TRANSITIONS, ease} from './transitions/index.ts';
+import type {Layer} from './transitions/index.ts';
 
-/* Every rect below was designed against a 1080x1920 canvas. SX/SY carry that design to
-   whatever size the composition actually is — a horizontal recording gets the same
-   relative layout instead of a canvas that doesn't match its own frame. Border radii
-   and the caption/UI chrome's own literal sizing (Captions.tsx, Chrome.tsx) are NOT scaled
-   here — this is about where things sit, not how big the type reads. */
-const SX = W / 1080, SY = H / 1920;
+const FRAME = {w: W, h: H};
 
-export type Rect = {x:number;y:number;w:number;h:number;r:number};
-export const R_FULL:  Rect = {x:0, y:0, w:W, h:H, r:0};
-export const R_LOWER: Rect = {x:350*SX, y:1370*SY, w:380*SX, h:520*SY, r:32};
-export const R_DOWN:  Rect = {x:0, y:770*SY, w:W, h:1150*SY, r:0};   // full-width fallback; replaced per scene by rDown()
-// HIDDEN has no rect of its own (Ad.tsx never draws the video for it — Background.tsx fills
-// the frame instead); R_FULL here is only a harmless placeholder for vrect()/videoLayers()
-// callers that don't check the mode first.
-const M: Record<string,Rect> = {FULL:R_FULL, LOWER:R_LOWER, DOWN:R_DOWN, HIDDEN:R_FULL};
+type Span = {s: number; e: number; move: ReturnType<typeof TRANSITIONS.parse>; arrangement: Arrangement};
 
-/* caption wrap — capPages.ts owns the wrap (kept in lockstep with what Captions.tsx
-   renders); here we only need the tallest page overlapping this DOWN span, which is
-   always <= CAP_MAX_LINES since a card shows one page at a time. */
-type CW = {t:string; s:number; e:number};
-const CARDS = ((caps as any).cards || []) as {s:number; e:number; w:CW[]}[];
-function pageLines(s: number, e: number): number {
-  let lines = 1;
-  for (const c of CARDS) {
-    if (c.e <= s || c.s >= e) continue;
-    for (const pg of capPages(c.s, c.e, c.w)) {
-      if (pg.e > s && pg.s < e) lines = Math.max(lines, pg.lines);
-    }
-  }
-  return lines;
-}
-function rDown(gb: number, lines: number): Rect {
-  // `gb` (graphic-bottom) is a motif's own "how tall is my content" declaration, designed
-  // against the 1920-tall canvas like everything else in motifs/index.json — scale it with
-  // the content it describes. The caption block below it is NOT scaled: Captions.tsx renders
-  // it at a fixed size regardless of frame height, so the room reserved for it must match.
-  const top = gb * SY + 40 + (lines * CAP_LH + CAP_PADY * 2) + 50;
-  return {x:0, y:top, w:W, h:H - top, r:0};
-}
+/* Every span's choices are read, and every arrangement resolved, once on load: a bad one fails
+   immediately, worded for the author. Every layout's own arrangement is a fixed geometry (frame
+   dimensions only — never a scene's content or the caption's), so there is nothing to defer:
+   this never changes again after this one pass. */
+const SPANS: Span[] = STAGE.map(x => {
+  const {option, params} = LAYOUTS.parse(x.layout);
+  return {
+    s: x.s, e: x.e, move: TRANSITIONS.parse(x.transition),
+    arrangement: (option.arrange as (c: any, p: any) => Arrangement)({frame: FRAME}, params),
+  };
+});
 
-type Spec = string | {type?:string; duration?:number; easing?:string} | undefined;
-const S = (STAGE as {s:number;e:number;m:string;transition?:Spec;gb?:number}[])
-  .map(x => ({s:x.s, e:x.e, m:M[x.m] || R_FULL, mode:x.m, gb:x.gb, transition:x.transition}));
-
-/* Resolve every DOWN span to its flex rect once, lazily (fonts are loaded by then). */
-let _resolved = false;
-function resolveScenes() {
-  if (_resolved) return;
-  _resolved = true;
-  for (const s of S) {
-    if (s.mode !== 'DOWN') continue;
-    s.m = rDown(s.gb ?? 500, pageLines(s.s, s.e));
-  }
-}
-
-/* The transition INTO S[i]: the entry's `transition` overrides TX.sceneToScene. */
-function vtrans(i:number) {
-  const d = TX.sceneToScene, o = (S[i] && S[i].transition) || null;
-  if (o && typeof o === 'object') return {type:o.type||d.type, dur:(o.duration!=null?o.duration:d.duration), easing:o.easing||d.easing};
-  if (typeof o === 'string')      return {type:o, dur:d.duration, easing:d.easing};
-  return {type:d.type, dur:d.duration, easing:d.easing};
-}
-
-export const vrect = (t:number):Rect => {
-  resolveScenes();
-  let i = S.findIndex(x => t >= x.s && t < x.e); if (i < 0) i = S.length-1;
-  const tr = vtrans(i);
-  let a = S[i].m, b = a, k = 1;
-  if (i > 0 && tr.type !== 'cut' && t < S[i].s + tr.dur) {
-    a = S[i-1].m; b = S[i].m; k = ez(tr.easing)((t - S[i].s) / tr.dur);
-  }
-  return {x:lerp(a.x,b.x,k), y:lerp(a.y,b.y,k), w:lerp(a.w,b.w,k), h:lerp(a.h,b.h,k), r:lerp(a.r,b.r,k)};
+const spanIndex = (t: number) => {
+  const i = SPANS.findIndex(x => t >= x.s && t < x.e);
+  return i < 0 ? SPANS.length - 1 : i;
 };
 
-/* Whether the entry active at t is a face-optional (HIDDEN) span — Ad.tsx checks this
-   before deciding between the video layers and Background.tsx. No transition/blend at the
-   boundary: HIDDEN is a per-entry either/or, not a rect to morph into. */
-export function videoHidden(t:number): boolean {
-  const i = S.findIndex(x => t >= x.s && t < x.e);
-  return i >= 0 && S[i].mode === 'HIDDEN';
+/* Where things go at t: the video card and the caption. */
+export function arrangementAt(t: number): Arrangement {
+  return SPANS[spanIndex(t)].arrangement;
 }
 
-/* The video layers to render at t. One rect normally; two (cross-fading) mid-`dissolve`. */
-export function videoLayers(t:number): {rect:Rect; opacity:number}[] {
-  resolveScenes();
-  let i = S.findIndex(x => t >= x.s && t < x.e); if (i < 0) i = S.length-1;
-  const tr = vtrans(i);
-  if (i > 0 && tr.type === 'dissolve' && t < S[i].s + tr.dur) {
-    const k = ez(tr.easing)((t - S[i].s) / tr.dur);
-    return [{rect:S[i-1].m, opacity:1-k}, {rect:S[i].m, opacity:k}];
-  }
-  return [{rect:vrect(t), opacity:1}];
+/* Whether the entry active at t leaves no face on screen (a HIDDEN layout) — Ad.tsx then draws
+   the ambient background instead of the video. No transition at that boundary: it is a
+   per-entry either/or, not a rect to morph into. */
+export function videoHidden(t: number): boolean {
+  const i = SPANS.findIndex(x => t >= x.s && t < x.e);
+  return i >= 0 && SPANS[i].arrangement.video === null;
+}
+
+/* The video cards to draw at t: one normally, more while a transition is under way. `tick` is
+   the frame number, which seeds any per-frame randomness a transition needs. */
+export function layersAt(t: number, tick: number): Layer[] {
+  const i = spanIndex(t);
+  const span = SPANS[i];
+  const to = span.arrangement.video;
+  if (!to) return [];
+  const from = i > 0 ? SPANS[i - 1].arrangement.video : null;
+  const {option, params} = span.move;
+  const duration: number = params.duration ?? 0;
+  if (!from || duration <= 0 || t >= span.s + duration) return [{rect: to}];
+  const k = ease(params.easing)((t - span.s) / duration);
+  return (option.layers as (move: any, p: any) => Layer[])({from, to, k, frame: FRAME, tick}, params);
+}
+
+/* The video card's rectangle at t — what scenes are handed as `rect`. The tick is
+   reconstructed from t (round(t * FPS)): seek-safe, and matches the real frame Ad.tsx draws,
+   so a per-frame-seeded transition (GLITCH) agrees with what a scene reads here. */
+export function videoRectAt(t: number): Rect {
+  const layers = layersAt(t, Math.round(t * FPS));
+  return layers.length ? layers[layers.length - 1].rect : {x: 0, y: 0, w: W, h: H, r: 0};
 }

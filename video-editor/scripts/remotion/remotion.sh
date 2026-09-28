@@ -6,8 +6,11 @@
 #   remotion/remotion.sh <work> render [out.mp4] → produces an MP4 directly (no frames)
 #   remotion/remotion.sh <work> still 4.6 12.3   → review stills → <work>/build/prev/t<sec>.jpg
 #   remotion/remotion.sh <work> check            → type-checks the project (tsc --noEmit)
-# Scenes are authored as data — an entry's `scene`/`overlay` in <work>/timeline.json,
-# dispatched by SceneList.tsx/VideoOverlays.tsx. No per-project TSX to preserve across a sync.
+# A segment's `scene`/`overlay` in <work>/timeline.json chooses one: the shared catalog
+# (scenes/) for a plain informational moment, or the project's own <work>/scenes/ — invented
+# fresh for this video (SKILL.md step 10), synced into src/bespoke/ below. Nothing is ever
+# preserved IN `src/` across a sync — it (bespoke included) is rebuilt from the template plus
+# <work>/scenes/ every time, never hand-edited in place.
 set -e
 . "$(cd "$(dirname "$0")/.." && pwd)/lib/platform.sh"
 W="$(vevo_abspath "$1")"; CMD="${2:-setup}"; ARG="$3"
@@ -19,26 +22,37 @@ sync_all(){
   # Structural files: always updated, except what the user edits
   for f in package.json package-lock.json tsconfig.json remotion.config.ts .gitignore README.md; do
     [ -f "$TPL/$f" ] && cp "$TPL/$f" "$R/$f"; done
-  for f in index.ts Root.tsx Ad.tsx theme.ts font.ts stage.ts capPages.ts util.tsx Chrome.tsx Captions.tsx Background.tsx VideoOverlays.tsx Outro.tsx Guides.tsx Grid.tsx SceneList.tsx Footage.tsx; do
-    cp "$TPL/src/$f" "$R/src/$f"; done
-  # Motifs: the shared per-engine components — always refreshed
-  mkdir -p "$R/src/motifs"
-  for f in "$(cd "$(dirname "$0")/../motifs/remotion" && pwd)"/*.tsx; do
-    [ -f "$f" ] && cp "$f" "$R/src/motifs/"; done
+  # `src/` is rebuilt from the template each time, keeping only the generated plan: a file a
+  # previous version left behind must not linger and get type-checked.
+  find "$R/src" -mindepth 1 -maxdepth 1 ! -name plan.json -exec rm -rf {} +
+  cp "$TPL"/src/*.ts "$TPL"/src/*.tsx "$R/src/"
+  # The option domains — layouts, transitions, scenes, filters — each with everything that
+  # belongs to it, and `options`, which checks the plan against them.
+  for d in options layouts transitions scenes filters; do cp -R "$TPL/src/$d" "$R/src/$d"; done
+  # This project's own bespoke scenes (<work>/scenes/, absent for most projects) synced into
+  # src/bespoke/ and registered — scenes/index.ts resolves a scene type against the shared
+  # catalog above first, this project's own second. A bad one stops here, same as any other
+  # option, not halfway through a render.
+  "${VEVO_PY[@]}" "$(dirname "$0")/sync_bespoke.py" "$W" "$R" "$TPL" || return 1
 
   LOGO="$("${VEVO_PY[@]}" -c "import os,sys
 sys.path.insert(0, os.path.join(os.environ['VEVO_SKILL_DIR'],'scripts'))
 from lib import config as cfg
 print(cfg.load('$W').get('theme',{}).get('logo','config/logo.png'))")"
   [ -f "$W/$LOGO" ] && cp "$W/$LOGO" "$R/public/logo.png"
-  # config/images/*: whatever the image-card motif (scene.params.src) or an entry's
-  # `overlay[]` (VideoOverlays.tsx) references — resolved into that folder by the
-  # media-use skill, one file per image.
+  # config/images/*: whatever an IMAGE_CARD scene (params.src) or a segment's `overlay[]`
+  # (VideoOverlays.tsx) references — resolved into that folder by the media-use skill, one
+  # file per image.
   if [ -d "$W/config/images" ]; then
     mkdir -p "$R/public/images"
     cp "$W/config/images/"* "$R/public/images/" 2>/dev/null || true
   fi
   "${VEVO_PY[@]}" "$VEVO_SKILL_DIR/scripts/render_data.py" "$W" "$R" || return 1
+  # Every keyword and parameter the plan uses is checked against the option folders right now,
+  # so a wrong one stops here and not halfway through a render.
+  ( cd "$R" && node --experimental-strip-types --disable-warning=ExperimentalWarning \
+      --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/options/check.ts src/plan.json --work "$W" ) \
+    || { echo "❌ the timeline uses an option that does not exist or is misused (see above)"; return 1; }
   # The source itself, uncut — Footage.tsx plays each kept span straight out of it. A hard
   # link, not a copy: a long recording is gigabytes, and every sync would duplicate it.
   SRC="$W/build/source-joined.mp4"
@@ -74,7 +88,7 @@ case "$CMD" in
   render)
     sync_all; ensure_deps; OUT="${ARG:-$W/build/video-raw.mp4}"
     mkdir -p "$(dirname "$OUT")"
-    grep -q '"guides": true' "$R/src/timeline.json" && \
+    grep -q '"guides": true' "$R/src/plan.json" && \
       echo "⚠️  Safe-zone guides are on — they'll be burned into the video. Set guides:false in config/project.config.json before delivery."
     ( cd "$R" && npx remotion render Ad "$OUT" --codec h264 --crf 21 --jpeg-quality 95 )
     echo "✅ $OUT"
@@ -84,7 +98,7 @@ case "$CMD" in
     sync_all; ensure_deps
     shift 2 || true
     [ $# -gt 0 ] || { echo "usage: remotion.sh <work> still <seconds> [<seconds>...]"; exit 2; }
-    FPS="$("${VEVO_PY[@]}" -c "import json,os;print(json.load(open(os.path.join('$R','src','timeline.json')))['fps'])" 2>/dev/null || echo 30)"
+    FPS="$("${VEVO_PY[@]}" -c "import json,os;print(json.load(open(os.path.join('$R','src','plan.json')))['fps'])" 2>/dev/null || echo 30)"
     mkdir -p "$W/build/prev"
     for T in "$@"; do
       F="$("${VEVO_PY[@]}" -c "print(int(round(float('$T')*$FPS)))")"

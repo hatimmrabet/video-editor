@@ -8,9 +8,9 @@ This is **not an application** — it is a Claude Code **skill**. `video-editor/
 the entry point: it instructs the model to run a pipeline of small scripts
 (`video-editor/scripts/`) that edit a talking-to-camera video into a captioned vertical
 9:16 reel, entirely locally. There is no server and no build step. `video-editor/test/`
-carries the automated suite that already exists (CI): the headless JS suite, plus Python
-`unittest` coverage of the timeline projection. **No new tests are added to this repo** —
-see "Testing policy" below. Everything about a pipeline change is verified by a real run.
+carries the automated suite that already exists (CI): Python `unittest` coverage of the
+timeline projection and the montage. **No new tests are added to this repo** — see "Testing
+policy" below. Everything about a pipeline change is verified by a real run.
 
 ### Installing the skill for development — the folder must be *linked*, not copied
 
@@ -70,7 +70,7 @@ Consequences, and they are not optional:
 ## When you find a problem, open a GitHub issue
 
 **A problem detected is an issue created — immediately, in the same session, before moving
-on.** A bug, a regression, a broken invariant, drift between a motif and its registry entry, something
+on.** A bug, a regression, a broken invariant, drift between two places that must agree, something
 that used to work and no longer does: `gh issue create` with what you observed, how to
 reproduce it, and the file involved. Never record it in a Markdown file, a TODO comment,
 or only in the conversation — those get lost. If you fix it in the same change, say so in
@@ -91,24 +91,26 @@ end-user guide (the Arabic `GUIDE.pdf`/`GUIDE.html` were deleted — stale, upst
 
 ## Testing policy
 
-`video-editor/test/` holds what it already holds — the headless JS suite (the ffmpeg
-resolver, the motif registry) and the Python `unittest` suite (`lib/timeline.py`'s
-projection, `build_timeline.py`'s montage). Keep this working: if a change breaks one of
-these tests, fix it. **Do not add new test files, and do not add new test cases to an
-existing file.** This is a deliberate decision, not an oversight — do not "helpfully" add
-coverage for a new script or a new function. Verifying a pipeline change means running the
-relevant stage on a real video (see below), not writing a unit test for it.
+`video-editor/test/` holds the Python `unittest` suite (`lib/timeline.py`'s projection,
+`build_timeline.py`'s montage) — stdlib only, about a second. Keep it working: if a change
+breaks one of these tests, fix it, or delete the assertion when its subject no longer exists.
+**Do not add new test files, and do not add new test cases to an existing file.** This is a
+deliberate decision, not an oversight — do not "helpfully" add coverage for a new script or a
+new function. A video cannot be tested by a machine: what proves a change is running the
+relevant stage on a real video and looking at it (see below). The one automatic check on
+everything that draws is `tsc --noEmit`, which costs nothing to run.
 
 ## Running the pipeline
 
-`python -m unittest discover test` runs the existing Python suite; CI runs both suites on
-every PR. Beyond that, there's **no test for the pipeline output**: "testing" a pipeline
-change means running the relevant stage on a real video. Every script takes a **work
+`python -m unittest discover test` runs the existing Python suite; CI runs it on every PR next
+to the type-check. Beyond that, there's **no test for the pipeline output**: "testing" a
+pipeline change means running the relevant stage on a real video. Every script takes a **work
 directory** `<work>` as its first argument and reads/writes its files there.
 
 **Python scripts run via `uv run` from the skill dir** (`cd video-editor`); `uv` syncs the
-`.venv/` on demand. Node scripts via `node`, shell steps via `bash`. Dependencies are
-isolated.
+`.venv/` on demand. Shell steps run via `bash`. The only JavaScript/TypeScript is what draws —
+the Remotion project — plus its `options/check.ts`, run with Node's own type stripping (no
+build, no dependency). Dependencies are isolated.
 
 ```bash
 cd video-editor
@@ -123,11 +125,12 @@ uv run scripts/find_silences.py <work>             # measures silence -> build/s
 uv run scripts/transcribe.py <work> --language ar-MA   # -> build/transcript-raw.json (model auto-picks)
 uv run scripts/build_timeline.py <work>            # the two measurements -> <work>/timeline.json
 uv run scripts/settle_cuts.py <work>               # nudge each cut-in onto a clean frame
-# Claude then corrects caption.text entry by entry in timeline.json (SKILL.md step 5)
-uv run scripts/sync_captions.py <work>             # re-space only the sentences that were reworded
+# Claude then corrects `text` segment by segment, directly in timeline.json (SKILL.md step 5)
+# — word timings are computed fresh from `text` every time, never stored, so there is no
+# separate re-spacing step
 uv run scripts/mark_checkpoint.py <work> transcript-fix   # so run.py knows this was reviewed
 # Claude finds the repeats itself (SKILL.md step 6) — no detection script
-uv run scripts/cut_entries.py <work> drop e007     # `on: false`; `restore` puts it back
+uv run scripts/cut_entries.py <work> drop 7        # `on: false`, by LINE NUMBER (no ids); `restore` puts it back
 uv run scripts/mark_checkpoint.py <work> cut-review
 uv run scripts/tighten.py <work>                   # propose word-level cuts; `apply` commits them
 uv run scripts/mark_checkpoint.py <work> tighten
@@ -138,7 +141,7 @@ bash  scripts/master_audio.sh <work> <work>/build/video-raw.mp4 <work>/video-fin
 bash scripts/remotion/remotion.sh <work> render     # -> build/video-raw.mp4
 bash scripts/remotion/remotion.sh <work> studio     # the live timeline, to edit scenes visually
 bash scripts/remotion/remotion.sh <work> still 4.6 12.3   # stills for review -> build/prev/
-bash scripts/remotion/remotion.sh <work> check      # tsc --noEmit over the scene + motif code
+bash scripts/remotion/remotion.sh <work> check      # tsc --noEmit over everything that draws
 ```
 
 Token economy matters here: a 1080-wide image ≈ 150k chars of context. Always review via
@@ -155,38 +158,76 @@ rather than reading it whole.
   clips into a montage is explicitly out of scope; the speech drives every decision here,
   so footage without it has nothing to edit.
 - **One rendering engine: Remotion.** `remotion.sh` builds `<work>/remotion/` from
-  `scripts/remotion/template/` plus one generated data file — `render_data.py` flattens
-  `timeline.json` + `project.config.json` into `<work>/remotion/src/timeline.json`, with
-  output times already resolved — alongside `build/source-joined.mp4` (hard-linked, uncut)
-  and `sound-effects.wav`, then renders with `npx remotion render`. **The render is the only
-  encode**: `Footage.tsx` plays each kept `src` span straight out of the source in its own
-  `<Sequence>`, with the entry's zoom/anchor as CSS — there is no intermediate cut video.
-  There is no second engine and no `engine` config key — each motif has exactly one
-  implementation to keep correct, not several hand-written mirrors that can quietly
-  disagree.
-- **One file holds the montage: `<work>/timeline.json`.** An ordered list of
-  self-contained entries, one per spoken sentence: what source seconds it keeps (`src`),
-  its words, and whatever it was given — a scene, sound cues, a video treatment. Two rules
-  make it work, and breaking either reintroduces cross-file drift:
+  `scripts/remotion/template/` plus one generated data file — `render_data.py` compiles
+  `timeline.json` + `project.config.json` into `<work>/remotion/src/plan.json`, with
+  output times, word timings and every keyword already resolved — alongside
+  `build/source-joined.mp4` (hard-linked, uncut) and `sound-effects.wav`, then renders with
+  `npx remotion render`. **The render is the only encode**: `Footage.tsx` plays each kept
+  `source` span straight out of the recording in its own `<Sequence>`, cropped and scaled as
+  CSS — a segment's own `zoom`/`anchor` when it authored one, else derived so the MEASURED
+  face (`build/framing.json`) lands on the active layout's own target size and position —
+  and cross-fades a filter change at a seam instead of jump-cutting it. There is no
+  intermediate cut video, no second engine and no `engine` config key — each option has
+  exactly one implementation to keep correct, not several hand-written mirrors that can
+  quietly disagree.
+- **One file holds the montage: `<work>/timeline.json`.** An ordered list of self-contained
+  SEGMENTS, one per spoken sentence, read top to bottom like the script of the finished
+  video: what source time it keeps (`source`, a readable range), its `text`, and whatever it
+  was given — a layout, a scene, sound cues, a filter. **There are no ids** — a tool that
+  needs to name one addresses it by its LINE NUMBER, its position in the file. Three rules
+  make it work, and breaking any reintroduces cross-file drift:
   **(1)** anything measured off the recording is in **absolute source time** and never
-  moves; anything authored by hand is **relative to its entry**; the output time is
-  **never stored**, it is the running sum of the active entries.
-  **(2)** cutting is either editing an entry's `src` or setting `on: false` — never
-  deleting, never shifting. `lib/timeline.py` owns the schema and the projection; it is
-  the most load-bearing code here and `test/test_timeline.py` guards it.
-  `build/silences.json` and `build/transcript-raw.json` sit beside it as **measurements**:
+  moves; the output time is **never stored**, it is the running sum of the active segments.
+  **(2)** cutting is either editing a segment's `source` or setting `on: false` — never
+  deleting; the one edit that DOES shift line numbers is splitting a segment in two
+  (`cut_entries.py split`), which is also the only way to give part of a sentence its own
+  layout/scene/filter, since those now span a whole segment.
+  **(3)** word timings are **never stored** — `lib/timeline.words()` computes them fresh
+  every call, aligning `text`'s own tokens against the real transcript, so a rewording can
+  never leave a stale timing behind. `lib/timeline.py` owns the schema and the projection;
+  it is the most load-bearing code here and `test/test_timeline.py` guards it.
+  `build/silences.json`, `build/transcript-raw.json` and `build/framing.json` (`find_face.py`
+  — where the speaker's face is, sampled twice a second) sit beside it as **measurements**:
   nothing ever edits them, so they cannot disagree with the montage, and it can always be
   rebuilt from them.
-- **Scenes are data, not per-video code.** A `scene` block on an entry (motif + params) is
-  dispatched by `SceneList.tsx`; an `overlay` block (a logo/badge riding the video itself)
-  is drawn by `VideoOverlays.tsx`. There is no hand-written scene file: a one-off visual
-  means writing a reusable motif in `scripts/motifs/`, never a throwaway per-video
-  component.
-- **A motif lives in two places and both must agree:** its entry in
-  `scripts/motifs/index.json` and its component in `scripts/motifs/remotion/`.
-  `test/motifs.test.js` enforces that; `tsc` checks the component itself.
+- **Every choice a segment can make is an option, defined in code, one folder per domain.** A
+  layout, a transition (and its easing), a scene or a filter — TypeScript, in
+  `scripts/remotion/template/src/{layouts,transitions,scenes,filters}/` — or a sound cue —
+  Python, in `scripts/sounds/` — is ONE file named after its UPPERCASE keyword, holding
+  everything about it: what it does, when to use it, its parameters (type, default, range) and
+  its behaviour. Every constant belongs to its domain's folder and nowhere else. Nothing
+  describes an option outside its own file — no registry, no JSON table, no prose in
+  SKILL.md — so nothing can go out of date; the skill is told which folder to read, never
+  what it contains. To add an option, add its file and one line in its folder's `index.ts`.
+  `render_data.py` and `lib/timeline.py` know no option: keywords and parameters pass through
+  as written. `options/check.ts` audits the render data against the domains (`remotion.sh`
+  runs it right after building it), and `tsc` refuses a scene keyword with no component.
+- **A scene is invented for the video it is in — the shared catalog is a fallback, not the
+  default.** `scripts/remotion/template/src/scenes/` is a small, permanent set of reusable
+  utility widgets (a checklist, a counter, a stamp) for a plain informational moment that
+  genuinely needs no idea of its own; a distinctive beat gets its own scene written fresh in
+  `<work>/scenes/` (same two-file shape — `KEYWORD.ts` + `components/KEYWORD.tsx` — same
+  `scene()`/param DSL, same component contract as any shared one), never a copy of an
+  existing scene retuned for new content. `remotion.sh` discovers a project's own `scenes/`
+  by filename, syncs it into `<work>/remotion/src/bespoke/` and regenerates its registry —
+  no line to add anywhere, unlike the shared catalog, which still needs one in
+  `scenes/index.ts` and one in `scenes/components.tsx`; that friction is deliberate, since it
+  is a permanent, curated addition, while a bespoke scene is not. A `scene` block on a
+  segment ({type, params, timing}) is drawn by `scenes/SceneList.tsx`, resolved against the
+  shared catalog first and the project's own bespoke one second, for as long as that segment
+  lasts; an `overlay` block (a logo/badge riding the video itself) by `VideoOverlays.tsx`,
+  likewise.
+- **A layout is the one place that decides where the face, the caption and the scene sit.**
+  Its `arrange()` returns an `Arrangement` — the video rect, a `face` target (position, size),
+  a `caption` placement (bottom-anchored, or riding the seam between the graphic and the
+  face) and the `scene` area a scene draws in (`ax`/`ay`/`aw`/`ah` in `util.tsx`, fractions of
+  that area, never absolute design pixels). Changing how a layout looks means editing its one
+  file in `layouts/`, never `Captions.tsx`, `Footage.tsx` or a scene component. `layouts/index.ts`'s
+  `audit()` enforces the pacing every layout file already states in prose (the opening hook
+  must be `FULL`, a non-`FULL` layout capped in total share and in any one run) — a schedule
+  that breaks it fails `options/check.ts` by line, not just at review time.
 - **`run.py` gates on `timeline.json`'s own content, not just file mtimes.** A human/agent
-  decision step that edits entries in place (transcript-fix, cut-review, tighten, chapters,
+  decision step that edits segments in place (transcript-fix, cut-review, tighten, chapters,
   scenes, sound-cues) has no output file of its own to prove it ran, so it
   blocks on `timeline.json#checkpoints.<id>` instead — set once by
   `mark_checkpoint.py <work> <id>`, an explicit "considered" mark, same spirit as `on:false`,
@@ -194,19 +235,18 @@ rather than reading it whole.
   also verified playable via `ffprobe`, not just present — a killed encoder can leave one
   that exists but never finished.
 - **Cross-platform layer:** `scripts/lib/platform.sh` (sourced by every `.sh`; provides
-  `VEVO_SKILL_DIR` + the `VEVO_PY` array) and `scripts/lib/platform.js` (required by the
-  Node scripts) absorb Windows/Linux differences. Nothing else may hard-code a path.
-  Windows and Linux only.
+  `VEVO_SKILL_DIR` + the `VEVO_PY` array) and `scripts/lib/platform.py` absorb Windows/Linux
+  differences. Nothing else may hard-code a path. Windows and Linux only.
 - **Isolated deps:** Python via `uv` (`.venv/`), the renderer via `<work>/remotion/`'s own
   `node_modules`. `setup.sh` installs only ffmpeg/node/uv at system level — nothing at the
-  skill root needs its own `npm install` (`scripts/lib/*.js` and the test suite are
-  stdlib-only).
+  skill root needs its own `npm install` (the test suite is stdlib-only).
 
 ## Constraints when editing
 
 - **Scene code must type-check** — `remotion.sh <work> check` (and the CI step) run
-  `tsc --noEmit`. It catches an undefined helper, a bad prop or a duplicate style key
-  before a render, so never merge scene or motif changes past a red type-check.
+  `tsc --noEmit`. It catches an undefined helper, a bad prop, a duplicate style key or a
+  misspelt parameter before a render, so never merge a change to anything that draws past a
+  red type-check.
 - **No hardcoded colors in scene code** — everything derives from `project.config.json`'s
   `theme` block through `theme.ts` (`T`) and the `util.tsx` helpers (`rgba`, `onACC`).
 - **No color grade / filter over the person's video** by default (`prepare_source.py` only
@@ -245,11 +285,10 @@ starting anything else.** Before adding a commit to a branch that already exists
 `gh pr list --state merged --head <branch>` — if it has an already-merged PR, cut a fresh
 branch from `develop` instead of reusing it, even for a closely related follow-up.
 
-`.github/workflows/ci.yml` gates every PR (one job, < 2 min): the static checks
-(`node --check` / `compileall` / `bash -n` / JSON parse / the Remotion lockfile) then the
-existing suite in `video-editor/test/` (the ffmpeg resolver and the motifs in JS; the
-timeline projection and the montage in Python). See "Testing policy" above — keep it
-green, don't grow it.
+`.github/workflows/ci.yml` gates every PR (one job, well under 2 min): the static checks
+(`compileall` / `bash -n` / JSON parse / the Remotion lockfile), the Python suite in
+`video-editor/test/` (the timeline projection and the montage), and the type-check of the
+Remotion template. See "Testing policy" above — keep it green, don't grow it.
 
 Upstream references to `majedphotos/video-ad-editor` are left as-is — see `FORK.md`. Work
 is tracked as GitHub Issues + the "video-editor roadmap" Project.

@@ -2,9 +2,10 @@
 # Managed by `uv` — `uv run scripts/<name>.py <work>` auto-creates/syncs .venv/.
 # `scripts/setup.sh` runs `uv sync` up front (with `--extra gpu` when an NVIDIA GPU is present).
 #
-# Surface is deliberately tiny: numpy (sound_fx.py), pillow (montage_mode.py + contact_sheet.sh,
-# both have an ffmpeg fallback), and a Whisper engine (transcribe.py). Everything else is
-# stdlib + subprocess to ffmpeg.
+# Surface is deliberately tiny: numpy (sound_fx.py), pillow (contact_sheet.sh, has an ffmpeg
+# fallback), opencv-python-headless (find_face.py's Haar cascade — ships the model, no
+# download), and a Whisper engine (transcribe.py). Everything else is stdlib + subprocess to
+# ffmpeg.
 
 [project]
 name = "video-editor"
@@ -13,6 +14,7 @@ requires-python = ">=3.9"
 dependencies = [
     "numpy",
     "pillow",
+    "opencv-python-headless==4.10.0.84",   # newer builds reorganised cv2 and dropped CascadeClassifier
     "faster-whisper",
 ]
 

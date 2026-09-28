@@ -4,27 +4,31 @@ try:
     _sys.stdout.reconfigure(encoding="utf-8"); _sys.stderr.reconfigure(encoding="utf-8")
 except Exception:
     pass
-"""Takes sentences out of the video, and puts them back.
+"""Takes sentences out of the video, puts them back, and splits one in two.
 
-    uv run scripts/cut_entries.py <work> show [--all]      # numbered sentences, repeats flagged
-    uv run scripts/cut_entries.py <work> dupes             # the repeated ones only
-    uv run scripts/cut_entries.py <work> drop e007 e012 --why "false start"
-    uv run scripts/cut_entries.py <work> keep e001 e002    # keeps only these
-    uv run scripts/cut_entries.py <work> restore e007      # or: restore --all
-    uv run scripts/cut_entries.py <work> apply             # from the edited transcript-editable.txt
+    uv run scripts/cut_entries.py <work> show [--all]      # numbered lines, repeats flagged
+    uv run scripts/cut_entries.py <work> dupes              # the repeated ones only
+    uv run scripts/cut_entries.py <work> drop 7 12 --why "false start"
+    uv run scripts/cut_entries.py <work> keep 1 2            # keeps only these
+    uv run scripts/cut_entries.py <work> restore 7           # or: restore --all
+    uv run scripts/cut_entries.py <work> split 4 "word"       # splits line 4 just before "word"
+    uv run scripts/cut_entries.py <work> apply                # from the edited transcript-editable.txt
     (--dry on any editing command: shows the result, writes nothing)
 
-Edits ONE file: <work>/timeline.json. Cutting a sentence sets `on: false` on its entry and
-nothing else — the entry stays in the file with its text and its `why`, and every other
-entry is untouched. There is nothing to shift, so there is nothing to keep in sync and
+Edits ONE file: <work>/timeline.json. Cutting a sentence sets `on: false` on its segment and
+nothing else — the segment stays in the file with its text and its `why`, and every other
+segment is untouched. There is nothing to shift, so there is nothing to keep in sync and
 nothing to undo: `restore` flips the flag back.
 
 One script covers both "the creator doesn't want this sentence" and "they said it twice,
 keep the last take" — both are the same flag, and Claude can equally well set `"on": false`
 by hand while correcting the transcript (SKILL.md step 6).
 
-An id is `e014`. A bare number means the same thing: `drop 14` == `drop e014`. Ids never
-renumber when something is cut.
+THERE ARE NO IDS. A segment is addressed by its LINE NUMBER — its position in the file,
+exactly as `show` prints it (every segment counts, on or off). `drop`/`keep`/`restore`
+never change a line number, because they only ever flip `on`. `split` is the one command
+that DOES: it turns one line into two, so every line after it shifts by one — re-run `show`
+before targeting a line past a split you just made.
 """
 import difflib
 import json
@@ -36,12 +40,8 @@ from lib import timeline as tl
 SCRIPT = os.path.join("build", "transcript-editable.txt")
 
 
-def text_of(entry):
-    return (entry.get("caption") or {}).get("text", "")
-
-
-def words_of(entry):
-    return [w.get("t", "") for w in ((entry.get("caption") or {}).get("words") or [])]
+def words_of(t, seg):
+    return [w["t"] for w in tl.words(t, seg)]
 
 
 def similarity(a, b):
@@ -54,70 +54,123 @@ def similarity(a, b):
     return max(shared, chars)
 
 
-def find_dupes(entries, window=2, threshold=0.60):
+def find_dupes(t, segs, window=2, threshold=0.60):
     """Consecutive sentences that look like the same idea said twice. The FIRST of a pair is
     usually the abandoned attempt — but this only reports, it never decides."""
     out = []
-    for i in range(len(entries) - 1):
-        for j in range(i + 1, min(i + 1 + window, len(entries))):
-            r = similarity(words_of(entries[i]), words_of(entries[j]))
+    for i in range(len(segs) - 1):
+        for j in range(i + 1, min(i + 1 + window, len(segs))):
+            r = similarity(words_of(t, segs[i]), words_of(t, segs[j]))
             if r >= threshold:
-                out.append((entries[i], entries[j], r))
+                out.append((segs[i], segs[j], r))
                 break
     return out
 
 
 def normalise(token):
-    """`e014`, `14` and `E14` all mean the same entry."""
-    token = token.strip().lower()
-    if token.startswith("e"):
-        token = token[1:]
-    return "e%03d" % int(token) if token.isdigit() else None
+    """A line number, 1-based, as `show` prints it. `e014`/`14`/`E14` all resolve the same
+    way (some habits die hard) — the file itself never has one."""
+    token = token.strip().lower().lstrip("e")
+    return int(token) if token.isdigit() else None
 
 
-def line(t, entry):
-    at = tl.out_start(t, entry)
-    mark = "  " if tl.is_on(entry) else "x "
+def line(t, n, seg):
+    at = tl.out_start(t, seg)
+    mark = "  " if tl.is_on(seg) else "x "
     when = "  --:--  " if at is None else " %02d:%05.2f " % (at // 60, at % 60)
-    return "%s%s %s %s" % (mark, entry.get("id"), when, text_of(entry))
+    return "%s%-4d%s%s" % (mark, n, when, seg.get("text", ""))
 
 
 def show(t, every):
-    entries = tl.entries(t, every=every)
+    segs = list(enumerate(t.get("segments") or [], 1))
+    if not every:
+        segs = [(n, s) for n, s in segs if tl.is_on(s)]
     body = ("# Delete any line you do not want in the video, save, then:\n"
             "#   uv run scripts/cut_entries.py <work> apply\n"
-            "# The id at the start of each line is what ties it to its sentence - keep it.\n\n"
-            + "\n".join(line(t, e) for e in entries) + "\n")
+            "# The number at the start of each line is its position - keep it.\n\n"
+            + "\n".join(line(t, n, s) for n, s in segs) + "\n")
     print(body)
     print("%.2fs - %d sentence(s) in the video, %d cut"
-          % (tl.duration(t), len(tl.entries(t)), len(t["timeline"]) - len(tl.entries(t))))
+          % (tl.duration(t), len(tl.segments(t)), len(t["segments"]) - len(tl.segments(t))))
     return body
 
 
 def report_dupes(t):
-    d = find_dupes(tl.entries(t))
+    d = find_dupes(t, tl.segments(t))
     if not d:
         return []
     print("\nSentences that look repeated - the first is usually the abandoned attempt:")
     for a, b, r in d:
-        print("   %s <- %s  (%.0f%% alike)" % (a["id"], b["id"], r * 100))
-        print("      %s: %s" % (a["id"], text_of(a)))
-        print("      %s: %s" % (b["id"], text_of(b)))
-    print("   To cut the first of each pair:  drop " + " ".join(a["id"] for a, _, _ in d))
+        na, nb = tl.line_of(t, a), tl.line_of(t, b)
+        print("   %d <- %d  (%.0f%% alike)" % (na, nb, r * 100))
+        print("      %d: %s" % (na, a.get("text", "")))
+        print("      %d: %s" % (nb, b.get("text", "")))
+    print("   To cut the first of each pair:  drop " + " ".join(str(tl.line_of(t, a)) for a, _, _ in d))
     return d
 
 
 def resolve(t, tokens):
-    ids, unknown = [], []
+    lines, unknown = [], []
     for tok in tokens:
-        eid = normalise(tok)
-        if eid and tl.by_id(t, eid) is not None:
-            ids.append(eid)
+        n = normalise(tok)
+        if n and tl.by_line(t, n) is not None:
+            lines.append(n)
         else:
             unknown.append(tok)
     if unknown:
-        sys.exit("[X] no such sentence: %s  (run `show` for the ids)" % ", ".join(unknown))
-    return ids
+        sys.exit("[X] no such line: %s  (run `show` for the numbering)" % ", ".join(unknown))
+    return lines
+
+
+def split_source(spans, at):
+    """[[a,b],...], a SOURCE time -> (spans before `at`, spans from `at` on). `at` is always
+    a real word's own source start, so it lands exactly on a span boundary or strictly
+    inside one — never inside a hole."""
+    before, after = [], []
+    for a, b in spans:
+        if b <= at:
+            before.append([a, b])
+        elif a >= at:
+            after.append([a, b])
+        else:
+            before.append([a, at])
+            after.append([at, b])
+    return before, after
+
+
+def rebuild_text(words):
+    return " ".join(("*%s*" % w["t"]) if w["hot"] else w["t"] for w in words)
+
+
+def do_split(work, t, n, target, dry):
+    seg = tl.by_line(t, n)
+    if seg is None:
+        sys.exit("[X] no such line: %d  (run `show` for the numbering)" % n)
+    words = tl.words(t, seg)
+    idx = next((i for i, w in enumerate(words) if w["t"] == target), None)
+    if idx is None:
+        sys.exit("[X] %r is not a word on line %d - copy it exactly from `show`" % (target, n))
+    if idx == 0:
+        sys.exit("[X] %r is the first word of line %d - nothing to split off before it" % (target, n))
+    before_spans, after_spans = split_source(tl.span_list(seg), words[idx]["src"][0])
+    if not before_spans or not after_spans:
+        sys.exit("[X] line %d has no material on one side of %r - can't split there" % (n, target))
+    a = {"source": before_spans, "text": rebuild_text(words[:idx])}
+    b = {"source": after_spans, "text": rebuild_text(words[idx:])}
+    print("line %d split before %r - it becomes:" % (n, target))
+    print("  " + line(t, n, a))
+    print("  " + line(t, n + 1, b))
+    print("\nNothing else carried over to either half (layout, scene, filter, sfx, overlay, "
+          "chapter) - author those fresh on whichever half needs them. Every line after %d "
+          "shifted by one: re-run `show` before targeting them." % n)
+    if dry:
+        print("\n(--dry: nothing written)")
+        return
+    t["segments"][n - 1:n] = [a, b]
+    problems = tl.validate(t)
+    tl.save(work, t)
+    for p in problems:
+        print("  ! " + p)
 
 
 def main(argv):
@@ -135,6 +188,15 @@ def main(argv):
 
     t = tl.load(work)
 
+    if cmd == "split":
+        if len(args) < 2:
+            sys.exit("usage: cut_entries.py <work> split <line> \"<word>\"")
+        n = normalise(args[0])
+        if n is None:
+            sys.exit("[X] %r is not a line number" % args[0])
+        do_split(work, t, n, " ".join(args[1:]), dry)
+        return 0
+
     if cmd == "show":
         body = show(t, every)
         report_dupes(t)
@@ -150,19 +212,19 @@ def main(argv):
         return 0
 
     if cmd == "restore":
-        targets = [e["id"] for e in t["timeline"] if not tl.is_on(e)] if every else resolve(t, args)
-        for eid in targets:
-            e = tl.by_id(t, eid)
-            e.pop("on", None)
-            e.pop("why", None)
-        print("Back in the video: %s" % (", ".join(targets) or "nothing was cut"))
+        targets = [tl.line_of(t, s) for s in t["segments"] if not tl.is_on(s)] if every else resolve(t, args)
+        for n in targets:
+            seg = tl.by_line(t, n)
+            seg.pop("on", None)
+            seg.pop("why", None)
+        print("Back in the video: %s" % (", ".join(str(n) for n in targets) or "nothing was cut"))
 
     elif cmd in ("drop", "keep", "apply"):
         if cmd == "drop":
             targets = resolve(t, args)
         elif cmd == "keep":
             kept = set(resolve(t, args))
-            targets = [e["id"] for e in tl.entries(t) if e["id"] not in kept]
+            targets = [n for n, s in enumerate(t["segments"], 1) if tl.is_on(s) and n not in kept]
         else:
             path = os.path.join(work, SCRIPT)
             if not os.path.exists(path):
@@ -173,30 +235,30 @@ def main(argv):
                     ln = ln.strip().lstrip("x").strip()
                     if not ln or ln.startswith("#"):
                         continue
-                    eid = normalise(ln.split(None, 1)[0])
-                    if eid:
-                        alive.add(eid)
-            targets = [e["id"] for e in tl.entries(t) if e["id"] not in alive]
+                    n = normalise(ln.split(None, 1)[0])
+                    if n:
+                        alive.add(n)
+            targets = [n for n, s in enumerate(t["segments"], 1) if tl.is_on(s) and n not in alive]
 
-        targets = [eid for eid in targets if tl.is_on(tl.by_id(t, eid))]
+        targets = [n for n in targets if tl.is_on(tl.by_line(t, n))]
         if not targets:
             print("Nothing to cut - the video is unchanged.")
             return 0
-        if len(targets) == len(tl.entries(t)):
+        if len(targets) == len(tl.segments(t)):
             sys.exit("[X] that would cut the whole video - cancelled.")
 
         before = tl.duration(t)
         print("Cutting:")
-        for eid in targets:
-            e = tl.by_id(t, eid)
-            print("  - %s  %s" % (eid, text_of(e)))
-            e["on"] = False
+        for n in targets:
+            seg = tl.by_line(t, n)
+            print("  - %d  %s" % (n, seg.get("text", "")))
+            seg["on"] = False
             if why:
-                e["why"] = why
+                seg["why"] = why
         print("%.2fs -> %.2fs  (-%.2fs)" % (before, tl.duration(t), before - tl.duration(t)))
 
     else:
-        sys.exit("Commands: show | dupes | drop | keep | restore | apply")
+        sys.exit("Commands: show | dupes | drop | keep | restore | split | apply")
 
     if dry:
         print("(--dry: nothing written)")
@@ -207,7 +269,7 @@ def main(argv):
     for p in problems:
         print("  ! " + p)
     print("\nRebuild the video:  bash scripts/remotion/remotion.sh %s render" % work)
-    print("Put a sentence back: uv run scripts/cut_entries.py %s restore <id>" % work)
+    print("Put a sentence back: uv run scripts/cut_entries.py %s restore <line>" % work)
     return 1 if problems else 0
 
 
