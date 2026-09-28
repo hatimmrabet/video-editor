@@ -552,6 +552,14 @@ paste the same scene onto every video. A scene that fits nothing being said is w
 **the panel comes for the idea, not to fill.** Each layout's file also says how often and how long
 it may be used: respect it.
 
+**But under-using them is the more common miss, and it is just as much a problem.** A number,
+a list, a condition, a date, a price, a quote-worthy line — most sentences that name a
+concrete thing support a scene; if you are leaving most segments plain, look again before
+moving on. The opening is not exempt: whatever hooks the viewer verbally, hook them visually
+too within the first stretch of the video, not just from the middle onward. `options/check.ts`
+refuses a plan that goes too long with no scene running at all, naming the stretch — treat a
+refusal there as a sign to add one, not to shorten the gap by trimming words.
+
 **`IMAGE_CARD` is on you to fill, not the user.** When a sentence names something that has
 a real visual (a product, a brand, a website, a public figure), go get the real thing the
 same way you'd invent any other scene — don't ask the user for a file and don't wait for one:

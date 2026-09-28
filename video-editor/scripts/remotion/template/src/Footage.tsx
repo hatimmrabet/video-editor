@@ -78,6 +78,19 @@ const SPANS = RAW.map(({p, from, to, filter}, i) => {
     seamOut: i + 1 === RAW.length || Math.abs(RAW[i + 1].p.s - p.e) > SEAM};
 }).filter(x => x.dur > 0);
 
+// max(rect.w/W, rect.h/H) alone only covers `rect` if the source is left centred. Placing
+// `anchor` at an off-centre `target` shifts the scaled source, which can pull its far edge
+// back past the rect on the OTHER side unless the scale already accounts for that shift.
+// Per axis, covering both edges needs at least rectDim/srcDim scaled by whichever offset
+// (target/anchor, or their mirror on the far edge) is larger. Clamped so a pathological
+// anchor/target pair (near 0 or 1, on opposite edges) can't demand an absurd zoom — the
+// same spirit as resolveCrop's own zoom clamp.
+const MAX_COVER_ZOOM = 4;
+function axisCover(rectDim: number, srcDim: number, tgt: number, anc: number): number {
+  const a = Math.min(0.98, Math.max(0.02, anc));
+  return (rectDim / srcDim) * Math.max(tgt / a, (1 - tgt) / (1 - a));
+}
+
 /* One piece of footage inside one video rect — the crop Footage's own header explains, plus
    the cross-fade SEAM_FADE gave it at either edge (0 frames, most of the time). `frame` is
    relative to this piece's own <Sequence>, so 0 is always its montage start; a fade-out
@@ -88,7 +101,9 @@ const FootagePiece: React.FC<{rect: Rect; span: (typeof SPANS)[number]}> = ({rec
   const opacity = Math.max(0, Math.min(1,
     fadeIn > 0 ? (frame + 1) / fadeIn : 1,
     fadeOut > 0 ? (dur + fadeOut - frame) / fadeOut : 1));
-  const k = Math.max(rect.w / W, rect.h / H) * zoom;
+  const k = Math.min(MAX_COVER_ZOOM, Math.max(
+    axisCover(rect.w, W, target.x, anchor[0]),
+    axisCover(rect.h, H, target.y, anchor[1])) * zoom);
   const bw = W * k, bh = H * k;
   const left = rect.w * target.x - anchor[0] * bw;
   const top = rect.h * target.y - anchor[1] * bh;
@@ -100,11 +115,12 @@ const FootagePiece: React.FC<{rect: Rect; span: (typeof SPANS)[number]}> = ({rec
   );
 };
 
-/* The footage inside one video rect. A single crop: the source is scaled so it covers the
-   rect (at zoom 1), then `anchor` (a point on the SOURCE frame, 0-1) is placed exactly at
-   `target` (a point WITHIN the rect, 0-1) and the whole thing scaled further by `zoom` —
-   the same crop an ffmpeg `crop` + `scale` would make, never a different aspect. `filter` is
-   a CSS filter (filters/), none unless the entry or the opt-in `grade` asked for one. */
+/* The footage inside one video rect. A single crop: `anchor` (a point on the SOURCE frame,
+   0-1) is placed exactly at `target` (a point WITHIN the rect, 0-1), scaled so the source
+   still covers the rect at that alignment (axisCover, above — more than max(rect.w/W,
+   rect.h/H) once the anchor is off-centre) and scaled further by `zoom` — never a different
+   aspect, the same crop an ffmpeg `crop` + `scale` would make. `filter` is a CSS filter
+   (filters/), none unless the entry or the opt-in `grade` asked for one. */
 export const Footage: React.FC<{rect: Rect}> = ({rect}) => (
   <>{SPANS.map((span, i) => (
     <Sequence key={i} from={span.from} durationInFrames={span.dur + span.fadeOut} layout="none">

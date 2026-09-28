@@ -5,7 +5,6 @@ import Checklist from './components/Checklist.tsx';
 import CommentBox from './components/CommentBox.tsx';
 import Counter from './components/Counter.tsx';
 import FileMerge from './components/FileMerge.tsx';
-import Glitch from './components/Glitch.tsx';
 import ImageCard from './components/ImageCard.tsx';
 import Quote from './components/Quote.tsx';
 import Stamp from './components/Stamp.tsx';
@@ -21,7 +20,6 @@ export const COMPONENTS: Record<keyof typeof SCENES.options, FC<any>> = {
   COMMENT_BOX: CommentBox,
   COUNTER: Counter,
   FILE_MERGE: FileMerge,
-  GLITCH: Glitch,
   IMAGE_CARD: ImageCard,
   QUOTE: Quote,
   STAMP: Stamp,

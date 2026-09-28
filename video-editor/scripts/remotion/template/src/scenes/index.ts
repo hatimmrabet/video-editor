@@ -8,6 +8,10 @@
    the two and the type checker refuses a keyword without a component or the reverse.
    Adding a scene means adding both files and one line in each list.
 
+   MAX_SCENELESS_RUN caps how long the video may go with no scene running at all: enforced
+   here, not left as prose a scene-design pass could silently under-deliver on. A plan that
+   goes quiet too long fails `options/check.ts`, naming the stretch.
+
    THE COMPONENT CONTRACT. SceneList.tsx renders each active scene with these props:
      t          absolute seconds
      prog       0..1, linear progress through the whole scene (for its own phases)
@@ -18,8 +22,8 @@
      exit       0..1, raw linear progress of the exit (1 = gone)
      words      the sentence's words with their timings: {t, s, e, hot}[]
      wordIndex  how many of those words have started, minus one (-1 before the first)
-     rect       the video card's rectangle at this instant (GLITCH's own use only — it draws
-                ON the video, everything else draws in `area`)
+     rect       the video card's rectangle at this instant — for an `overlay: true` scene
+                (SUSPENSE), which draws ON the video; everything else draws in `area`
      area       the active LAYOUT's own scene rectangle (frame px) — draw inside it, in ITS
                 own coordinate space (areaX(k) = area.x + k*area.w, and so on; util.tsx has
                 the helper), never in absolute design pixels. A layout can be any size (SPLIT's
@@ -37,13 +41,36 @@ import {CHECKLIST} from './CHECKLIST.ts';
 import {COMMENT_BOX} from './COMMENT_BOX.ts';
 import {COUNTER} from './COUNTER.ts';
 import {FILE_MERGE} from './FILE_MERGE.ts';
-import {GLITCH} from './GLITCH.ts';
 import {IMAGE_CARD} from './IMAGE_CARD.ts';
 import {QUOTE} from './QUOTE.ts';
 import {STAMP} from './STAMP.ts';
 import {SUSPENSE} from './SUSPENSE.ts';
 import {SYNC_VIZ} from './SYNC_VIZ.ts';
 import {TRANSCRIPT_PANEL} from './TRANSCRIPT_PANEL.ts';
+
+// No stretch of the video may go this long without a scene: the visual variety this whole
+// domain exists for, not a frame that is merely filled. Generous enough for a natural hook
+// (no scene is ever expected in the first few seconds) plus a sentence or two after it —
+// long stretches past that are a content gap, not a deliberate quiet moment.
+const MAX_SCENELESS_RUN = 12;
+
+/* Every stretch of the video with no scene running, in order — used only to word the audit
+   below; a plan with no scenes at all is one giant gap, from 0 to its own end. */
+function scenelessGaps(plan: any): string[] {
+  const total = typeof plan.total === 'number' ? plan.total : 0;
+  if (total <= 0) return [];
+  const scenes = [...(plan.scenes ?? [])].sort((a: any, b: any) => a.s - b.s);
+  const gaps: string[] = [];
+  let cursor = 0;
+  const flag = (from: number, to: number) => {
+    if (to - from > MAX_SCENELESS_RUN)
+      gaps.push(`${from.toFixed(1)}s-${to.toFixed(1)}s: ${(to - from).toFixed(1)}s with no scene — `
+        + `over the ${MAX_SCENELESS_RUN}s limit`);
+  };
+  for (const sc of scenes) { flag(cursor, sc.s); cursor = Math.max(cursor, sc.e); }
+  flag(cursor, total);
+  return gaps;
+}
 
 /* `timing` tunes how a scene enters and leaves: {in, out}, each a number of seconds or
    {duration, easing, y}. */
@@ -67,14 +94,17 @@ function timingProblems(timing: any, where: string): string[] {
 
 export const SCENES = defineDomain(
   'scene',
-  {CARD_STACK, CHECKLIST, COMMENT_BOX, COUNTER, FILE_MERGE, GLITCH, IMAGE_CARD, QUOTE, STAMP, SUSPENSE, SYNC_VIZ, TRANSCRIPT_PANEL},
+  {CARD_STACK, CHECKLIST, COMMENT_BOX, COUNTER, FILE_MERGE, IMAGE_CARD, QUOTE, STAMP, SUSPENSE, SYNC_VIZ, TRANSCRIPT_PANEL},
   {
-    audit: (plan, env: Env) => (plan.scenes ?? []).flatMap((sc: any) => {
-      const where = locate(sc);
-      const spec = {type: sc.type, ...(sc.params ?? {})};
-      const r = SCENES.resolve(spec);
-      const world = r.errors.length ? [] : ((r.option as any).check?.(r.params, env) ?? []).map((e: string) => `${where}: scene ${e}`);
-      return [...r.errors.map(e => `${where}: scene ${e}`), ...world, ...timingProblems(sc.timing, where)];
-    }),
+    audit: (plan, env: Env) => [
+      ...(plan.scenes ?? []).flatMap((sc: any) => {
+        const where = locate(sc);
+        const spec = {type: sc.type, ...(sc.params ?? {})};
+        const r = SCENES.resolve(spec);
+        const world = r.errors.length ? [] : ((r.option as any).check?.(r.params, env) ?? []).map((e: string) => `${where}: scene ${e}`);
+        return [...r.errors.map(e => `${where}: scene ${e}`), ...world, ...timingProblems(sc.timing, where)];
+      }),
+      ...scenelessGaps(plan),
+    ],
   },
 );
