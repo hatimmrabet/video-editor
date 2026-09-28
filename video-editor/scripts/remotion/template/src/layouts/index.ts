@@ -9,11 +9,13 @@
    THE PACING BUDGETS (SKILL.md step 10's "don't overuse SPLIT" rule) are enforced here, not
    left as prose a render can silently ignore: the hook must be FULL, no more than half the
    video may sit outside FULL, and no run of non-FULL layouts may exceed
-   `constants.MAX_NON_FULL_RUN` without a FULL shot in between. A plan that breaks one of these
-   fails `options/check.ts`, naming the offending segment. */
+   `constants.MAX_NON_FULL_RUN` without a FULL shot in between — except a run made entirely of
+   SPLIT, which gets the longer `constants.MAX_SPLIT_RUN` instead, since SPLIT keeps the face
+   on screen. A plan that breaks one of these fails `options/check.ts`, naming the offending
+   segment. */
 import {defineDomain, locate} from '../options/domain.ts';
 import type {Env} from '../options/domain.ts';
-import {HOOK_SECONDS, MAX_NON_FULL_RUN, MAX_NON_FULL_SHARE} from './constants.ts';
+import {HOOK_SECONDS, MAX_NON_FULL_RUN, MAX_SPLIT_RUN, MAX_NON_FULL_SHARE} from './constants.ts';
 import {FULL} from './FULL.ts';
 import {SPLIT} from './SPLIT.ts';
 import {LOWER} from './LOWER.ts';
@@ -49,13 +51,19 @@ export const LAYOUTS = defineDomain(
       // report would treat the next non-FULL span as if it opened a fresh run, so a run long
       // enough to be reported once could keep going, unbroken, well past the limit a second
       // time with nothing left to catch it.
-      let runStart: number | null = null, runWhere = '', reported = false;
+      // SPLIT never removes the face — only HIDDEN does (LOWER shrinks it, still on screen) —
+      // so a run made of SPLIT alone gets the longer MAX_SPLIT_RUN instead: the moment any
+      // other non-FULL layout joins the run, it drops to the stricter MAX_NON_FULL_RUN for
+      // the rest of that run, never back up, since part of it did lose the face.
+      let runStart: number | null = null, runWhere = '', reported = false, runAllSplit = true;
       for (const s of spans) {
-        if (s.name === 'FULL') { runStart = null; reported = false; continue; }
-        if (runStart === null) { runStart = s.s; runWhere = s.where; reported = false; }
-        if (!reported && s.e - runStart > MAX_NON_FULL_RUN) {
+        if (s.name === 'FULL') { runStart = null; reported = false; runAllSplit = true; continue; }
+        if (runStart === null) { runStart = s.s; runWhere = s.where; reported = false; runAllSplit = true; }
+        if (s.name !== 'SPLIT') runAllSplit = false;
+        const limit = runAllSplit ? MAX_SPLIT_RUN : MAX_NON_FULL_RUN;
+        if (!reported && s.e - runStart > limit) {
           problems.push(`${runWhere}: non-FULL layouts run ${(s.e - runStart).toFixed(1)}s without a FULL `
-            + `shot — over the ${MAX_NON_FULL_RUN}s limit`);
+            + `shot — over the ${limit}s limit`);
           reported = true;
         }
       }

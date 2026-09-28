@@ -54,3 +54,11 @@ export const SPLIT_SCENE_RESERVE = 260;
 export const HOOK_SECONDS = 3.5;          // the opening must be FULL for at least this long
 export const MAX_NON_FULL_SHARE = 0.5;    // at most half the video outside FULL, total
 export const MAX_NON_FULL_RUN = 8.0;      // at most this many seconds of non-FULL in a row
+
+/* A run made entirely of SPLIT gets this longer allowance instead of MAX_NON_FULL_RUN: SPLIT
+   never takes the face off screen (the bottom half is always the person, centred), so the
+   run-length rule's own reason for existing — don't lose the host for too long — doesn't bite
+   the same way it does for HIDDEN. A list that grows across several segments (one condition
+   per sentence, say) needs to stay in SPLIT for as long as it takes to say them, not flicker
+   back to FULL between items just to satisfy a budget written for a different failure mode. */
+export const MAX_SPLIT_RUN = 20.0;
