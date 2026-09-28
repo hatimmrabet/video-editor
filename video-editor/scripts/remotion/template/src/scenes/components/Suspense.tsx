@@ -4,16 +4,23 @@ import type {Rect} from '../../geometry.ts';
 import type {Params} from '../../options/Param.ts';
 import {SUSPENSE} from '../SUSPENSE.ts';
 
-type Props = {prog: number; rect?: Rect; theme: {acc: string}; params: Params<typeof SUSPENSE.params>};
+// A ring completes one pulse in this many real seconds — fixed, never a share of `prog`: tied
+// to the scene's own progress, a segment several seconds long pulses proportionally slower
+// (a full minute-long segment would take a full minute per pulse), reading as static rather
+// than "building tension". theme.acc alone, at a low opacity, also read as barely there —
+// PEAK_O is high enough that a ring is unmistakably a ring, not a faint smudge.
+const CYCLE_S = 1.6, PEAK_O = 0.5;
 
-export default function Suspense({prog, rect, theme, params}: Props) {
+type Props = {t: number; rect?: Rect; theme: {acc: string}; params: Params<typeof SUSPENSE.params>};
+
+export default function Suspense({t, rect, theme, params}: Props) {
   const R = rect || {x: 0, y: 0, w: 1080, h: 1920, r: 0};
   const scale = Math.min(R.w, R.h) / 1080;   // uniform scale for the ring radius — keeps the rings circular
   const cx = R.x + params.x * R.w, cy = R.y + params.y * R.h;
   const rings: {r: number; o: number}[] = [];
   for (let i = 0; i < params.rings; i++) {
-    const k = ((prog * 2 - i * 0.55) % 1 + 1) % 1;
-    if (k > 0 && k < 1) rings.push({r: (80 + k * 520) * scale, o: (1 - k) * 0.14});
+    const k = ((t / CYCLE_S - i / params.rings) % 1 + 1) % 1;
+    rings.push({r: (80 + k * 520) * scale, o: (1 - k) * PEAK_O});
   }
   return (
     <>
