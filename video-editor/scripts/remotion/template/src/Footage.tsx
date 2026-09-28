@@ -103,9 +103,16 @@ const FootagePiece: React.FC<{rect: Rect; span: (typeof SPANS)[number]}> = ({rec
   const opacity = Math.max(0, Math.min(1,
     fadeIn > 0 ? (frame + 1) / fadeIn : 1,
     fadeOut > 0 ? (dur + fadeOut - frame) / fadeOut : 1));
-  const k = Math.min(MAX_COVER_ZOOM, Math.max(
+  // coverK is the SMALLEST zoom that still covers `rect` at this anchor/target — the floor.
+  // `zoom` (resolveCrop's face-size ratio) is free to push the crop in tighter than that floor
+  // when a measured face is smaller than the target size, but can never pull it below the
+  // floor: a face measured bigger than the target asks to zoom OUT past what the rect can show
+  // without exposing the frame behind it, which the crop cannot do — it keeps more headroom
+  // than asked for instead, rather than ever padding the rect with the theme background.
+  const coverK = Math.max(
     axisCover(rect.w, W, target.x, anchor[0]),
-    axisCover(rect.h, H, target.y, anchor[1])) * zoom);
+    axisCover(rect.h, H, target.y, anchor[1]));
+  const k = Math.min(MAX_COVER_ZOOM, Math.max(coverK, coverK * zoom));
   const bw = W * k, bh = H * k;
   const left = rect.w * target.x - anchor[0] * bw;
   const top = rect.h * target.y - anchor[1] * bh;

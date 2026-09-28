@@ -38,6 +38,17 @@ export const CAPTION_SEAM_BIAS = 0.42;
    the whole frame instead of this margin. */
 export const SAFE_TOP = 150 / 1920;
 
+/* SPLIT only: the caption lives in the top half, with the design — the bottom half is the
+   face alone, nothing else drawn into it. SPLIT_CAPTION_CLEARANCE keeps the caption's own
+   bottom edge this many pixels off the seam, instead of touching the line the way FULL's
+   caption sits flush with the frame's own bottom edge. SPLIT_SCENE_RESERVE is how much of the
+   top half's bottom edge a scene leaves clear above that, so its own content and the caption
+   never compete for the same pixels: the tallest a caption page ever renders (capPages.ts's
+   2-line cap, its line height and its own padding) plus the clearance, rounded up — fixed,
+   not sized off either one's actual content, the same as every other constant here. */
+export const SPLIT_CAPTION_CLEARANCE = 28;
+export const SPLIT_SCENE_RESERVE = 260;
+
 /* Pacing budgets, enforced by layouts/index.ts's audit (options/check.ts runs it at sync).
    Only FULL keeps the face alone on screen; every other layout counts against these. */
 export const HOOK_SECONDS = 3.5;          // the opening must be FULL for at least this long
