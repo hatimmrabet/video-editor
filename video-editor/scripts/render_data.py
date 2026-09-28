@@ -228,7 +228,7 @@ def build(work, remotion_dir):
         if ws:
             cards.append({"s": round(ws[0]["s"], 3), "e": round(ws[-1]["e"], 3),
                           "w": [{"t": w["t"], "s": round(w["s"], 3), "e": round(w["e"], 3),
-                                 "hot": w["hot"]} for w in ws]})
+                                 "hot": w["hot"], "fx": w.get("fx")} for w in ws]})
 
         sc = seg.get("scene")
         span = {"s": round(start, 3), "e": round(end, 3), "layout": seg.get("layout"),

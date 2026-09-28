@@ -40,7 +40,8 @@ that fall inside the segment's `source` ranges (build/transcript-raw.json, read 
 process and cached) — a token that survived a rewording keeps its real timing; only a token
 that actually changed gets an interpolated one, spread across the real time left after its
 matched neighbours. `*word*` (or `*several words*`) in `text` marks the hot span held in the
-accent pill when spoken; it survives a rewording because it is just part of the text.
+accent pill when spoken; `*word:drop*` (`drop`/`shake`/`pulse`/`type` — `_WORD_FX`) also gives
+it that entrance choreography. Both survive a rewording because they are just part of the text.
 
 SHAPE
 
@@ -105,6 +106,8 @@ _DOC = ("The montage, and the only state this pipeline keeps. An ordered list of
 
 _TIME = re.compile(r"^\s*(\d+):(\d+(?:\.\d+)?)\s*$")
 _HOT = re.compile(r"\*(.+?)\*")
+# Captions.tsx's per-word choreography — must match the keys that file's wordFX() answers to.
+_WORD_FX = frozenset(("drop", "shake", "pulse", "type"))
 
 SEGMENT_KEYS = ("source", "text", "on", "why", "layout", "filter", "transition",
                 "zoom", "anchor", "scene", "sfx", "overlay", "chapter")
@@ -159,16 +162,28 @@ def _fmt_source(spans):
 
 def _strip_hot(text):
     """`text` with `*word*` / `*several words*` markers -> (plain tokens, the set of token
-    indices that were marked hot). The markers are never stored anywhere else."""
-    tokens, hot, pos = [], set(), 0
+    indices that were marked hot, {index: effect name} for the ones that also named one of
+    `_WORD_FX`). `*word:drop*` marks a span hot AND gives it that choreography in
+    Captions.tsx; a trailing `:something` that is not one of `_WORD_FX`'s names is left as
+    literal text instead, so an ordinary colon inside a marked span (`*الشروط: أولا*`, say)
+    is never misread as an effect tag. The markers are never stored anywhere else."""
+    tokens, hot, fx, pos = [], set(), {}, 0
     for m in _HOT.finditer(text or ""):
         tokens += text[pos:m.start()].split()
-        inner = m.group(1).split()
-        hot |= set(range(len(tokens), len(tokens) + len(inner)))
-        tokens += inner
+        inner, effect = m.group(1), None
+        if ":" in inner:
+            head, _, tail = inner.rpartition(":")
+            if head and tail in _WORD_FX:
+                inner, effect = head, tail
+        span = inner.split()
+        idxs = range(len(tokens), len(tokens) + len(span))
+        hot |= set(idxs)
+        if effect:
+            fx.update({i: effect for i in idxs})
+        tokens += span
         pos = m.end()
     tokens += (text or "")[pos:].split()
-    return tokens, hot
+    return tokens, hot, fx
 
 
 def path(work):
@@ -393,8 +408,9 @@ def words(t, seg):
     keeps its REAL timing; a run of tokens that changed (a rewording) is spread, weighted by
     length, across the real output time left between its nearest matched neighbours — the
     same idea as the old sync_words(), just never written to disk and so never stale.
-    `*word*` in `text` marks a token (or a run of them) hot."""
-    tokens, hot_idx = _strip_hot(seg.get("text") or "")
+    `*word*` in `text` marks a token (or a run of them) hot; `*word:drop*` (`_WORD_FX`'s
+    names) additionally gives it that entrance choreography in Captions.tsx."""
+    tokens, hot_idx, fx_idx = _strip_hot(seg.get("text") or "")
     if not tokens:
         return []
     dur = entry_duration(seg)
@@ -440,8 +456,11 @@ def words(t, seg):
         s, e = project_src(t, seg, a), project_src(t, seg, b)
         if s is None or e is None:
             continue
-        out.append({"t": tok, "s": round(s, 3), "e": round(e, 3),
-                    "src": [round(a, 3), round(b, 3)], "hot": idx in hot_idx})
+        w = {"t": tok, "s": round(s, 3), "e": round(e, 3),
+             "src": [round(a, 3), round(b, 3)], "hot": idx in hot_idx}
+        if idx in fx_idx:
+            w["fx"] = fx_idx[idx]
+        out.append(w)
     return out
 
 

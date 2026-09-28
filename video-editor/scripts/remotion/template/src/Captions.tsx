@@ -6,9 +6,20 @@ import {arrangementAt} from './stage';
 import {CAPTION_SEAM_BIAS} from './layouts/constants.ts';
 import {SCENE_ENTER, SCENE_EXIT, ease as easing} from './transitions/index.ts';
 
-type W = {t:string; s:number; e:number; hot:boolean};
+type Fx = 'drop' | 'shake' | 'pulse' | 'type';
+type W = {t:string; s:number; e:number; hot:boolean; fx?: Fx | null};
 type C = {s:number; e:number; w:W[]};
 const CARDS = (caps as any).cards as C[];
+
+// A word's own entrance choreography — `*word:drop*` etc. in timeline.json's `text`
+// (lib/timeline.py's `_WORD_FX` — keep the two lists in sync). Every duration here is real
+// seconds off the word's own `t - w.s`, never a share of the caption card's or the segment's
+// own duration: the same lesson SUSPENSE and GLITCH both had to learn the hard way — a word
+// choreographs identically whether its sentence is short or long.
+const DROP_S = 0.34, DROP_FALL = 0.72, DROP_H = 70, DROP_BOUNCE = 5;
+const SHAKE_S = 0.38, SHAKE_PX = 10;
+const PULSE_S = 0.38, PULSE_AMT = 0.22;
+const TYPE_S = 0.30;
 
 // A card is one whole spoken sentence — too much text for one caption to show at once
 // without swallowing the face (the constraint capPages.ts's header explains). Pages are
@@ -58,12 +69,30 @@ export const Captions: React.FC<{t:number}> = ({t}) => {
         {pg.w.map((w,i) => {
           const active = t >= w.s && t < w.e;
           const spoken = t >= w.s;
-          const lift = active ? -5*Math.sin(Math.min(1,(t-w.s)/0.10)*Math.PI) : 0;
+          const dt = t - w.s;
           const hot = w.hot && spoken;
           const grow = hot ? Math.min(1,(t-w.s)/0.16) : 0;
+          // Plain words keep the small default lift; a `fx`-tagged word replaces it with its
+          // own choreography instead of stacking both — drop/shake/pulse already carry enough
+          // motion on their own. `type` clips the word away entirely before its own moment
+          // (nothing to reveal yet), unlike every other word, which is visible for its whole
+          // page the instant the page itself enters.
+          let lift = active ? -5*Math.sin(Math.min(1,dt/0.10)*Math.PI) : 0, sx = 0, scale = 1, clip = 0;
+          if (w.fx === 'drop' && spoken) {
+            const k = Math.min(1, dt/DROP_S);
+            lift = k < DROP_FALL ? -((1-k/DROP_FALL)**2)*DROP_H : -Math.sin((k-DROP_FALL)/(1-DROP_FALL)*Math.PI)*DROP_BOUNCE;
+          } else if (w.fx === 'shake' && spoken) {
+            const k = Math.min(1, dt/SHAKE_S);
+            sx = Math.sin(k*40)*(1-k)*SHAKE_PX;
+          } else if (w.fx === 'pulse' && spoken) {
+            scale = 1 + PULSE_AMT*Math.sin(Math.min(1, dt/PULSE_S)*Math.PI);
+          } else if (w.fx === 'type') {
+            clip = spoken ? 1 - Math.min(1, dt/TYPE_S) : 1;
+          }
           return (
             <span key={i} style={{display:'inline-block', margin:`0 ${CAP_GAP/2}px`, position:'relative',
-              transform:`translateY(${lift}px)`,
+              transform:`translate(${sx}px, ${lift}px) scale(${scale})`,
+              clipPath: clip > 0 ? `inset(0 0 0 ${clip*100}%)` : undefined,
               color: hot ? '#FFF' : (active ? T.acc : T.ink)}}>
               {hot && (
                 <span style={{position:'absolute', inset:'-11px -14px', background:T.acc, borderRadius:15,
