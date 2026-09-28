@@ -4,7 +4,6 @@ import {scene} from './define.ts';
 export const IMAGE_CARD = scene({
   about: 'A real image — a logo, a screenshot, a diagram — shown on a card.',
   when: 'The speaker names a real tool, brand, website, app, place or person.',
-  bottom: 600,
   params: {
     src: text({about: 'File name inside the project\'s config/images/ folder.', required: true}),
     caption: text({about: 'Line written along the bottom of the card.'}),

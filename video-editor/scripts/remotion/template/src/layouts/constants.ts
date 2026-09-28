@@ -10,22 +10,26 @@ export const DESIGN = {w: 1080, h: 1920};
 
 export const scaleOf = (frame: Frame) => ({x: frame.w / DESIGN.w, y: frame.h / DESIGN.h});
 
-/* SPLIT: the video takes what is left under the graphic and the caption. */
-export const SPLIT_GAP_ABOVE_CAPTION = 40;   // between the graphic's bottom and the caption block
-export const SPLIT_GAP_BELOW_CAPTION = 50;   // between the caption block and the video's top edge
-export const SPLIT_DEFAULT_BOTTOM = 500;     // the graphic's bottom when the scene states none
+/* The one face size every layout shares (FaceTarget.h — see layouts/types.ts for why this
+   must be a fraction of the FULL FRAME, never of a layout's own, possibly much smaller,
+   rect). A natural selfie/webcam shot measures the face at roughly 25-28% of frame height;
+   this sits at or slightly below that — genuinely no punch-in, closer to zoomed OUT than "as
+   shot" — because a face this close reads as cropped-in on a phone screen far more readily
+   than the same framing does on a monitor. Every layout uses this one value for `h`, so the
+   real-world face size a viewer sees never depends on which layout happens to be active. */
+export const FACE_HEIGHT = 0.24;
 
 /* LOWER: a small card low on the screen. */
 export const LOWER_CARD = {x: 350, y: 1370, w: 380, h: 520, r: 32};
 
-/* The caption's bottom edge on FULL/HIDDEN: 1560 on a 1920-tall canvas — inside the
+/* The caption's bottom edge on FULL/SPLIT/HIDDEN: 1560 on a 1920-tall canvas — inside the
    platform's caution belt but clear of its bottom buttons — expressed as a share of the
    height so it holds at any size. */
 export const CAPTION_BOTTOM = 360 / 1920;
 
-/* Where the caption rides a seam (SPLIT/LOWER): the share of its own rendered height that
-   sits ABOVE the seam line (the rest sits below) — ties the graphic and the video halves of
-   the screen together instead of reading as two stuck-on pieces. */
+/* Where the caption rides a seam (LOWER only): the share of its own rendered height that
+   sits ABOVE the seam line (the rest sits below) — ties the small card to the panel above it
+   instead of reading as a stuck-on label. */
 export const CAPTION_SEAM_BIAS = 0.42;
 
 /* Where a scene may never start, at the very top of the frame: the platform's own UI sits in

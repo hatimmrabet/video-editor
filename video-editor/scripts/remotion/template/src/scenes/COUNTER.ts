@@ -4,7 +4,6 @@ import {scene} from './define.ts';
 export const COUNTER = scene({
   about: 'A number that rolls, then lands on its final value with a beat.',
   when: 'The speaker gives a number: a price, a score, a percentage, a count.',
-  bottom: 520,
   params: {
     to: number({about: 'The final value.', required: true}),
     from: number({about: 'The value it rolls from.', default: 0}),

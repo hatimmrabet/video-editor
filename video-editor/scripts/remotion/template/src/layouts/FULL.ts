@@ -1,10 +1,11 @@
-import {CAPTION_BOTTOM, SAFE_TOP} from './constants.ts';
+import {CAPTION_BOTTOM, FACE_HEIGHT, SAFE_TOP} from './constants.ts';
 import {layout} from './define.ts';
 
-// A natural selfie/webcam shot measures the face at roughly 25-30% of frame height; this is a
-// gentle punch-in over that, not a headshot — leaves shoulders, hands and whatever is behind
-// the speaker in frame, room the caption and the scene above the head both need.
-const FACE = {x: 0.5, y: 0.38, h: 0.34};
+const FACE = {x: 0.5, y: 0.38, h: FACE_HEIGHT};
+
+// find_face.py's detector boxes roughly eyebrows-to-chin: real hair reaches meaningfully
+// higher than that box's own top edge, a gap a scene must clear too, not just the box itself.
+const HAIR_MARGIN = 0.05;
 
 export const FULL = layout({
   about: 'The face fills the screen; the caption sits near the bottom. The default.',
@@ -15,7 +16,7 @@ export const FULL = layout({
     // The scene draws in the headroom ABOVE the face — derived from FACE itself, not a band
     // sized independently of it, so the two can never drift apart the way a hand-picked band
     // height and a later-retuned face size once quietly could.
-    const faceTop = FACE.y - FACE.h / 2;
+    const faceTop = FACE.y - FACE.h / 2 - HAIR_MARGIN;
     return {
       video: {x: 0, y: 0, w: frame.w, h: frame.h, r: 0},
       face: FACE,

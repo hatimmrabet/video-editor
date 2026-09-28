@@ -493,10 +493,13 @@ scene:
   "scene": { "type": "STAMP", "params": { "text": "3 etapes" } } }
 ```
 **The layout alone decides where the face, the caption and the scene sit** — not something to
-reason about by hand. `SPLIT`/`LOWER` move the caption onto the seam between the graphic and
-the face instead of leaving it at the bottom, and aim the crop at a smaller, lower face so it
-never lands under the graphic; `FULL` keeps the face large and the caption at the bottom. Read
-the layout's own file for the picture it aims for — never author an x/y yourself.
+reason about by hand. `SPLIT` cuts the frame clean in two, a fixed 50/50: the top half pure
+design (no face, no video, just the theme background and whatever scene draws on it), the
+bottom half the face alone, centred, its own caption near its own bottom edge — like a
+collage of two separate images, not one shot with a graphic laid over part of it. `LOWER`
+shrinks the face to a small card and moves the caption onto the seam above it instead of
+leaving it at the frame's bottom. `FULL` keeps the face large and the caption at the bottom.
+Read the layout's own file for the picture it aims for — never author an x/y yourself.
 
 **A scene lives as long as its own segment** — there is no `at`/`dur` to place it inside the
 sentence any more. To put a scene (or a layout, or a filter) on only PART of a sentence,

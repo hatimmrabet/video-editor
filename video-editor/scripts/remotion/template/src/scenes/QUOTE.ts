@@ -4,7 +4,6 @@ import {scene} from './define.ts';
 export const QUOTE = scene({
   about: 'A short title chip at the top of the screen.',
   when: 'A key phrase, a title or a one-line message worth reading.',
-  bottom: 260,
   params: {
     text: text({about: 'What the chip says.', required: true}),
     accent: flag({about: 'Fill the chip with the accent colour.', default: false}),

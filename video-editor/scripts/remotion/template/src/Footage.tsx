@@ -26,9 +26,11 @@ const CENTRE: [number, number] = [0.5, 0.4];   // no measurement at all: a gener
 
 /* A piece's effective (anchor, zoom). A hand-authored zoom/anchor is used exactly as
    written. Otherwise, the piece's own MEASURED face (build/framing.json, find_face.py) is
-   scaled so its real height lands on `face.h` — the active layout's own target height — and
-   anchored at the measured centre; the clamp keeps a bad or noisy measurement from ever
-   producing an absurd crop. No measurement at all: a generic, centred crop. */
+   scaled so its real height lands on `face.h` — a fraction of the FULL FRAME regardless of
+   which layout is active (layouts/types.ts explains why it must be), so this division is
+   always two frame-relative fractions against each other, never a frame one against a
+   rect one — and anchored at the measured centre; the clamp keeps a bad or noisy measurement
+   from ever producing an absurd crop. No measurement at all: a generic, centred crop. */
 function resolveCrop(p: Piece, face: FaceTarget): {anchor: [number, number]; zoom: number} {
   if (p.z != null && p.a) return {anchor: p.a, zoom: p.z};
   const m = p.measured;

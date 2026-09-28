@@ -1,14 +1,22 @@
 import type {Frame, Rect} from '../geometry.ts';
 
-/* What a layout is handed: the frame it arranges, how tall the caption block is (asked for
-   only when a layout needs it — measuring text is not free), and how far down the scene above
-   the video reaches (design pixels, see constants.ts). */
-export type Context = {frame: Frame; captionHeight: () => number; sceneBottom?: number};
+/* What a layout is handed: the frame it arranges. Every layout's arrangement is a fixed
+   geometry — not sized off a scene's own content or the caption's — so this is all it needs. */
+export type Context = {frame: Frame};
 
-/* Where the face should land inside `video`, and how tall: x/y are fractions of the video
-   rect (0,0 = its top-left corner), `h` a fraction of the rect's own height. The compile
-   (render_data.py + Footage.tsx) turns a measured face position into the zoom/anchor that
-   puts it here; a segment's own hand-authored `zoom`/`anchor` overrides this outright. */
+/* Where the face should land inside `video`, and how tall. `x`/`y` are fractions of the
+   video RECT (0,0 = its own top-left corner) — genuinely rect-relative, since "where within
+   this rect" only means anything relative to that rect. `h` is a fraction of the FULL FRAME,
+   not the rect — deliberately the odd one out, and it must stay that way: the crop math
+   compares it directly against find_face.py's own measurement, itself always a fraction of
+   the source frame, to get a zoom factor (Footage.tsx's resolveCrop). Were `h` rect-relative
+   instead, that comparison would be silently off by exactly rect.h/frame.h on any layout
+   whose rect is not the full frame — the face rendering far larger than the number written
+   here ever asked for, worse the smaller the rect. Layouts wanting the same real-world face
+   size (most of them) simply share the one `h` for it (layouts/constants.ts's FACE_HEIGHT);
+   only `x`/`y` differ per layout. The compile (render_data.py + Footage.tsx) turns a measured
+   face position into the zoom/anchor that puts it here; a segment's own hand-authored
+   `zoom`/`anchor` overrides this outright. */
 export type FaceTarget = {x: number; y: number; h: number};
 
 /* Where the caption sits. `y` is in frame pixels: for BOTTOM, the distance up from the
