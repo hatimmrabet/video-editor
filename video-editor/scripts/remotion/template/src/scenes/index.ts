@@ -1,6 +1,6 @@
-/* Scenes: the motion graphics drawn over (or instead of) the video. An entry's `scene` chooses
-   one — {type: KEYWORD, params: {...}, at, dur, timing} — and this domain is the only way a
-   scene is described or drawn: there is no per-video scene code.
+/* Scenes: the motion graphics drawn over (or instead of) the video. A segment's `scene` chooses
+   one — {type: KEYWORD, params: {...}, timing} — and lives exactly as long as that segment;
+   this domain is the only way a scene is described or drawn: there is no per-video scene code.
 
    Each scene has two files. The definition, named after its keyword (CHECKLIST.ts), says what it
    does, when to use it and which parameters it takes — pure TypeScript, so it loads under plain
@@ -11,6 +11,9 @@
    THE COMPONENT CONTRACT. SceneList.tsx renders each active scene with these props:
      t          absolute seconds
      prog       0..1, linear progress through the whole scene (for its own phases)
+     dur        the scene's own length in seconds (sc.e - sc.s) — prog*dur is elapsed seconds,
+                for a phase that must stay short (a shock, a flash) regardless of how long the
+                segment itself runs, instead of stretching to fill it
      enter      0..1, raw linear progress of the entrance (ease it however you like)
      exit       0..1, raw linear progress of the exit (1 = gone)
      words      the sentence's words with their timings: {t, s, e, hot}[]

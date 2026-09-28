@@ -36,7 +36,7 @@ export const SceneList: React.FC<{t: number}> = ({t}) => (
 
       return (
         <div key={i} style={{position: 'absolute', inset: 0, ...wrap}}>
-          <Scene t={t} prog={prog} enter={enter} exit={exit} words={words} wordIndex={wordIndex}
+          <Scene t={t} prog={prog} dur={sc.e - sc.s} enter={enter} exit={exit} words={words} wordIndex={wordIndex}
             rect={videoRectAt(t)} area={arrangementAt(t).scene} theme={T} params={params} />
         </div>
       );

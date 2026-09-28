@@ -18,7 +18,10 @@ export const SPLIT = layout({
     const seam = bottom * scaleOf(frame).y + SPLIT_GAP_ABOVE_CAPTION + captionHeight() + SPLIT_GAP_BELOW_CAPTION;
     return {
       video: {x: 0, y: seam, w: frame.w, h: frame.h - seam, r: 0},
-      face: {x: 0.5, y: 0.46, h: 0.62},
+      // A share of THIS rect's own (already reduced) height, not the full frame's — sized so
+      // the face reads clearly in the room left under the graphic without filling it edge to
+      // edge the way FULL's own, taller target would.
+      face: {x: 0.5, y: 0.46, h: 0.44},
       caption: {y: seam, align: 'SEAM'},
       scene: {x: 0, y: 0, w: frame.w, h: seam, r: 0},
     };

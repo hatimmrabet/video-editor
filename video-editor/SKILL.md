@@ -367,10 +367,14 @@ uv run scripts/mark_checkpoint.py <work> transcript-fix
 
 **6a — cut the repeats and false starts yourself, first.** Read the segments end to end.
 The creator often restarts an idea — stops after 3 words, tries again at 5, gets it right
-at 9 — no two attempts the same length. Find every one of these, and **treat the LAST
-attempt as the real source** of what gets shown. There is no detection script for this: you
-decide, from the text and its timing, exactly like you're doing when you read a transcript
-in conversation.
+at 9 — no two attempts the same length. **A repeat is not only a same-sentence restart**:
+a complete, well-formed sentence can also get said again much later, in entirely different
+words, because the creator circled back to the same point — a closing call-to-action ("send
+this to someone", "share it") restated near the end is the most common shape of this. Read
+for the IDEA, not just for near-identical wording. Find every one of these, and **treat the
+LAST attempt as the real source** of what gets shown. There is no detection script for this:
+you decide, from the text and its timing, exactly like you're doing when you read a
+transcript in conversation.
 
 Switch those segments off — set `"on": false` and a `"why"` directly in `timeline.json`, or:
 ```bash
