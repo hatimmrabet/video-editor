@@ -29,7 +29,10 @@ export type Audit = (plan: any, env: Env) => string[];
 export const locate = (item: {line?: number; s?: number; o?: number}) =>
   `line ${item.line ?? '?'} @ ${(item.s ?? item.o ?? 0).toFixed(1)}s`;
 
-function distance(a: string, b: string): number {
+/* Exported for scenes/index.ts's own resolver: a keyword unknown to BOTH the shared catalog
+   and a project's bespoke one gets one "did you mean" suggestion across their combined names,
+   the same quality of message resolve() already gives within a single domain. */
+export function distance(a: string, b: string): number {
   const d = Array.from({length: a.length + 1}, (_, i) => [i, ...Array(b.length).fill(0)]);
   for (let j = 1; j <= b.length; j++) d[0][j] = j;
   for (let i = 1; i <= a.length; i++)

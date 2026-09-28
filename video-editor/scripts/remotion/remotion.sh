@@ -6,9 +6,11 @@
 #   remotion/remotion.sh <work> render [out.mp4] → produces an MP4 directly (no frames)
 #   remotion/remotion.sh <work> still 4.6 12.3   → review stills → <work>/build/prev/t<sec>.jpg
 #   remotion/remotion.sh <work> check            → type-checks the project (tsc --noEmit)
-# Scenes are authored as data — a segment's `scene`/`overlay` in <work>/timeline.json, drawn by
-# the scenes/ and VideoOverlays.tsx code. No per-project TSX to preserve across a sync: `src/` is
-# rebuilt from the template every time.
+# A segment's `scene`/`overlay` in <work>/timeline.json chooses one: the shared catalog
+# (scenes/) for a plain informational moment, or the project's own <work>/scenes/ — invented
+# fresh for this video (SKILL.md step 10), synced into src/bespoke/ below. Nothing is ever
+# preserved IN `src/` across a sync — it (bespoke included) is rebuilt from the template plus
+# <work>/scenes/ every time, never hand-edited in place.
 set -e
 . "$(cd "$(dirname "$0")/.." && pwd)/lib/platform.sh"
 W="$(vevo_abspath "$1")"; CMD="${2:-setup}"; ARG="$3"
@@ -27,6 +29,11 @@ sync_all(){
   # The option domains — layouts, transitions, scenes, filters — each with everything that
   # belongs to it, and `options`, which checks the plan against them.
   for d in options layouts transitions scenes filters; do cp -R "$TPL/src/$d" "$R/src/$d"; done
+  # This project's own bespoke scenes (<work>/scenes/, absent for most projects) synced into
+  # src/bespoke/ and registered — scenes/index.ts resolves a scene type against the shared
+  # catalog above first, this project's own second. A bad one stops here, same as any other
+  # option, not halfway through a render.
+  "${VEVO_PY[@]}" "$(dirname "$0")/sync_bespoke.py" "$W" "$R" "$TPL" || return 1
 
   LOGO="$("${VEVO_PY[@]}" -c "import os,sys
 sys.path.insert(0, os.path.join(os.environ['VEVO_SKILL_DIR'],'scripts'))

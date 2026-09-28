@@ -202,11 +202,21 @@ rather than reading it whole.
   `render_data.py` and `lib/timeline.py` know no option: keywords and parameters pass through
   as written. `options/check.ts` audits the render data against the domains (`remotion.sh`
   runs it right after building it), and `tsc` refuses a scene keyword with no component.
-- **Scenes are data, not per-video code.** A `scene` block on a segment ({type, params,
-  timing}) is drawn by `scenes/SceneList.tsx` for as long as that segment lasts; an
-  `overlay` block (a logo/badge riding the video itself) by `VideoOverlays.tsx`, likewise.
-  There is no hand-written scene file: a one-off visual means adding a reusable scene to
-  `scenes/`, never a throwaway per-video component.
+- **A scene is invented for the video it is in — the shared catalog is a fallback, not the
+  default.** `scripts/remotion/template/src/scenes/` is a small, permanent set of reusable
+  utility widgets (a checklist, a counter, a stamp) for a plain informational moment that
+  genuinely needs no idea of its own; a distinctive beat gets its own scene written fresh in
+  `<work>/scenes/` (same two-file shape — `KEYWORD.ts` + `components/KEYWORD.tsx` — same
+  `scene()`/param DSL, same component contract as any shared one), never a copy of an
+  existing scene retuned for new content. `remotion.sh` discovers a project's own `scenes/`
+  by filename, syncs it into `<work>/remotion/src/bespoke/` and regenerates its registry —
+  no line to add anywhere, unlike the shared catalog, which still needs one in
+  `scenes/index.ts` and one in `scenes/components.tsx`; that friction is deliberate, since it
+  is a permanent, curated addition, while a bespoke scene is not. A `scene` block on a
+  segment ({type, params, timing}) is drawn by `scenes/SceneList.tsx`, resolved against the
+  shared catalog first and the project's own bespoke one second, for as long as that segment
+  lasts; an `overlay` block (a logo/badge riding the video itself) by `VideoOverlays.tsx`,
+  likewise.
 - **A layout is the one place that decides where the face, the caption and the scene sit.**
   Its `arrange()` returns an `Arrangement` — the video rect, a `face` target (position, size),
   a `caption` placement (bottom-anchored, or riding the seam between the graphic and the

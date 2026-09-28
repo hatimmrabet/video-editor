@@ -352,6 +352,11 @@ there is nothing else to touch, and no separate fixes file to satisfy.
 
 - `*word*` (or `*several words*`) in `text` = held in the accent pill when spoken. Keep the
   markers when you reword a sentence that had one, unless the word itself is gone.
+- `*word:drop*` (also `:shake` · `:pulse` · `:type`) = that word also gets an entrance move
+  the instant it's spoken — falls and settles, jitters, pulses, or types on letter by letter.
+  Same marker, an effect name after a colon; still just part of `text`, so it survives a
+  reword the same way. Use it on the one or two words a sentence actually turns on, not on
+  every hot word — it reads as an accent, not a tic.
 - **This is not a line-by-line session with the user.** Do it yourself, then show a short
   summary: "23 sentences · 6 reworded (Whisper had them garbled) · the rest as spoken".
 
@@ -483,9 +488,10 @@ If a shot is framed wrong and it is not a detection fluke (check the sheet, and
 hand and look again.
 
 ### 10) Design the scenes and the on-screen captions ← the most important step
-Scenes are data, authored directly on the segment in `timeline.json` — there is no scene code
-to write or file to open. A segment can carry a layout, a filter, a transition into it and a
-scene:
+A segment can carry a layout, a filter, a transition into it and a scene, chosen by keyword on
+the segment itself — `layout`/`transition`/`filter` always from the shared catalogs below, but
+`scene.type` usually **not**: see "What you invent", a few paragraphs down, before reaching for
+the shared scene list out of habit.
 
 ```jsonc
 { "source": "...", "text": "...",
@@ -523,7 +529,8 @@ and ranges. List the folder, read the files that fit what is being said, then ch
 |---|---|
 | `layout` | `scripts/remotion/template/src/layouts/` |
 | `transition` — the change INTO this segment — and its `easing` | `scripts/remotion/template/src/transitions/` |
-| `scene.type` and `scene.params` | `scripts/remotion/template/src/scenes/` |
+| `scene.type` and `scene.params`, shared catalog | `scripts/remotion/template/src/scenes/` |
+| `scene.type` and `scene.params`, this project's own | `<work>/scenes/` — see "What you invent" |
 | `filter` | `scripts/remotion/template/src/filters/` |
 | `sfx[]` (step 11) | `scripts/sounds/` |
 
@@ -549,11 +556,36 @@ account badge, the caption cards with the spoken word highlighted (shown a page 
 lines — at a time, never the whole sentence), the end card, and deriving the colors from the
 theme. There is no progress bar.
 
-**What you invent:** the scenes. The idea must be a **visual metaphor for what is being said**,
-not decoration. Each scene's file says what it is for: read them, pick per sentence, and don't
-paste the same scene onto every video. A scene that fits nothing being said is worse than none —
-**the panel comes for the idea, not to fill.** Each layout's file also says how often and how long
-it may be used: respect it.
+**What you invent: a scene for this video, written fresh, not picked off the shared shelf.**
+The idea must be a **visual metaphor for what is being said**, not decoration — brainstorm 2-3
+before settling on one. `scripts/remotion/template/src/scenes/` (the table above) is a small
+set of reusable *utility* widgets for a plain informational moment that truly has no idea of
+its own — a bare checklist, a counter — not the default reach for a distinctive beat. For
+anything that should feel like it was made for this sentence, write it in `<work>/scenes/`
+instead, right beside `timeline.json`:
+
+```
+<work>/scenes/YOUR_KEYWORD.ts              # definition — about/params, no JSX
+<work>/scenes/components/YOUR_KEYWORD.tsx  # draws it
+```
+
+Read `scripts/remotion/template/src/scenes/QUOTE.ts` and `components/Quote.tsx` first — not
+for what they draw, for the *shape*: the same `scene()`/`number()`/`text()`/… param DSL, the
+same component contract (`t`, `prog`, `dur`, `enter`, `exit`, `words`, `wordIndex`,
+`itemReveal`, `rect`, `area`, `theme`, `params` — `scenes/index.ts`'s own header comment spells
+out every one), the same low-level helpers (`util.tsx`'s `ax`/`ay`/`aw`/`ah`/`rgba`/`ease`/
+`back`/…). The one thing that differs and is easy to get backwards: a bespoke file's own
+imports are relative to where `remotion.sh` lands it (`remotion/src/bespoke/`), not to
+`<work>/scenes/` where you write it — from the definition file that is `'../options/Param.ts'`
+and `'../scenes/define.ts'`; from the component, `'../../util'` and `'../YOUR_KEYWORD.ts'` —
+copy those paths literally, they are always correct regardless of the keyword. No line to add
+anywhere: `remotion.sh` discovers the file by name and registers it. `remotion/remotion.sh
+<work> check` catches everything a shared scene's own review would (a bad parameter, an
+unknown import, a missing component) plus one more: a keyword clashing with the shared
+catalog's.
+
+A scene that fits nothing being said is worse than none — **the panel comes for the idea, not
+to fill.** Each layout's file also says how often and how long it may be used: respect it.
 
 **But under-using them is the more common miss, and it is just as much a problem.** A number,
 a list, a condition, a date, a price, a quote-worthy line — most sentences that name a
@@ -685,8 +717,9 @@ Produces `<work>/video-final.srt` (YouTube and LinkedIn read it) and
 8. **Call it a "background audio file"** — not "music". The user decides its content (a
    human voice, ambience, or anything), and you name it by its neutral form and put it in
    `rush/bg-audio.mp3`.
-9. **Choose scenes afresh every time.** The scenes in `scenes/` are a palette, not a template
-   to copy verbatim onto every video.
+9. **Choose scenes afresh every time.** Default to writing one in `<work>/scenes/` (step 10)
+   for a distinctive beat; the shared `scenes/` catalog is a palette of plain utility widgets,
+   not a template to copy verbatim onto every video.
 
 ---
 

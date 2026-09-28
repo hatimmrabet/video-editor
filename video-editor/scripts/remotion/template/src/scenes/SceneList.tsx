@@ -11,19 +11,20 @@ import {T, PLAN_SCENES} from '../theme';
 import {clamp01 as cl} from '../geometry.ts';
 import {arrangementAt, videoRectAt} from '../stage';
 import {SCENE_ENTER, SCENE_EXIT, ease} from '../transitions/index.ts';
-import {SCENES} from './index.ts';
+import {parseScene} from './index.ts';
 import {COMPONENTS} from './components.tsx';
+import {BESPOKE_COMPONENTS} from '../bespoke/_registry.tsx';
 
 const dur = (v: any, d: number) => (typeof v === 'number' ? v : (v && typeof v.duration === 'number' ? v.duration : d));
 
-const CHOSEN = PLAN_SCENES.map((sc: any) => SCENES.parse({type: sc.type, ...(sc.params ?? {})}));
+const CHOSEN = PLAN_SCENES.map((sc: any) => parseScene({type: sc.type, ...(sc.params ?? {})}));
 
 export const SceneList: React.FC<{t: number}> = ({t}) => (
   <>
     {PLAN_SCENES.map((sc: any, i: number) => {
       if (t < sc.s || t >= sc.e) return null;
       const {name, option, params} = CHOSEN[i];
-      const Scene = COMPONENTS[name];
+      const Scene = (COMPONENTS as Record<string, React.FC<any>>)[name] ?? BESPOKE_COMPONENTS[name];
 
       const tm = sc.timing || {};
       const inD = Math.max(0.001, dur(tm.in, SCENE_ENTER.duration));
