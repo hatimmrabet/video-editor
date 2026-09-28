@@ -22,6 +22,10 @@ string with `*hot*` markers in it.
   pieces   the render program: one per kept source span              (Footage.tsx)
   cards    one per active segment, with per-word output timings      (Captions.tsx, stage.ts)
   scenes   one per segment that authored a `scene`                   (scenes/SceneList.tsx)
+           - itemReveal: for a scene with an `items` param, the absolute second each item
+             first appeared (see item_reveal_times) — None for a scene with no `items`
+           - continues / continuesNext: whether this scene picked up an already-running
+             `items` list from the one before it / hands it on to the one after
   overlays one per segment's `overlay[]` item, output-resolved       (VideoOverlays.tsx)
   stage    the layout schedule: each span's layout, scene and transition, as authored
   total    the speech duration; `outro` is added on top by theme.ts
@@ -162,6 +166,55 @@ def pieces(t, framing):
     return out
 
 
+def _continues(prev, sc):
+    """Whether sc's own `items` picks up exactly where prev's left off — the same things
+    named again, with one or more new ones appended — rather than an unrelated fresh list
+    that merely happens to share the same scene type."""
+    if not prev or prev.get("type") != sc.get("type"):
+        return False
+    prev_items = (prev.get("params") or {}).get("items")
+    items = (sc.get("params") or {}).get("items")
+    if not isinstance(prev_items, list) or not isinstance(items, list):
+        return False
+    return len(items) > len(prev_items) and items[:len(prev_items)] == prev_items
+
+
+def item_reveal_times(scenes):
+    """For every scene with an `items` param: `(itemReveal, continues)`, where `itemReveal`
+    is the absolute second each item first appeared, parallel to that scene's own `items`
+    list, and `continues` is whether this scene picked up an already-running list rather than
+    starting a fresh one. A scene with no `items` gets `(None, False)`.
+
+    The first time a list of items shows up its reveal times spread across that scene's own
+    span (the pop-in pacing a component already tunes for); a segment that continues the same
+    list (one more item than the last time this exact scene type ran) inherits every earlier
+    item's original time and gives only the new one(s) this segment's own start. A component
+    then animates each item off `t - itsRevealTime`, so a segment mounting mid-list draws every
+    earlier item already settled — never replaying an entrance that happened several segments
+    ago. SceneList.tsx also reads `continues` to skip the enter/exit rise it wraps every other
+    scene in: a continuing scene is not a new thing arriving, so it must not fade in over what
+    is already on screen, and neither may whichever segment continues FROM it fade out from
+    under a list that is still growing."""
+    out = []
+    prev, prev_reveal = None, []
+    for sc in scenes:
+        items = (sc.get("params") or {}).get("items")
+        if not isinstance(items, list):
+            out.append((None, False))
+            prev, prev_reveal = sc, []
+            continue
+        continues = _continues(prev, sc)
+        if continues:
+            reveal = list(prev_reveal) + [sc["s"]] * (len(items) - len(prev_reveal))
+        else:
+            n = len(items)
+            span = sc["e"] - sc["s"]
+            reveal = [round(sc["s"] + (0.05 + (i / n) * 0.4) * span, 3) for i in range(n)]
+        out.append((reveal, continues))
+        prev, prev_reveal = sc, reveal
+    return out
+
+
 def build(work, remotion_dir):
     t = tl.load(work)
     conf = cfg.load(work)
@@ -198,6 +251,13 @@ def build(work, remotion_dir):
                               "scale": ov.get("scale", 0.2)})
 
     stage = merge_stage(stage, round(tl.duration(t), 3))
+    reveals = item_reveal_times(scenes)
+    for i, (sc, (reveal, continues)) in enumerate(zip(scenes, reveals)):
+        sc["itemReveal"] = reveal
+        sc["continues"] = continues
+        # whether the NEXT scene continues this one — so this scene's own container knows not
+        # to fade out from under a list its successor is about to keep growing.
+        sc["continuesNext"] = i + 1 < len(reveals) and reveals[i + 1][1]
     theme = conf.get("theme", {})
 
     payload = {

@@ -28,9 +28,11 @@ export const CAPTION_BOTTOM = 360 / 1920;
    the screen together instead of reading as two stuck-on pieces. */
 export const CAPTION_SEAM_BIAS = 0.42;
 
-/* The overlay band FULL and HIDDEN reserve for a scene: no video card to size it against, so
-   it is a fixed share of the frame, clear of the top safe zone and the face. */
-export const OVERLAY_SCENE_BAND = {top: 0.06, height: 0.34};
+/* Where a scene may never start, at the very top of the frame: the platform's own UI sits in
+   the first 150px of a 1920-tall canvas (SKILL.md's safe-zone table), expressed as a share of
+   the height so it holds at any size. HIDDEN has no face to clear below it, so its scene uses
+   the whole frame instead of this margin. */
+export const SAFE_TOP = 150 / 1920;
 
 /* Pacing budgets, enforced by layouts/index.ts's audit (options/check.ts runs it at sync).
    Only FULL keeps the face alone on screen; every other layout counts against these. */

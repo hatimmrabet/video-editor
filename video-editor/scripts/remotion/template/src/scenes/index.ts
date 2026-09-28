@@ -22,6 +22,13 @@
      exit       0..1, raw linear progress of the exit (1 = gone)
      words      the sentence's words with their timings: {t, s, e, hot}[]
      wordIndex  how many of those words have started, minus one (-1 before the first)
+     itemReveal for a scene whose `items` param is a list, the absolute second each one first
+                appeared, parallel to `items` (render_data.py's item_reveal_times) — a segment
+                that continued an already-running list inherited its earlier items' real,
+                original times, so `t - itemReveal[i]` animates only whichever item is
+                actually new; every earlier one is already past its own entrance and reads as
+                settled. `undefined`/no `items` param: nothing to key off, animate however
+                the scene otherwise would.
      rect       the video card's rectangle at this instant — for an `overlay: true` scene
                 (SUSPENSE), which draws ON the video; everything else draws in `area`
      area       the active LAYOUT's own scene rectangle (frame px) — draw inside it, in ITS
